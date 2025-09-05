@@ -146,11 +146,11 @@ export default function BookingDetail({
               <img
                 src={`/api/qr/${s.token}`}
                 alt="QR de acceso"
-                className="w-64 h-64 object-contain"
+                className="w-64 h-64 object-contain text-center"
               />
               <a
                 href={`/api/qr/${s.token}?download=1`}
-                className="btn"
+                className="btn text-center"
                 download
               >
                 Descargar QR
