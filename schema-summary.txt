@@ -1,0 +1,126 @@
+﻿Schema public:
+  Table apparatus:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "name" "text" NOT NULL
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table bookings:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "session_id" "uuid" NOT NULL
+    - "client_id" "uuid" NOT NULL
+    - "apparatus_id" "uuid"
+    - "status" "booking_status" DEFAULT 'CONFIRMED'::booking_status NOT NULL
+    - "reserved_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table class_types:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "name" "text" NOT NULL
+    - "description" "text"
+  Table client_profiles:
+    - "client_id" "uuid" PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE
+    - "status" "client_status" DEFAULT 'ACTIVE'::client_status NOT NULL
+    - "avatar_url" "text"
+    - "birthdate" "date"
+    - "occupation" "text"
+    - "notes" "text"
+    - "emergency_contact_name" "text"
+    - "emergency_contact_phone" "text"
+    - "preferred_apparatus" "text[]" DEFAULT '{}'::text[] NOT NULL
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table clients:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "full_name" "text" NOT NULL
+    - "phone" "text"
+    - "email" "text"
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table courses:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "title" "text" NOT NULL
+    - "slug" "text"
+    - "description" "text"
+    - "short_description" "text"
+    - "price" "numeric(12,2)"
+    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
+    - "duration_label" "text"
+    - "level" "text"
+    - "category" "text"
+    - "visibility" "course_visibility" DEFAULT 'PUBLIC'::course_visibility NOT NULL
+    - "status" "course_status" DEFAULT 'DRAFT'::course_status NOT NULL
+    - "tags" "text[]" DEFAULT '{}'::text[] NOT NULL
+    - "cover_image_url" "text"
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table instructors:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "full_name" "text" NOT NULL
+    - "bio" "text"
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table membership_payments:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "membership_id" "uuid" NOT NULL
+    - "amount" "numeric(12,2)" NOT NULL
+    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
+    - "paid_at" "timestamp with time zone" DEFAULT now() NOT NULL
+    - "period_start" "date" NOT NULL
+    - "period_end" "date" NOT NULL
+    - "status" "payment_status" DEFAULT 'SUCCESS'::payment_status NOT NULL
+    - "provider_ref" "text"
+    - "notes" "text"
+  Table membership_types:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "name" "text" NOT NULL
+    - "description" "text"
+    - "billing_period" "billing_period" NOT NULL
+    - "access_type" "access_type" NOT NULL
+    - "price" "numeric(12,2)" NOT NULL
+    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
+    - "class_quota" "integer"
+    - "trial_days" "integer"
+    - "access_classes" "boolean" DEFAULT true NOT NULL
+    - "access_courses" "boolean" DEFAULT false NOT NULL
+    - "access_events" "boolean" DEFAULT false NOT NULL
+    - "is_active" "boolean" DEFAULT true NOT NULL
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table membership_usages:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "membership_id" "uuid" NOT NULL
+    - "session_id" "uuid" NOT NULL
+    - "used_at" "timestamp with time zone" DEFAULT now() NOT NULL
+    - "credit_delta" "integer" DEFAULT 1 NOT NULL
+    - "notes" "text"
+  Table memberships:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "client_id" "uuid" NOT NULL
+    - "membership_type_id" "uuid" NOT NULL
+    - "status" "membership_status" DEFAULT 'ACTIVE'::membership_status NOT NULL
+    - "start_date" "date" DEFAULT (now())::date NOT NULL
+    - "end_date" "date" NOT NULL
+    - "next_billing_date" "date"
+    - "auto_renew" "boolean" DEFAULT true NOT NULL
+    - "assigned_session_id" "uuid"
+    - "remaining_classes" "integer"
+    - "notes" "text"
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table qr_tokens:
+    - "booking_id" "uuid" NOT NULL
+    - "token" "text" NOT NULL
+    - "expires_at" "timestamp with time zone" NOT NULL
+  Table rooms:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "name" "text" NOT NULL
+    - "capacity" "integer" NOT NULL
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+  Table session_apparatus:
+    - "session_id" "uuid" NOT NULL
+    - "apparatus_id" "uuid" NOT NULL
+    - "quantity" "integer" NOT NULL
+  Table sessions:
+    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
+    - "class_type_id" "uuid" NOT NULL
+    - "room_id" "uuid" NOT NULL
+    - "instructor_id" "uuid" NOT NULL
+    - "start_time" "timestamp with time zone" NOT NULL
+    - "end_time" "timestamp with time zone" NOT NULL
+    - "capacity" "integer" NOT NULL
+    - "current_occupancy" "integer" DEFAULT 0 NOT NULL
+    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL

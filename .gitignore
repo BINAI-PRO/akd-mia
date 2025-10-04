@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# executables & zip
+*.zip
+*.exe
+supabase/pg_bin.zip
+supabase/pgsql/pgAdmin4/runtime/pgAdmin4.exe

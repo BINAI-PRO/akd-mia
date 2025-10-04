@@ -1,0 +1,7 @@
+﻿[project]
+ref = "onwotwlydmzpomopxayf"
+
+[db]
+password = "FarNiente01"
+schemas = ["public"]
+shadow_schema = "supabase_shadow"
