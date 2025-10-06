@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "PATCH") {
     try {
-      const { id, isActive, description, accessClasses, accessCourses, accessEvents, classQuota, trialDays } = req.body as {
+      const { id, isActive, description, accessClasses, accessCourses, classQuota, trialDays } = req.body as {
         id?: string;
         isActive?: boolean;
         description?: string | null;

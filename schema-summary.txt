@@ -83,9 +83,42 @@ CREATE TABLE public.instructor_class_types (
   certified boolean NOT NULL DEFAULT true,
   certified_at timestamp with time zone,
   notes text,
-  CONSTRAINT instructor_class_types_pkey PRIMARY KEY (class_type_id, instructor_id),
+  CONSTRAINT instructor_class_types_pkey PRIMARY KEY (instructor_id, class_type_id),
   CONSTRAINT instructor_class_types_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT instructor_class_types_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id)
+);
+CREATE TABLE public.instructor_week_override_slots (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  override_id uuid NOT NULL,
+  weekday smallint NOT NULL CHECK (weekday >= 0 AND weekday <= 6),
+  start_time time without time zone NOT NULL,
+  end_time time without time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT instructor_week_override_slots_pkey PRIMARY KEY (id),
+  CONSTRAINT instructor_week_override_slots_override_id_fkey FOREIGN KEY (override_id) REFERENCES public.instructor_week_overrides(id)
+);
+CREATE TABLE public.instructor_week_overrides (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  instructor_id uuid NOT NULL,
+  week_start_date date NOT NULL,
+  label text,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT instructor_week_overrides_pkey PRIMARY KEY (id),
+  CONSTRAINT instructor_week_overrides_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id)
+);
+CREATE TABLE public.instructor_weekly_availability (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  instructor_id uuid NOT NULL,
+  weekday smallint NOT NULL CHECK (weekday >= 0 AND weekday <= 6),
+  start_time time without time zone NOT NULL,
+  end_time time without time zone NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT instructor_weekly_availability_pkey PRIMARY KEY (id),
+  CONSTRAINT instructor_weekly_availability_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id)
 );
 CREATE TABLE public.instructors (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -212,7 +245,7 @@ CREATE TABLE public.session_apparatus (
   session_id uuid NOT NULL,
   apparatus_id uuid NOT NULL,
   quantity integer NOT NULL CHECK (quantity >= 0),
-  CONSTRAINT session_apparatus_pkey PRIMARY KEY (apparatus_id, session_id),
+  CONSTRAINT session_apparatus_pkey PRIMARY KEY (session_id, apparatus_id),
   CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
   CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
 );

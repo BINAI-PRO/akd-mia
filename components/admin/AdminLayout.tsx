@@ -115,7 +115,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     });
   };
 
-  const renderLink = (link: NavLink, isMobile = false) => {
+  const renderLink = (link: NavLink) => {
     const isActive = link.key === active;
     const className = [
       "flex items-center rounded-lg px-4 py-2 text-sm transition",
@@ -141,7 +141,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     <nav className={`flex-1 space-y-1 ${isMobile ? "p-3" : "p-4"}`}>
       {NAVIGATION.map((item) => {
         if (item.type === "link") {
-          return renderLink(item, isMobile);
+          return renderLink(item);
         }
 
         const isExpanded = openGroups.has(item.key);
@@ -169,7 +169,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
                 expand_more
               </span>
             </button>
-            <div className={`${isExpanded ? "block" : "hidden"} space-y-1 pl-8`}>{item.children.map((child) => renderLink(child, isMobile))}</div>
+            <div className={`${isExpanded ? "block" : "hidden"} space-y-1 pl-8`}>{item.children.map((child) => renderLink(child))}</div>
           </div>
         );
       })}

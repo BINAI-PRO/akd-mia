@@ -194,6 +194,132 @@ export type Database = {
         ]
       }
 
+      // ----------------------------------------------------
+      //  DISPONIBILIDAD TÍPICA DE INSTRUCTORES
+      // ----------------------------------------------------
+      instructor_weekly_availability: {
+        Row: {
+          id: string
+          instructor_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          instructor_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          instructor_id?: string
+          weekday?: number
+          start_time?: string
+          end_time?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_weekly_availability_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // ----------------------------------------------------
+      //  SEMANAS ATÍPICAS (cabecera)
+      // ----------------------------------------------------
+      instructor_week_overrides: {
+        Row: {
+          id: string
+          instructor_id: string
+          week_start_date: string
+          label: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          instructor_id: string
+          week_start_date: string
+          label?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          instructor_id?: string
+          week_start_date?: string
+          label?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_week_overrides_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // ----------------------------------------------------
+      //  SEMANAS ATÍPICAS (rangos por día)
+      // ----------------------------------------------------
+      instructor_week_override_slots: {
+        Row: {
+          id: string
+          override_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          override_id: string
+          weekday: number
+          start_time: string
+          end_time: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          override_id?: string
+          weekday?: number
+          start_time?: string
+          end_time?: string
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_week_override_slots_override_id_fkey"
+            columns: ["override_id"]
+            isOneToOne: false
+            referencedRelation: "instructor_week_overrides"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
       courses: {
         Row: {
           id: string
@@ -729,3 +855,4 @@ export type TablesUpdate<
 export type Enums<
   T extends keyof PublicSchema["Enums"] & string
 > = PublicSchema["Enums"][T]
+
