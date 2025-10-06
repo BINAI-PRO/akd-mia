@@ -14,7 +14,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         trialDays,
         accessClasses,
         accessCourses,
-        accessEvents,
         accessType,
         isActive,
       } = req.body as {
@@ -27,7 +26,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         trialDays?: number | null;
         accessClasses?: boolean;
         accessCourses?: boolean;
-        accessEvents?: boolean;
         accessType?: string;
         isActive?: boolean;
       };
@@ -52,7 +50,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         trial_days: trialDays ?? null,
         access_classes: accessClasses ?? true,
         access_courses: accessCourses ?? false,
-        access_events: accessEvents ?? false,
         is_active: isActive ?? true,
       };
 
@@ -82,7 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description?: string | null;
         accessClasses?: boolean;
         accessCourses?: boolean;
-        accessEvents?: boolean;
         classQuota?: number | null;
         trialDays?: number | null;
       };
@@ -97,7 +93,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (description !== undefined) updatePayload.description = description;
       if (accessClasses !== undefined) updatePayload.access_classes = accessClasses;
       if (accessCourses !== undefined) updatePayload.access_courses = accessCourses;
-      if (accessEvents !== undefined) updatePayload.access_events = accessEvents;
       if (classQuota !== undefined) updatePayload.class_quota = classQuota;
       if (trialDays !== undefined) updatePayload.trial_days = trialDays;
 

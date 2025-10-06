@@ -1,123 +1,128 @@
 ﻿import Head from "next/head";
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ChangeEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
-type ClassTypeOption = { id: string; name: string; description?: string | null };
+type CourseOption = {
+  id: string;
+  title: string;
+  sessionDurationMinutes: number;
+  classTypeId: string | null;
+  classTypeName: string | null;
+};
+
+type CourseQueryRow = Tables<'courses'> & {
+  class_types: Pick<Tables<'class_types'>, 'id' | 'name'> | null;
+};
+
+type SessionQueryRow = Tables<'sessions'> & {
+  class_types: Pick<Tables<'class_types'>, 'id' | 'name'> | null;
+  instructors: Pick<Tables<'instructors'>, 'id' | 'full_name'> | null;
+  rooms: Pick<Tables<'rooms'>, 'id' | 'name' | 'capacity'> | null;
+  courses: Pick<Tables<'courses'>, 'id' | 'title' | 'session_duration_minutes'> | null;
+};
+
 type InstructorOption = { id: string; full_name: string; bio?: string | null };
 type RoomOption = { id: string; name: string; capacity?: number | null };
 
-type SessionQueryRow = Tables<"sessions"> & {
-  class_types: Pick<Tables<"class_types">, "name"> | null;
-  instructors: Pick<Tables<"instructors">, "full_name"> | null;
-  rooms: Pick<Tables<"rooms">, "name"> | null;
-};
-
 type ClassRow = {
   id: string;
+  courseId: string | null;
+  courseTitle: string;
   className: string;
+  classTypeId: string | null;
+  instructorId: string | null;
   instructor: string;
+  roomId: string | null;
   room: string;
   scheduleLabel: string;
   startISO: string;
   endISO: string;
   capacity: number;
   occupancy: number;
+  durationMinutes: number;
 };
 
 type PageProps = {
   initialClasses: ClassRow[];
-  classTypes: ClassTypeOption[];
+  courses: CourseOption[];
   instructors: InstructorOption[];
   rooms: RoomOption[];
 };
 
-type FormState = {
-  classTypeId: string;
-  classTypeName: string;
-  classDescription: string;
-  instructorId: string;
-  instructorName: string;
-  instructorBio: string;
-  roomId: string;
-  roomName: string;
-  roomCapacity: string;
-  capacity: string;
-  date: string;
+type DetailState = {
+  startDate: string;
   startTime: string;
-  durationMinutes: string;
-  price: string;
-  visibility: "public" | "private";
-  tags: string;
-  notes: string;
+  instructorId: string;
+  roomId: string;
 };
 
-const DEFAULT_FORM: FormState = {
-  classTypeId: "",
-  classTypeName: "",
-  classDescription: "",
-  instructorId: "",
-  instructorName: "",
-  instructorBio: "",
-  roomId: "",
-  roomName: "",
-  roomCapacity: "",
-  capacity: "10",
-  date: dayjs().format("YYYY-MM-DD"),
-  startTime: "09:00",
-  durationMinutes: "60",
-  price: "",
-  visibility: "public",
-  tags: "",
-  notes: "",
-};
+const sortClasses = (rows: ClassRow[]) =>
+  [...rows].sort((a, b) => dayjs(a.startISO).valueOf() - dayjs(b.startISO).valueOf());
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [sessionsResp, classTypesResp, instructorsResp, roomsResp] = await Promise.all([
+  const [sessionsResp, coursesResp, instructorsResp, roomsResp] = await Promise.all([
     supabaseAdmin
-      .from("sessions")
+      .from('sessions')
       .select(
-        "id, start_time, end_time, capacity, current_occupancy, class_types(name), instructors(full_name), rooms(name)"
+        'id, course_id, start_time, end_time, capacity, current_occupancy, class_type_id, class_types(id, name), instructors(id, full_name), rooms(id, name, capacity), courses(id, title, session_duration_minutes)'
       )
-      .returns<SessionQueryRow[]>()
-      .order("start_time", { ascending: true })
-      .limit(100),
-    supabaseAdmin.from("class_types").select("id, name, description").order("name"),
-    supabaseAdmin.from("instructors").select("id, full_name, bio").order("full_name"),
-    supabaseAdmin.from("rooms").select("id, name, capacity").order("name"),
+      .order('start_time', { ascending: true })
+      .limit(200),
+    supabaseAdmin
+      .from('courses')
+      .select('id, title, session_duration_minutes, class_type_id, class_types:class_type_id (id, name)')
+      .order('title'),
+    supabaseAdmin.from('instructors').select('id, full_name, bio').order('full_name'),
+    supabaseAdmin.from('rooms').select('id, name, capacity').order('name'),
   ]);
 
-  const sessionRows: SessionQueryRow[] = sessionsResp.data ?? [];
-  const initialClasses: ClassRow[] = sessionRows.map((row) => {
-    const start = dayjs(row.start_time);
-    const end = dayjs(row.end_time);
-    const scheduleLabel = `${start.format("ddd DD MMM, HH:mm")} - ${end.format("HH:mm")}`;
-    return {
-      id: row.id,
-      className: row.class_types?.name ?? "Clase",
-      instructor: row.instructors?.full_name ?? "-",
-      room: row.rooms?.name ?? "-",
-      scheduleLabel,
-      startISO: row.start_time,
-      endISO: row.end_time,
-      capacity: row.capacity ?? 0,
-      occupancy: row.current_occupancy ?? 0,
-    };
-  });
+  const sessionRows = (sessionsResp.data ?? []) as SessionQueryRow[];
+  const courseRows = (coursesResp.data ?? []) as CourseQueryRow[];
 
-  const classTypes: ClassTypeOption[] = (classTypesResp.data ?? []).map(({ id, name, description }) => ({
-    id,
-    name,
-    description: description ?? null,
+  const initialClasses: ClassRow[] = sortClasses(
+    sessionRows.map((row) => {
+      const start = dayjs(row.start_time);
+      const end = dayjs(row.end_time);
+      const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
+      return {
+        id: row.id,
+        courseId: row.course_id ?? null,
+        courseTitle: row.courses?.title ?? 'Sin curso',
+        className: row.class_types?.name ?? 'Clase',
+        classTypeId: row.class_types?.id ?? null,
+        instructorId: row.instructors?.id ?? null,
+        instructor: row.instructors?.full_name ?? '-',
+        roomId: row.rooms?.id ?? null,
+        room: row.rooms?.name ?? '-',
+        scheduleLabel: `${start.format('ddd DD MMM, HH:mm')} - ${end.format('HH:mm')}`,
+        startISO: row.start_time,
+        endISO: row.end_time,
+        capacity: row.capacity ?? 0,
+        occupancy: row.current_occupancy ?? 0,
+        durationMinutes,
+      };
+    })
+  );
+
+  const courses: CourseOption[] = courseRows.map((row) => ({
+    id: row.id,
+    title: row.title,
+    sessionDurationMinutes: Number(row.session_duration_minutes ?? 0),
+    classTypeId: row.class_type_id ?? null,
+    classTypeName: row.class_types?.name ?? null,
   }));
-  const instructors: InstructorOption[] = (instructorsResp.data ?? []).map(({ id, full_name, bio }) => ({
+
+  const instructors: InstructorOption[] = ((instructorsResp.data ?? []) as Tables<'instructors'>[]).map(({ id, full_name, bio }) => ({
     id,
     full_name,
     bio: bio ?? null,
   }));
+
   const rooms: RoomOption[] = (roomsResp.data ?? []).map(({ id, name, capacity }) => ({
     id,
     name,
@@ -127,222 +132,387 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   return {
     props: {
       initialClasses,
-      classTypes,
+      courses,
       instructors,
       rooms,
     },
   };
 };
-
-export default function AdminClassesPage({ initialClasses, classTypes, instructors, rooms }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function AdminClassesPage({
+  initialClasses,
+  courses,
+  instructors,
+  rooms,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [classes, setClasses] = useState<ClassRow[]>(initialClasses);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "past">("all");
-  const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
-  const [creating, setCreating] = useState(false);
-  const [formMessage, setFormMessage] = useState<string | null>(null);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [classTypeOptions, setClassTypeOptions] = useState(classTypes);
-  const [instructorOptions, setInstructorOptions] = useState(instructors);
-  const [roomOptions, setRoomOptions] = useState(rooms);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [courseFilter, setCourseFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [detailState, setDetailState] = useState<DetailState | null>(null);
+  const [detailMessage, setDetailMessage] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const [updatingDetail, setUpdatingDetail] = useState(false);
+  const [bulkInstructorId, setBulkInstructorId] = useState<string>('');
+  const [bulkRoomId, setBulkRoomId] = useState<string>('');
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [bulkMessage, setBulkMessage] = useState<string | null>(null);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
+
+  const instructorOptions = instructors;
+  const roomOptions = rooms;
+
+  const activeClass = useMemo(
+    () => classes.find((row) => row.id === activeClassId) ?? null,
+    [classes, activeClassId]
+  );
+
+  useEffect(() => {
+    if (!activeClass) {
+      setDetailState(null);
+      setDetailMessage(null);
+      setDetailError(null);
+      return;
+    }
+    setDetailState({
+      startDate: dayjs(activeClass.startISO).format('YYYY-MM-DD'),
+      startTime: dayjs(activeClass.startISO).format('HH:mm'),
+      instructorId: activeClass.instructorId ?? '',
+      roomId: activeClass.roomId ?? '',
+    });
+    setDetailMessage(null);
+    setDetailError(null);
+  }, [activeClass]);
 
   const filteredClasses = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    const now = dayjs();
+    const dayFilter = dayjs(dateFilter || undefined);
+    const hasDateFilter = Boolean(dateFilter && dayFilter.isValid());
     return classes.filter((row) => {
-      if (term) {
-        const haystack = `${row.className} ${row.instructor} ${row.room}`.toLowerCase();
-        if (!haystack.includes(term)) return false;
-      }
-      if (statusFilter === "upcoming" && dayjs(row.startISO).isBefore(now)) return false;
-      if (statusFilter === "past" && dayjs(row.endISO).isAfter(now)) return false;
+      if (courseFilter !== 'all' && row.courseId !== courseFilter) return false;
+      if (hasDateFilter && !dayjs(row.startISO).isSame(dayFilter, 'day')) return false;
+      if (statusFilter === 'upcoming' && dayjs(row.startISO).isBefore(dayjs())) return false;
+      if (statusFilter === 'past' && dayjs(row.endISO).isAfter(dayjs())) return false;
       return true;
     });
-  }, [classes, search, statusFilter]);
+  }, [classes, courseFilter, dateFilter, statusFilter]);
 
-  const handleFormChange = (field: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const value = event.target.value;
-    setFormState((prev) => ({ ...prev, [field]: value }));
+  const toggleSelection = (sessionId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
   };
 
-  const resetForm = () => {
-    setFormState({ ...DEFAULT_FORM });
-    setFormMessage(null);
-    setFormError(null);
-  };
+  const clearSelection = () => setSelectedIds(new Set());
 
-  const handleCreate = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setCreating(true);
-    setFormMessage(null);
-    setFormError(null);
+  const handleDetailChange = (field: keyof DetailState) =>
+    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      if (!detailState) return;
+      const value = event.target.value;
+      setDetailState((prev) => (prev ? { ...prev, [field]: value } : prev));
+    };
+
+  const handleDetailSave = async () => {
+    if (!activeClass || !detailState) return;
+    setUpdatingDetail(true);
+    setDetailMessage(null);
+    setDetailError(null);
 
     try {
-      const payload = {
-        classTypeId: formState.classTypeId || null,
-        classTypeName: formState.classTypeName || null,
-        classDescription: formState.classDescription || null,
-        instructorId: formState.instructorId || null,
-        instructorName: formState.instructorName || null,
-        instructorBio: formState.instructorBio || null,
-        roomId: formState.roomId || null,
-        roomName: formState.roomName || null,
-        roomCapacity: formState.roomCapacity || null,
-        capacity: Number(formState.capacity || 0),
-        date: formState.date,
-        startTime: formState.startTime,
-        durationMinutes: Number(formState.durationMinutes || 60),
-        visibility: formState.visibility,
-        tags: formState.tags,
-        notes: formState.notes,
-        price: formState.price,
+      const payload: Record<string, unknown> = {
+        sessionId: activeClass.id,
+        instructorId: detailState.instructorId || null,
+        roomId: detailState.roomId || null,
       };
 
-      if (!payload.classTypeId && !payload.classTypeName) {
-        throw new Error("Selecciona o crea un tipo de clase.");
-      }
-      if (!payload.instructorId && !payload.instructorName) {
-        throw new Error("Selecciona o crea un instructor.");
-      }
-      if (!payload.roomId && !payload.roomName) {
-        throw new Error("Selecciona o crea un salón.");
-      }
-      if (!payload.date || !payload.startTime) {
-        throw new Error("Define fecha y hora de inicio.");
-      }
-      if (!payload.capacity || payload.capacity <= 0) {
-        throw new Error("Define una capacidad mayor a cero.");
-      }
+      const originalDate = dayjs(activeClass.startISO).format('YYYY-MM-DD');
+      const originalTime = dayjs(activeClass.startISO).format('HH:mm');
+      if (detailState.startDate !== originalDate) payload.date = detailState.startDate;
+      if (detailState.startTime !== originalTime) payload.startTime = detailState.startTime;
 
-      const res = await fetch("/api/admin/classes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/admin/classes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "No se pudo crear la clase");
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error ?? 'No se pudo actualizar la clase');
       }
 
-      const body = (await res.json()) as {
-        message: string;
-        session: any;
-        classType?: ClassTypeOption;
-        instructor?: InstructorOption;
-        room?: RoomOption;
-      };
+      const updated = body.session as SessionQueryRow;
+      const start = dayjs(updated.start_time);
+      const end = dayjs(updated.end_time);
+      const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
 
-      const sessionRow = body.session;
-      const newClass: ClassRow = {
-        id: sessionRow.id,
-        className: sessionRow.class_types?.name ?? "Clase",
-        instructor: sessionRow.instructors?.full_name ?? "-",
-        room: sessionRow.rooms?.name ?? "-",
-        scheduleLabel: `${dayjs(sessionRow.start_time).format("ddd DD MMM, HH:mm")} - ${dayjs(sessionRow.end_time).format("HH:mm")}`,
-        startISO: sessionRow.start_time,
-        endISO: sessionRow.end_time,
-        capacity: sessionRow.capacity ?? 0,
-        occupancy: sessionRow.current_occupancy ?? 0,
-      };
+      setClasses((prev) =>
+        sortClasses(
+          prev.map((row) =>
+            row.id === activeClass.id
+              ? {
+                  ...row,
+                  instructor: updated.instructors?.full_name ?? row.instructor,
+                  instructorId: updated.instructors?.id ?? row.instructorId,
+                  room: updated.rooms?.name ?? row.room,
+                  roomId: updated.rooms?.id ?? row.roomId,
+                  startISO: updated.start_time,
+                  endISO: updated.end_time,
+                  scheduleLabel: `${start.format('ddd DD MMM, HH:mm')} - ${end.format('HH:mm')}`,
+                  durationMinutes,
+                }
+              : row
+          )
+        )
+      );
 
-      setClasses((prev) => [newClass, ...prev]);
-
-      if (body.classType) {
-        setClassTypeOptions((prev) => {
-          if (prev.some((c) => c.id === body.classType?.id)) return prev;
-          return [...prev, body.classType!].sort((a, b) => a.name.localeCompare(b.name, "es") );
-        });
-      }
-      if (body.instructor) {
-        setInstructorOptions((prev) => {
-          if (prev.some((i) => i.id === body.instructor?.id)) return prev;
-          return [...prev, body.instructor!].sort((a, b) => a.full_name.localeCompare(b.full_name, "es") );
-        });
-      }
-      if (body.room) {
-        setRoomOptions((prev) => {
-          if (prev.some((r) => r.id === body.room?.id)) return prev;
-          return [...prev, body.room!].sort((a, b) => a.name.localeCompare(b.name, "es") );
-        });
-      }
-
-      setFormMessage(body.message || "Clase creada correctamente.");
-      resetForm();
-    } catch (error: any) {
-      setFormError(error?.message || "No se pudo crear la clase");
+      setDetailMessage(body?.message ?? 'Clase actualizada');
+    } catch (error) {
+      setDetailError(error instanceof Error ? error.message : 'Error al actualizar la clase');
     } finally {
-      setCreating(false);
+      setUpdatingDetail(false);
+    }
+  };
+  const handleBulkUpdate = async () => {
+    setBulkError(null);
+    setBulkMessage(null);
+    if (selectedIds.size === 0) return;
+    if (!bulkInstructorId && !bulkRoomId) {
+      setBulkError('Selecciona un instructor o un salon para actualizar.');
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const response = await fetch('/api/admin/classes/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          sessionIds: Array.from(selectedIds),
+          instructorId: bulkInstructorId || null,
+          roomId: bulkRoomId || null,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error ?? 'No se pudieron actualizar las clases seleccionadas');
+      }
+
+      const updatedRows: SessionQueryRow[] = body.sessions ?? [];
+      setClasses((prev) =>
+        sortClasses(
+          prev.map((row) => {
+            const updated = updatedRows.find((item) => item.id === row.id);
+            if (!updated) return row;
+            return {
+              ...row,
+              instructor: updated.instructors?.full_name ?? row.instructor,
+              instructorId: updated.instructors?.id ?? row.instructorId,
+              room: updated.rooms?.name ?? row.room,
+              roomId: updated.rooms?.id ?? row.roomId,
+            };
+          })
+        )
+      );
+
+      setBulkMessage(body?.message ?? 'Clases actualizadas');
+      clearSelection();
+      setBulkInstructorId('');
+      setBulkRoomId('');
+    } catch (error) {
+      setBulkError(error instanceof Error ? error.message : 'No se pudieron actualizar las clases');
+    } finally {
+      setBulkProcessing(false);
     }
   };
 
-  const now = dayjs();
+  const handleBulkReschedule = async () => {
+    setBulkError(null);
+    setBulkMessage(null);
+    if (selectedIds.size === 0) return;
+    if (!globalThis.confirm('Seguro que deseas enviar estas clases a reprogramacion? Esta accion las eliminara.')) {
+      return;
+    }
+
+    setBulkProcessing(true);
+    try {
+      const response = await fetch('/api/admin/classes/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reschedule', sessionIds: Array.from(selectedIds) }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body?.error ?? 'No se pudieron reprogramar las clases seleccionadas');
+      }
+
+      const removedIds: string[] = body.removedIds ?? [];
+      if (removedIds.length > 0) {
+        setClasses((prev) => prev.filter((row) => !removedIds.includes(row.id)));
+      }
+      if (removedIds.includes(activeClassId ?? '')) {
+        setActiveClassId(null);
+      }
+      clearSelection();
+      setBulkMessage(body?.message ?? 'Clases enviadas a reprogramacion');
+    } catch (error) {
+      setBulkError(error instanceof Error ? error.message : 'No se pudieron reprogramar las clases');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
 
   const renderStatusBadge = (row: ClassRow) => {
-    const start = dayjs(row.startISO);
     const end = dayjs(row.endISO);
-    if (end.isBefore(now)) {
+    if (end.isBefore(dayjs())) {
       return <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">Finalizada</span>;
     }
     if (row.occupancy >= row.capacity && row.capacity > 0) {
-      return <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Full</span>;
+      return <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">Completa</span>;
     }
     return <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Disponible</span>;
   };
 
-  const headerToolbar = (
-    <div className="flex items-center gap-4">
-      <div className="relative hidden lg:block">
-        <span className="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-        <input
-          type="search"
-          placeholder="Buscar clases..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-        />
-      </div>
-      <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
-        <span className="material-icons-outlined text-slate-500">notifications</span>
-      </button>
-      <img src="/angie.jpg" alt="Usuario" className="h-9 w-9 rounded-full object-cover" />
-    </div>
-  );
-
+  const occupancyLocks = activeClass ? activeClass.occupancy > 0 : false;
   return (
-    <AdminLayout title="Classes" active="classes" headerToolbar={headerToolbar}>
+    <AdminLayout title="Clases" active="classes">
       <Head>
-        <title>PilatesTime Admin - Classes</title>
+        <title>PilatesTime Admin - Clases</title>
       </Head>
       <div className="mx-auto grid max-w-full grid-cols-1 gap-8 xl:grid-cols-3">
-        <section className="xl:col-span-2 space-y-4">
+        <section className="space-y-4 xl:col-span-2">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <h2 className="text-lg font-semibold">Clases programadas</h2>
-              <div className="flex flex-wrap items-center gap-2">
-                <label className="text-xs font-medium text-slate-500">Estado:</label>
+              <div>
+                <h2 className="text-lg font-semibold">Clases programadas</h2>
+                <p className="text-xs text-slate-500">Cada clase esta vinculada a un curso especifico.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={courseFilter}
+                  onChange={(event) => setCourseFilter(event.target.value)}
+                  className="h-9 rounded-md border border-slate-200 px-3 text-sm"
+                >
+                  <option value="all">Todos los cursos</option>
+                  {courses.map((course) => (
+                    <option key={course.id} value={course.id}>
+                      {course.title}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(event) => setDateFilter(event.target.value)}
+                  className="h-9 rounded-md border border-slate-200 px-3 text-sm"
+                />
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                  onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
                   className="h-9 rounded-md border border-slate-200 px-3 text-sm"
                 >
                   <option value="all">Todas</option>
-                  <option value="upcoming">Próximas</option>
+                  <option value="upcoming">Proximas</option>
                   <option value="past">Finalizadas</option>
                 </select>
               </div>
             </div>
 
+            {selectedIds.size > 0 && (
+              <div className="mb-4 flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold">{selectedIds.size} clases seleccionadas</span>
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="text-xs text-brand-600 underline"
+                  >
+                    Limpiar seleccion
+                  </button>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={bulkInstructorId}
+                    onChange={(event) => setBulkInstructorId(event.target.value)}
+                    className="h-9 rounded-md border border-slate-200 px-3 text-sm"
+                  >
+                    <option value="">Instructores...</option>
+                    {instructorOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.full_name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={bulkRoomId}
+                    onChange={(event) => setBulkRoomId(event.target.value)}
+                    className="h-9 rounded-md border border-slate-200 px-3 text-sm"
+                  >
+                    <option value="">Salones...</option>
+                    {roomOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleBulkUpdate}
+                    disabled={bulkProcessing}
+                    className="rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {bulkProcessing ? 'Aplicando...' : 'Actualizar sala o instructor'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBulkReschedule}
+                    disabled={bulkProcessing}
+                    className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                  >
+                    {bulkProcessing ? 'Procesando...' : 'Enviar a reprogramacion'}
+                  </button>
+                </div>
+                {(bulkError || bulkMessage) && (
+                  <div className={`text-xs ${bulkError ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    {bulkError ?? bulkMessage}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="text-xs uppercase text-slate-500">
                   <tr className="border-b border-slate-200 bg-slate-50">
-                    <th className="px-6 py-3">Clase</th>
-                    <th className="px-6 py-3">Instructor</th>
-                    <th className="px-6 py-3">Horario</th>
-                    <th className="px-6 py-3">Cupo</th>
-                    <th className="px-6 py-3">Estado</th>
-                    <th className="px-6 py-3 text-right">Acciones</th>
+                    <th className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.size > 0 && filteredClasses.every((row) => selectedIds.has(row.id))}
+                        onChange={(event) => {
+                          if (event.target.checked) {
+                            const next = new Set(selectedIds);
+                            filteredClasses.forEach((row) => next.add(row.id));
+                            setSelectedIds(next);
+                          } else {
+                            const next = new Set(selectedIds);
+                            filteredClasses.forEach((row) => next.delete(row.id));
+                            setSelectedIds(next);
+                          }
+                        }}
+                      />
+                    </th>
+                    <th className="px-4 py-3">Curso</th>
+                    <th className="px-4 py-3">Clase</th>
+                    <th className="px-4 py-3">Horario</th>
+                    <th className="px-4 py-3">Cupo</th>
+                    <th className="px-4 py-3">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -354,30 +524,34 @@ export default function AdminClassesPage({ initialClasses, classTypes, instructo
                     </tr>
                   ) : (
                     filteredClasses.map((row) => {
-                      const spots = `${row.occupancy}/${row.capacity}`;
+                      const isSelected = selectedIds.has(row.id);
+                      const isActive = row.id === activeClassId;
+                      const occupancyLabel = `${row.occupancy}/${row.capacity}`;
                       return (
-                        <tr key={row.id} className="border-b border-slate-200 hover:bg-slate-50">
-                          <td className="px-6 py-4 font-medium text-slate-800">
-                            <div>{row.className}</div>
-                            <div className="text-xs text-slate-500">{row.room}</div>
+                        <tr
+                          key={row.id}
+                          className={`border-b border-slate-200 transition-colors ${
+                            isActive ? 'bg-brand-50' : 'hover:bg-slate-50'
+                          }`}
+                          onClick={() => setActiveClassId(row.id)}
+                        >
+                          <td className="px-4 py-3" onClick={(event) => event.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelection(row.id)}
+                            />
                           </td>
-                          <td className="px-6 py-4 text-slate-700">{row.instructor}</td>
-                          <td className="px-6 py-4 text-slate-700">{row.scheduleLabel}</td>
-                          <td className="px-6 py-4 text-slate-700">{spots}</td>
-                          <td className="px-6 py-4">{renderStatusBadge(row)}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex justify-end gap-2 text-slate-400">
-                              <button type="button" className="rounded-full p-1.5 hover:text-brand-600" title="Ver detalles">
-                                <span className="material-icons-outlined text-base">visibility</span>
-                              </button>
-                              <button type="button" className="rounded-full p-1.5 hover:text-brand-600" title="Editar">
-                                <span className="material-icons-outlined text-base">edit</span>
-                              </button>
-                              <button type="button" className="rounded-full p-1.5 hover:text-rose-600" title="Eliminar">
-                                <span className="material-icons-outlined text-base">delete</span>
-                              </button>
+                          <td className="px-4 py-3 text-slate-700">{row.courseTitle}</td>
+                          <td className="px-4 py-3 font-medium text-slate-800">
+                            <div>{row.className}</div>
+                            <div className="text-xs text-slate-500">
+                              {row.instructor} - {row.room}
                             </div>
                           </td>
+                          <td className="px-4 py-3 text-slate-700">{row.scheduleLabel}</td>
+                          <td className="px-4 py-3 text-slate-700">{occupancyLabel}</td>
+                          <td className="px-4 py-3">{renderStatusBadge(row)}</td>
                         </tr>
                       );
                     })
@@ -385,232 +559,102 @@ export default function AdminClassesPage({ initialClasses, classTypes, instructo
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-xs text-slate-500">
-              * Próximamente: acciones de edición, duplicado y exportación conectadas al backend.
-            </p>
           </div>
         </section>
 
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Crear nueva clase</h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Los campos de precio, visibilidad y etiquetas quedarán pendientes hasta habilitar soporte en la base de datos.
-            </p>
-            <form className="mt-4 space-y-4" onSubmit={handleCreate}>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Tipo de clase</label>
-                <select
-                  value={formState.classTypeId}
-                  onChange={handleFormChange("classTypeId")}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Crear nueva…</option>
-                  {classTypeOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.name}
-                    </option>
-                  ))}
-                </select>
-                {!formState.classTypeId && (
-                  <div className="mt-2 space-y-2">
-                    <input
-                      type="text"
-                      value={formState.classTypeName}
-                      onChange={handleFormChange("classTypeName")}
-                      placeholder="Nombre del nuevo tipo de clase"
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                    />
-                    <textarea
-                      value={formState.classDescription}
-                      onChange={handleFormChange("classDescription")}
-                      placeholder="Descripción breve (opcional)"
-                      rows={2}
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                    />
+            <h3 className="text-xl font-semibold">Detalles de la clase</h3>
+            {activeClass && detailState ? (
+              <div className="mt-4 space-y-4 text-sm">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <div className="font-semibold text-slate-800">{activeClass.courseTitle}</div>
+                  <div className="text-xs text-slate-500">
+                    {dayjs(activeClass.startISO).format('dddd DD MMM YYYY')} - {activeClass.className}
                   </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Instructor</label>
-                <select
-                  value={formState.instructorId}
-                  onChange={handleFormChange("instructorId")}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="">Crear nuevo…</option>
-                  {instructorOptions.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.full_name}
-                    </option>
-                  ))}
-                </select>
-                {!formState.instructorId && (
-                  <div className="mt-2 space-y-2">
-                    <input
-                      type="text"
-                      value={formState.instructorName}
-                      onChange={handleFormChange("instructorName")}
-                      placeholder="Nombre del instructor"
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                    />
-                    <textarea
-                      value={formState.instructorBio}
-                      onChange={handleFormChange("instructorBio")}
-                      placeholder="Bio (opcional)"
-                      rows={2}
-                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                    />
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
+                    <span>Duracion: {activeClass.durationMinutes} min</span>
+                    <span>
+                      Cupo: {activeClass.occupancy}/{activeClass.capacity}
+                      {activeClass.occupancy > 0 ? ' (con reservaciones)' : ''}
+                    </span>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Salón</label>
-                  <select
-                    value={formState.roomId}
-                    onChange={handleFormChange("roomId")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  >
-                    <option value="">Crear nuevo…</option>
-                    {roomOptions.map((room) => (
-                      <option key={room.id} value={room.id}>
-                        {room.name}
-                      </option>
-                    ))}
-                  </select>
-                  {!formState.roomId && (
-                    <div className="mt-2 space-y-2">
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Instructor</label>
+                    <select
+                      value={detailState.instructorId}
+                      onChange={handleDetailChange('instructorId')}
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <option value="">Sin instructor</option>
+                      {instructorOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Salon</label>
+                    <select
+                      value={detailState.roomId}
+                      onChange={handleDetailChange('roomId')}
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                      disabled={occupancyLocks}
+                    >
+                      <option value="">Sin salon asignado</option>
+                      {roomOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name}
+                        </option>
+                      ))}
+                    </select>
+                    {occupancyLocks && (
+                      <p className="mt-1 text-xs text-amber-600">Con reservaciones activas no puedes cambiar el salon.</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600">Fecha</label>
                       <input
-                        type="text"
-                        value={formState.roomName}
-                        onChange={handleFormChange("roomName")}
-                        placeholder="Nombre del salón"
-                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                      />
-                      <input
-                        type="number"
-                        value={formState.roomCapacity}
-                        onChange={handleFormChange("roomCapacity")}
-                        placeholder="Capacidad referencial"
-                        className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                        type="date"
+                        value={detailState.startDate}
+                        onChange={handleDetailChange('startDate')}
+                        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                        disabled={occupancyLocks}
                       />
                     </div>
-                  )}
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600">Hora</label>
+                      <input
+                        type="time"
+                        value={detailState.startTime}
+                        onChange={handleDetailChange('startTime')}
+                        className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                        disabled={occupancyLocks}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Capacidad</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={formState.capacity}
-                    onChange={handleFormChange("capacity")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Fecha</label>
-                  <input
-                    type="date"
-                    value={formState.date}
-                    onChange={handleFormChange("date")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Hora inicio</label>
-                  <input
-                    type="time"
-                    value={formState.startTime}
-                    onChange={handleFormChange("startTime")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Duración (min)</label>
-                  <input
-                    type="number"
-                    min={15}
-                    step={15}
-                    value={formState.durationMinutes}
-                    onChange={handleFormChange("durationMinutes")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
+                {detailMessage && <div className="text-xs text-emerald-600">{detailMessage}</div>}
+                {detailError && <div className="text-xs text-rose-600">{detailError}</div>}
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Precio*</label>
-                  <input
-                    type="number"
-                    min={0}
-                    placeholder="Pendiente de BE"
-                    value={formState.price}
-                    onChange={handleFormChange("price")}
-                    className="mt-1 w-full rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">Visibilidad*</label>
-                  <select
-                    value={formState.visibility}
-                    onChange={handleFormChange("visibility")}
-                    className="mt-1 w-full rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm"
-                  >
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Etiquetas*</label>
-                <input
-                  type="text"
-                  placeholder="e.g. beginner, reformer"
-                  value={formState.tags}
-                  onChange={handleFormChange("tags")}
-                  className="mt-1 w-full rounded-md border border-dashed border-slate-300 px-3 py-2 text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700">Notas internas</label>
-                <textarea
-                  rows={2}
-                  value={formState.notes}
-                  onChange={handleFormChange("notes")}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                />
-              </div>
-
-              {formMessage && <p className="text-sm text-emerald-600">{formMessage}</p>}
-              {formError && <p className="text-sm text-rose-600">{formError}</p>}
-
-              <div className="pt-2">
                 <button
-                  type="submit"
-                  disabled={creating}
+                  type="button"
+                  onClick={handleDetailSave}
+                  disabled={updatingDetail}
                   className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {creating ? "Creando…" : "Crear clase"}
+                  {updatingDetail ? 'Guardando...' : 'Guardar cambios'}
                 </button>
               </div>
-            </form>
-          </div>
-
-          <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4 text-xs text-indigo-800">
-            <h3 className="mb-2 text-sm font-semibold text-indigo-900">Nota sobre campos pendientes</h3>
-            <p>
-              Los campos marcados con * (precio, visibilidad, etiquetas) se conservarán a nivel de interfaz, pero aún no se
-              persisten en la base de datos. En cuanto se habilite soporte en Supabase, conectaremos estos valores.
-            </p>
+            ) : (
+              <p className="mt-4 text-sm text-slate-500">Selecciona una clase en el listado para editarla.</p>
+            )}
           </div>
         </section>
       </div>

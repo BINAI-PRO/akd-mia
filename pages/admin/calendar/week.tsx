@@ -4,21 +4,14 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import CalendarViewSelect from "@/components/admin/calendar/CalendarViewSelect";
 import WeekCalendarBoard from "@/components/admin/calendar/WeekCalendarBoard";
-import type { CalendarFilterOption, CalendarSession } from "@/components/admin/calendar/types";
+import type { CalendarFilterOption, CalendarSession, CalendarSessionRow } from "@/components/admin/calendar/types";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { Tables } from "@/types/database";
 
 function getStartOfWeek(date: dayjs.Dayjs) {
   const day = date.day();
   const offset = (day + 6) % 7;
   return date.subtract(offset, "day").startOf("day");
 }
-
-type SessionRow = Tables<"sessions"> & {
-  class_types: Pick<Tables<"class_types">, "id" | "name"> | null;
-  instructors: Pick<Tables<"instructors">, "id" | "full_name"> | null;
-  rooms: Pick<Tables<"rooms">, "id" | "name"> | null;
-};
 
 type PageProps = {
   anchorDateISO: string;
@@ -50,7 +43,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       .gte("start_time", weekStart.toISOString())
       .lte("start_time", weekEnd.toISOString())
       .order("start_time", { ascending: true })
-      .returns<SessionRow[]>(),
+      .returns<CalendarSessionRow[]>(),
     supabaseAdmin.from("instructors").select("id, full_name").order("full_name"),
     supabaseAdmin.from("rooms").select("id, name").order("name"),
     supabaseAdmin.from("class_types").select("id, name").order("name"),

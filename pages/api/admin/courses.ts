@@ -1,14 +1,36 @@
-﻿import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
-function slugify(input: string) {
-  return input
+function slugify(value: string) {
+  return value
     .toLowerCase()
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
+
+type CoursePayload = {
+  title?: string;
+  description?: string | null;
+  shortDescription?: string | null;
+  price?: string | number | null;
+  currency?: string;
+  durationLabel?: string | null;
+  level?: string | null;
+  category?: string | null;
+  visibility?: string;
+  status?: string;
+  tags?: string[];
+  coverImageUrl?: string | null;
+  sessionCount?: number | string;
+  sessionDurationMinutes?: number | string;
+  leadInstructorId?: string | null;
+  classTypeId?: string | null;
+};
+
+type CourseRecord = {
+  created_at: string;
+};
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
@@ -26,20 +48,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status,
         tags,
         coverImageUrl,
-      } = req.body as {
-        title?: string;
-        description?: string;
-        shortDescription?: string;
-        price?: string | number | null;
-        currency?: string;
-        durationLabel?: string;
-        level?: string;
-        category?: string;
-        visibility?: string;
-        status?: string;
-        tags?: string[];
-        coverImageUrl?: string;
-      };
+        sessionCount,
+        sessionDurationMinutes,
+        leadInstructorId,
+        classTypeId,
+      } = req.body as CoursePayload;
 
       if (!title || title.trim().length === 0) {
         return res.status(400).json({ error: "El nombre del curso es obligatorio" });
@@ -49,8 +62,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? null
         : Number(price);
       if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        return res.status(400).json({ error: "El precio no es v�lido" });
+        return res.status(400).json({ error: "El precio debe ser un numero valido" });
       }
+
+      const parsedSessionCount = Number(sessionCount);
+      if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
+        return res.status(400).json({ error: "La cantidad de clases debe ser mayor a cero" });
+      }
+
+      const parsedSessionDuration = Number(sessionDurationMinutes);
+      if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
+        return res.status(400).json({ error: "La duracion de cada clase debe ser mayor a cero" });
+      }
+
+      if (!classTypeId || classTypeId.trim().length === 0) {
+        return res.status(400).json({ error: "Debes seleccionar un tipo de curso" });
+      }
+      const sanitizedClassTypeId = classTypeId.trim();
 
       const payload = {
         title: title.trim(),
@@ -62,6 +90,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         duration_label: durationLabel ?? null,
         level: level ?? null,
         category: category ?? null,
+        session_count: Math.trunc(parsedSessionCount),
+        session_duration_minutes: Math.trunc(parsedSessionDuration),
+        lead_instructor_id: leadInstructorId || null,
+        class_type_id: sanitizedClassTypeId,
         visibility: (visibility ?? "PUBLIC").toUpperCase(),
         status: (status ?? "DRAFT").toUpperCase(),
         tags: Array.isArray(tags)
@@ -73,7 +105,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data, error } = await supabaseAdmin
         .from("courses")
         .insert(payload)
-        .select("*")
+        .select("*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name)")
         .single();
 
       if (error || !data) {
@@ -83,7 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(200).json({
         course: data,
-        createdAt: dayjs(data.created_at).toISOString(),
+        createdAt: (data as CourseRecord)?.created_at,
       });
     } catch (error: any) {
       console.error("/api/admin/courses", error);
@@ -95,7 +127,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { data, error } = await supabaseAdmin
         .from("courses")
-        .select("*")
+        .select("*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name)")
         .order("updated_at", { ascending: false });
 
       if (error) {
@@ -110,5 +142,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   res.setHeader("Allow", "GET, POST");
-  return res.status(405).json({ error: "M�todo no permitido" });
+  return res.status(405).json({ error: "Metodo no permitido" });
 }

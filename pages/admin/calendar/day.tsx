@@ -4,15 +4,9 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import CalendarViewSelect from "@/components/admin/calendar/CalendarViewSelect";
 import DayAgendaBoard from "@/components/admin/calendar/DayAgendaBoard";
-import type { CalendarFilterOption, CalendarSession, MiniCalendarDay } from "@/components/admin/calendar/types";
+import type { CalendarFilterOption, CalendarSession, CalendarSessionRow, MiniCalendarDay } from "@/components/admin/calendar/types";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { Tables } from "@/types/database";
 
-type SessionRow = Tables<"sessions"> & {
-  class_types: Pick<Tables<"class_types">, "id" | "name"> | null;
-  instructors: Pick<Tables<"instructors">, "id" | "full_name"> | null;
-  rooms: Pick<Tables<"rooms">, "id" | "name"> | null;
-};
 
 type PageProps = {
   selectedDateISO: string;
@@ -53,7 +47,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
       .gte("start_time", startOfDay.toISOString())
       .lte("start_time", endOfDay.toISOString())
       .order("start_time", { ascending: true })
-      .returns<SessionRow[]>(),
+      .returns<CalendarSessionRow[]>(),
     supabaseAdmin.from("instructors").select("id, full_name").order("full_name"),
     supabaseAdmin.from("rooms").select("id, name").order("name"),
     supabaseAdmin.from("class_types").select("id, name").order("name"),

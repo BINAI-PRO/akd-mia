@@ -8,7 +8,7 @@ const START_HOUR = 4;
 const END_HOUR = 23;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index);
 const HOUR_BLOCK_HEIGHT = 48;
-const WEEKDAY_LABELS = ["LUN", "MAR", "MIÉ", "JUE", "VIE", "SÁB", "DOM"];
+const WEEKDAY_LABELS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
 const COLOR_TOKENS = ["bg-brand-500", "bg-indigo-500", "bg-emerald-500", "bg-sky-500", "bg-amber-500"];
 
 const DEFAULT_FILTERS = {
@@ -163,10 +163,10 @@ export default function WeekCalendarBoard({
         }
         const payload = (await response.json()) as { sessions: CalendarSession[] };
         setSessions(payload.sessions);
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
-        console.error(err);
-        setError(err?.message ?? "No se pudieron cargar las sesiones");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.error(error);
+        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiones");
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -194,7 +194,7 @@ export default function WeekCalendarBoard({
     const chips: ActiveFilterChip[] = [];
     const trimmedSearch = filters.search.trim();
     if (trimmedSearch) {
-      chips.push({ key: "search", label: `Búsqueda: "${trimmedSearch}"` });
+      chips.push({ key: "search", label: `Busqueda: "${trimmedSearch}"` });
     }
     if (filters.instructorId !== "all") {
       const label = getOptionLabel(filterOptions.instructors, filters.instructorId);
@@ -202,7 +202,7 @@ export default function WeekCalendarBoard({
     }
     if (filters.roomId !== "all") {
       const label = getOptionLabel(filterOptions.rooms, filters.roomId);
-      chips.push({ key: "roomId", label: `Ubicación: ${label}` });
+      chips.push({ key: "roomId", label: `Ubicacion: ${label}` });
     }
     if (filters.classTypeId !== "all") {
       const label = getOptionLabel(filterOptions.classTypes, filters.classTypeId);
@@ -224,7 +224,6 @@ export default function WeekCalendarBoard({
                 <span className="h-2 w-2 rounded-full bg-brand-400" /> Clases
               </span>
               <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-indigo-400" /> Eventos
               </span>
               <span className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" /> Citas 1-1
@@ -308,12 +307,12 @@ export default function WeekCalendarBoard({
               </button>
             </span>
           ))}
-          {activeFilterChips.length > 0 && <span className="text-slate-400">·</span>}
+          {activeFilterChips.length > 0 && <span className="text-slate-400"></span>}
           <span className="text-slate-500">{totalSessions} sesiones</span>
         </div>
         {error && <p className="mt-3 text-sm text-rose-500">{error}</p>}
         {loading && !error && activeFilterChips.length === 0 && (
-          <p className="mt-3 text-sm text-slate-500">Actualizando…</p>
+          <p className="mt-3 text-sm text-slate-500">Actualizando</p>
         )}
       </section>
 
@@ -371,7 +370,7 @@ export default function WeekCalendarBoard({
                       style={{ top, height }}
                     >
                       <p className="text-xs opacity-90">
-                        {start} – {end}
+                        {start}  {end}
                       </p>
                       <p className="font-semibold leading-tight">{session.classTypeName ?? session.title}</p>
                       {session.instructorName && <p className="text-xs opacity-90">{session.instructorName}</p>}
@@ -386,3 +385,6 @@ export default function WeekCalendarBoard({
     </div>
   );
 }
+
+
+

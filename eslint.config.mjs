@@ -18,6 +18,10 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "supabase/**",
+      "pgsql/**",
+      "pg_bin.zip",
+      "schema.sql",
     ],
   },
 ];

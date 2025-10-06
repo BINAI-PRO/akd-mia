@@ -1,10 +1,35 @@
 {
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+  "css.lint.unknownAtRules": "ignore",
   "css.validate": false,
-  "tailwindCSS.experimental.classRegex": [
-    ["className=\"([^\"]*)\"", "['\"`]([^'\"`]*)['\"`]"]
+  "deno.enablePaths": [
+    "supabase/functions"
+  ],
+  "deno.lint": true,
+  "deno.unstable": [
+    "bare-node-builtins",
+    "byonm",
+    "sloppy-imports",
+    "unsafe-proto",
+    "webgpu",
+    "broadcast-channel",
+    "worker-options",
+    "cron",
+    "kv",
+    "ffi",
+    "fs",
+    "http",
+    "net"
   ],
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  "css.lint.unknownAtRules": "ignore"
+  "tailwindCSS.experimental.classRegex": [
+    [
+      "className=\"([^\"]*)\"",
+      "['\"`]([^'\"`]*)['\"`]"
+    ]
+  ]
 }

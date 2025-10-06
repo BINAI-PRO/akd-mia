@@ -24,3 +24,18 @@ export type MiniCalendarDay = {
   isCurrentMonth: boolean;
   isSelected: boolean;
 };
+
+export type CalendarSessionRow = {
+  id: string;
+  start_time: string;
+  end_time: string;
+  capacity: number | null;
+  current_occupancy: number | null;
+  class_type_id: string | null;
+  instructor_id: string | null;
+  room_id: string | null;
+  class_types: { id: string; name: string } | null;
+  instructors: { id: string; full_name: string } | null;
+  rooms: { id: string; name: string } | null;
+};
+

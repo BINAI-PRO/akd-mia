@@ -42,7 +42,7 @@ type ActiveFilterChip = {
 function formatTimeRange(startISO: string, endISO: string) {
   const start = dayjs(startISO).format("h:mm A");
   const end = dayjs(endISO).format("h:mm A");
-  return `${start} – ${end}`;
+  return `${start}  ${end}`;
 }
 
 function getOptionLabel(options: CalendarFilterOption[], id: string) {
@@ -106,10 +106,10 @@ export default function DayAgendaBoard({
         }
         const payload = (await response.json()) as { sessions: CalendarSession[] };
         setSessions(payload.sessions);
-      } catch (err: any) {
-        if (err?.name === "AbortError") return;
-        console.error(err);
-        setError(err?.message ?? "No se pudieron cargar las sesiones");
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        console.error(error);
+        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiones");
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -137,7 +137,7 @@ export default function DayAgendaBoard({
     const chips: ActiveFilterChip[] = [];
     const trimmedSearch = filters.search.trim();
     if (trimmedSearch) {
-      chips.push({ key: "search", label: `Búsqueda: "${trimmedSearch}"` });
+      chips.push({ key: "search", label: `Busqueda: "${trimmedSearch}"` });
     }
     if (filters.instructorId !== "all") {
       const label = getOptionLabel(filterOptions.instructors, filters.instructorId);
@@ -145,7 +145,7 @@ export default function DayAgendaBoard({
     }
     if (filters.roomId !== "all") {
       const label = getOptionLabel(filterOptions.rooms, filters.roomId);
-      chips.push({ key: "roomId", label: `Ubicación: ${label}` });
+      chips.push({ key: "roomId", label: `Ubicacion: ${label}` });
     }
     if (filters.classTypeId !== "all") {
       const label = getOptionLabel(filterOptions.classTypes, filters.classTypeId);
@@ -206,7 +206,7 @@ export default function DayAgendaBoard({
                 <h2 className="text-2xl font-bold text-slate-800">Agenda para {agendaLabel}</h2>
                 <span className="text-sm text-slate-500">{totalSessions} resultados</span>
               </div>
-              {loading && <span className="text-sm text-slate-500">Actualizando…</span>}
+              {loading && <span className="text-sm text-slate-500">Actualizando</span>}
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
               <label className="flex flex-1 min-w-[220px] items-center rounded-md border border-slate-200 bg-white pr-2">
@@ -240,7 +240,7 @@ export default function DayAgendaBoard({
                   className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs"
                   disabled={loading}
                 >
-                  <option value="all">Ubicación</option>
+                  <option value="all">Ubicacion</option>
                   {filterOptions.rooms.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
@@ -303,7 +303,7 @@ export default function DayAgendaBoard({
                 <tr>
                   <th className="whitespace-nowrap px-4 py-3">Hora</th>
                   <th className="whitespace-nowrap px-4 py-3">Clase / Evento</th>
-                  <th className="whitespace-nowrap px-4 py-3">Ubicación</th>
+                  <th className="whitespace-nowrap px-4 py-3">Ubicacion</th>
                   <th className="whitespace-nowrap px-4 py-3">Staff</th>
                   <th className="whitespace-nowrap px-4 py-3">Capacidad</th>
                 </tr>
@@ -312,7 +312,7 @@ export default function DayAgendaBoard({
                 {sessions.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-4 py-6 text-center text-sm text-slate-500">
-                      No hay actividades registradas para este día.
+                      No hay actividades registradas para este dia.
                     </td>
                   </tr>
                 )}
@@ -335,3 +335,6 @@ export default function DayAgendaBoard({
     </div>
   );
 }
+
+
+

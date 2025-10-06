@@ -1,8 +1,9 @@
-﻿import Head from "next/head";
+import Head from "next/head";
 import dayjs from "dayjs";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
+import type { Tables } from "@/types/database";
 
 type Stats = {
   activeMembers: number;
@@ -39,6 +40,25 @@ type PageProps = {
   referralUrl: string;
 };
 
+type PaymentRow = Pick<Tables<'membership_payments'>, 'amount' | 'currency'>;
+
+type BookingRow = Pick<Tables<'bookings'>, 'session_id' | 'status'>;
+
+type UpcomingSessionRow = Tables<'sessions'> & {
+  class_types: Pick<Tables<'class_types'>, 'name'> | null;
+  instructors: Pick<Tables<'instructors'>, 'full_name'> | null;
+  rooms: Pick<Tables<'rooms'>, 'name'> | null;
+};
+
+type RecentPaymentRow = Tables<'membership_payments'> & {
+  memberships: (
+    Pick<Tables<'memberships'>, 'id'> & {
+      clients: Pick<Tables<'clients'>, 'full_name'> | null;
+      membership_types: Pick<Tables<'membership_types'>, 'name'> | null;
+    }
+  ) | null;
+};
+
 const PESO_FORMATTER = new Intl.NumberFormat("es-MX", {
   style: "currency",
   currency: "MXN",
@@ -55,58 +75,70 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   const inSevenDays = now.add(7, "day").toISOString();
 
   try {
-    const [membershipsCountResp, upcomingCountResp, paymentsResp, unpaidResp, upcomingSessionsResp, bookingsResp, recentPaymentsResp] =
-      await Promise.all([
-        supabaseAdmin
-          .from("memberships")
-          .select("id", { count: "exact", head: true })
-          .eq("status", "ACTIVE")
-          .gte("end_date", todayIso),
-        supabaseAdmin
-          .from("sessions")
-          .select("id", { count: "exact", head: true })
-          .gte("start_time", now.toISOString())
-          .lte("start_time", inSevenDays),
-        supabaseAdmin
-          .from("membership_payments")
-          .select("amount,currency")
-          .eq("status", "SUCCESS")
-          .gte("paid_at", startOfMonth)
-          .lte("paid_at", endOfMonth),
-        supabaseAdmin
-          .from("membership_payments")
-          .select("id", { count: "exact", head: true })
-          .in("status", ["PENDING", "FAILED"]),
-        supabaseAdmin
-          .from("sessions")
-          .select(
-            "id, start_time, end_time, capacity, current_occupancy, class_types(name), instructors(full_name), rooms(name)"
-          )
-          .gte("start_time", now.toISOString())
-          .order("start_time", { ascending: true })
-          .limit(5),
-        supabaseAdmin
-          .from("bookings")
-          .select("session_id, status")
-          .gte("reserved_at", now.subtract(30, "day").toISOString()),
-        supabaseAdmin
-          .from("membership_payments")
-          .select(
-            "id, amount, currency, status, paid_at, memberships ( clients ( full_name ), membership_types ( name ) )"
-          )
-          .order("paid_at", { ascending: false })
-          .limit(6),
-      ]);
+    const [
+      membershipsCountResp,
+      upcomingCountResp,
+      paymentsResp,
+      unpaidResp,
+      upcomingSessionsResp,
+      bookingsResp,
+      recentPaymentsResp,
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "ACTIVE")
+        .gte("end_date", todayIso),
+      supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .gte("start_time", now.toISOString())
+        .lte("start_time", inSevenDays),
+      supabaseAdmin
+        .from("membership_payments")
+        .select("amount,currency")
+        .eq("status", "SUCCESS")
+        .gte("paid_at", startOfMonth)
+        .lte("paid_at", endOfMonth),
+      supabaseAdmin
+        .from("membership_payments")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["PENDING", "FAILED"]),
+      supabaseAdmin
+        .from("sessions")
+        .select(
+          "id, start_time, end_time, capacity, current_occupancy, class_types(name), instructors(full_name), rooms(name)"
+        )
+        .gte("start_time", now.toISOString())
+        .order("start_time", { ascending: true })
+        .limit(5),
+      supabaseAdmin
+        .from("bookings")
+        .select("session_id, status")
+        .gte("reserved_at", now.subtract(30, "day").toISOString()),
+      supabaseAdmin
+        .from("membership_payments")
+        .select(
+          "id, amount, currency, status, paid_at, memberships ( clients ( full_name ), membership_types ( name ) )"
+        )
+        .order("paid_at", { ascending: false })
+        .limit(6),
+    ]);
+
+    const paymentRows = (paymentsResp.data ?? []) as PaymentRow[];
+    const bookingRows = (bookingsResp.data ?? []) as BookingRow[];
+    const upcomingRows = (upcomingSessionsResp.data ?? []) as UpcomingSessionRow[];
+    const recentRows = (recentPaymentsResp.data ?? []) as RecentPaymentRow[];
 
     const stats: Stats = {
       activeMembers: membershipsCountResp.count ?? 0,
       upcomingClasses: upcomingCountResp.count ?? 0,
-      revenue: (paymentsResp.data ?? []).reduce((acc: number, row: any) => acc + Number(row.amount ?? 0), 0),
+      revenue: paymentRows.reduce((acc, row) => acc + Number(row.amount ?? 0), 0),
       unpaidInvoices: unpaidResp.count ?? 0,
     };
 
     const bookingOccupancy = new Map<string, number>();
-    bookingsResp.data?.forEach((row: any) => {
+    bookingRows.forEach((row) => {
       if (!row.session_id) return;
       const current = bookingOccupancy.get(row.session_id) ?? 0;
       if (row.status !== "CANCELLED") {
@@ -114,7 +146,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       }
     });
 
-    const upcomingSessions: UpcomingSession[] = (upcomingSessionsResp.data ?? []).map((row: any) => ({
+    const upcomingSessions: UpcomingSession[] = upcomingRows.map((row) => ({
       id: row.id,
       classType: row.class_types?.name ?? "Clase",
       startTime: row.start_time,
@@ -125,7 +157,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       occupancy: bookingOccupancy.get(row.id) ?? row.current_occupancy ?? 0,
     }));
 
-    const recentPayments: RecentPayment[] = (recentPaymentsResp.data ?? []).map((row: any) => ({
+    const recentPayments: RecentPayment[] = recentRows.map((row) => ({
       id: row.id,
       amount: Number(row.amount ?? 0),
       currency: row.currency ?? "MXN",
@@ -141,7 +173,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
         upcomingSessions,
         recentPayments,
         referralUrl:
-          process.env.NEXT_PUBLIC_BASE_URL?.concat("/?ref=admin") ?? "https://pilatestime.io/?ref=admin",
+          process.env.NEXT_PUBLIC_BASE_URL?.concat("/?ref=admin") ??
+          "https://pilatestime.io/?ref=admin",
       },
     };
   } catch (error) {
@@ -151,16 +184,23 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
         stats: { activeMembers: 0, upcomingClasses: 0, revenue: 0, unpaidInvoices: 0 },
         upcomingSessions: [],
         recentPayments: [],
-        referralUrl: process.env.NEXT_PUBLIC_BASE_URL?.concat("/?ref=admin") ?? "https://pilatestime.io/?ref=admin",
+        referralUrl:
+          process.env.NEXT_PUBLIC_BASE_URL?.concat("/?ref=admin") ??
+          "https://pilatestime.io/?ref=admin",
       },
     };
   }
 };
 
-export default function AdminDashboardPage({ stats, upcomingSessions, recentPayments, referralUrl }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function AdminDashboardPage({
+  stats,
+  upcomingSessions,
+  recentPayments,
+  referralUrl,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
   return (
     <AdminLayout
-      title="Dashboard"
+      title="Tablero"
       active="dashboard"
       headerToolbar={
         <div className="flex items-center gap-4">
@@ -182,33 +222,33 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
       }
     >
       <Head>
-        <title>PilatesTime Admin</title>
+        <title>AT Pilates Time - Tablero</title>
       </Head>
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            title="Active Members"
+            title="Miembros activos"
             icon="people_alt"
             tone="indigo"
             value={NUMBER_FORMATTER.format(stats.activeMembers)}
-            helper="Status ACTIVE"
+            helper="Estado ACTIVO"
           />
           <StatCard
-            title="Upcoming Classes (7d)"
+            title="Clases proximas (7d)"
             icon="event_available"
             tone="green"
             value={NUMBER_FORMATTER.format(stats.upcomingClasses)}
-            helper="Próximos 7 días"
+            helper="Proximos 7 dias"
           />
           <StatCard
-            title="Revenue (MTD)"
+            title="Ingresos (mes)"
             icon="monetization_on"
             tone="amber"
             value={PESO_FORMATTER.format(stats.revenue)}
             helper="Pagos exitosos"
           />
           <StatCard
-            title="Unpaid Invoices"
+            title="Facturas pendientes"
             icon="pending_actions"
             tone="rose"
             value={NUMBER_FORMATTER.format(stats.unpaidInvoices)}
@@ -217,19 +257,19 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Quick Actions</h2>
+          <h2 className="text-xl font-semibold">Acceso Directo</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
             {[
-              { label: "New Class", icon: "add_circle_outline", primary: true },
-              { label: "Add Member", icon: "person_add" },
-              { label: "Create Invoice", icon: "receipt_long" },
-              { label: "Send Email", icon: "email" },
-              { label: "View Reports", icon: "bar_chart" },
+              { label: "Nueva clase", icon: "add_circle_outline", primary: true },
+              { label: "Agregar miembro", icon: "person_add" },
+              { label: "Crear factura", icon: "receipt_long" },
+              { label: "Enviar correo", icon: "email" },
+              { label: "Ver reportes", icon: "bar_chart" },
             ].map((action) => (
               <button
                 key={action.label}
                 type="button"
-                onClick={() => alert("Función en desarrollo")}
+                onClick={() => alert("Funcion en desarrollo")}
                 className={`flex h-24 flex-col items-center justify-center gap-2 rounded-lg border text-sm font-medium transition ${
                   action.primary
                     ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
@@ -248,27 +288,32 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Upcoming sessions</h2>
-              <span className="text-xs text-slate-500">Próximos 5 turnos</span>
+              <h2 className="text-lg font-semibold">Proximas Clases</h2>
+              <span className="text-xs text-slate-500">Proximos 5 turnos</span>
             </div>
             {upcomingSessions.length === 0 ? (
-              <p className="text-sm text-slate-500">No hay clases programadas en los próximos días.</p>
+              <p className="text-sm text-slate-500">No hay clases programadas en los proximos dias.</p>
             ) : (
               <ul className="space-y-4">
                 {upcomingSessions.map((session) => {
                   const start = dayjs(session.startTime).format("D MMM, HH:mm");
                   return (
-                    <li key={session.id} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
+                    <li
+                      key={session.id}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
+                    >
                       <div>
                         <p className="text-sm text-slate-500">{start}</p>
                         <p className="text-base font-medium">{session.classType}</p>
                         <p className="text-xs text-slate-500">
-                          {session.instructor} • {session.room}
+                          {session.instructor}  {session.room}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{session.occupancy}/{session.capacity}</p>
-                        <p className="text-xs text-slate-500">Ocupación</p>
+                        <p className="text-sm font-semibold">
+                          {session.occupancy}/{session.capacity}
+                        </p>
+                        <p className="text-xs text-slate-500">Ocupacion</p>
                       </div>
                     </li>
                   );
@@ -279,11 +324,11 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
 
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Recent payments</h2>
-              <span className="text-xs text-slate-500">Últimos 6</span>
+              <h2 className="text-lg font-semibold">Pagos Recientes</h2>
+              <span className="text-xs text-slate-500">Ultimos 6</span>
             </div>
             {recentPayments.length === 0 ? (
-              <p className="text-sm text-slate-500">Aún no hay pagos registrados.</p>
+              <p className="text-sm text-slate-500">Aun no hay pagos registrados.</p>
             ) : (
               <ul className="space-y-3">
                 {recentPayments.map((payment) => {
@@ -305,9 +350,11 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">{payment.memberName ?? "Cliente"}</p>
-                          <p className="text-xs text-slate-500">{payment.membershipName ?? "Membresía"}</p>
+                          <p className="text-xs text-slate-500">{payment.membershipName ?? "Membresia"}</p>
                         </div>
-                        <div className="text-sm font-semibold">{amountFormatter.format(payment.amount)}</div>
+                        <div className="text-sm font-semibold">
+                          {amountFormatter.format(payment.amount)}
+                        </div>
                       </div>
                       <div className="mt-2 flex items-center justify-between text-xs text-slate-500">
                         <span>{paidLabel}</span>
@@ -325,16 +372,16 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
 
         <section className="flex flex-col gap-4 rounded-xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-indigo-900">¿Quieres $20? ¡Referencia a un amigo!</h2>
+            <h2 className="text-xl font-semibold text-indigo-900">Quieres $20? Invita a un amigo!</h2>
             <p className="mt-1 text-sm text-indigo-800">
               Comparte PilatesTime y recibe $20 por cada cliente que se convierta en suscriptor.
             </p>
             <button
               type="button"
               className="mt-2 text-sm font-medium text-brand-700 hover:underline"
-              onClick={() => alert("Programa de referidos en preparación")}
+              onClick={() => alert("Programa de referidos en preparacion")}
             >
-              Conoce más
+              Conoce mas
             </button>
           </div>
           <div className="w-full md:w-auto">
@@ -348,7 +395,11 @@ export default function AdminDashboardPage({ stats, upcomingSessions, recentPaym
               <button
                 type="button"
                 className="bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-                onClick={() => navigator.clipboard?.writeText(referralUrl).catch(() => alert("No se pudo copiar"))}
+                onClick={() =>
+                  navigator.clipboard
+                    ?.writeText(referralUrl)
+                    .catch(() => alert("No se pudo copiar"))
+                }
               >
                 Copiar
               </button>
@@ -392,3 +443,4 @@ function StatCard({ title, icon, tone, value, helper }: StatCardProps) {
     </article>
   );
 }
+

@@ -1,126 +1,235 @@
-﻿Schema public:
-  Table apparatus:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "name" "text" NOT NULL
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table bookings:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "session_id" "uuid" NOT NULL
-    - "client_id" "uuid" NOT NULL
-    - "apparatus_id" "uuid"
-    - "status" "booking_status" DEFAULT 'CONFIRMED'::booking_status NOT NULL
-    - "reserved_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table class_types:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "name" "text" NOT NULL
-    - "description" "text"
-  Table client_profiles:
-    - "client_id" "uuid" PRIMARY KEY REFERENCES clients(id) ON DELETE CASCADE
-    - "status" "client_status" DEFAULT 'ACTIVE'::client_status NOT NULL
-    - "avatar_url" "text"
-    - "birthdate" "date"
-    - "occupation" "text"
-    - "notes" "text"
-    - "emergency_contact_name" "text"
-    - "emergency_contact_phone" "text"
-    - "preferred_apparatus" "text[]" DEFAULT '{}'::text[] NOT NULL
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table clients:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "full_name" "text" NOT NULL
-    - "phone" "text"
-    - "email" "text"
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table courses:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "title" "text" NOT NULL
-    - "slug" "text"
-    - "description" "text"
-    - "short_description" "text"
-    - "price" "numeric(12,2)"
-    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
-    - "duration_label" "text"
-    - "level" "text"
-    - "category" "text"
-    - "visibility" "course_visibility" DEFAULT 'PUBLIC'::course_visibility NOT NULL
-    - "status" "course_status" DEFAULT 'DRAFT'::course_status NOT NULL
-    - "tags" "text[]" DEFAULT '{}'::text[] NOT NULL
-    - "cover_image_url" "text"
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table instructors:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "full_name" "text" NOT NULL
-    - "bio" "text"
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table membership_payments:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "membership_id" "uuid" NOT NULL
-    - "amount" "numeric(12,2)" NOT NULL
-    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
-    - "paid_at" "timestamp with time zone" DEFAULT now() NOT NULL
-    - "period_start" "date" NOT NULL
-    - "period_end" "date" NOT NULL
-    - "status" "payment_status" DEFAULT 'SUCCESS'::payment_status NOT NULL
-    - "provider_ref" "text"
-    - "notes" "text"
-  Table membership_types:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "name" "text" NOT NULL
-    - "description" "text"
-    - "billing_period" "billing_period" NOT NULL
-    - "access_type" "access_type" NOT NULL
-    - "price" "numeric(12,2)" NOT NULL
-    - "currency" "text" DEFAULT 'MXN'::text NOT NULL
-    - "class_quota" "integer"
-    - "trial_days" "integer"
-    - "access_classes" "boolean" DEFAULT true NOT NULL
-    - "access_courses" "boolean" DEFAULT false NOT NULL
-    - "access_events" "boolean" DEFAULT false NOT NULL
-    - "is_active" "boolean" DEFAULT true NOT NULL
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-    - "updated_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table membership_usages:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "membership_id" "uuid" NOT NULL
-    - "session_id" "uuid" NOT NULL
-    - "used_at" "timestamp with time zone" DEFAULT now() NOT NULL
-    - "credit_delta" "integer" DEFAULT 1 NOT NULL
-    - "notes" "text"
-  Table memberships:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "client_id" "uuid" NOT NULL
-    - "membership_type_id" "uuid" NOT NULL
-    - "status" "membership_status" DEFAULT 'ACTIVE'::membership_status NOT NULL
-    - "start_date" "date" DEFAULT (now())::date NOT NULL
-    - "end_date" "date" NOT NULL
-    - "next_billing_date" "date"
-    - "auto_renew" "boolean" DEFAULT true NOT NULL
-    - "assigned_session_id" "uuid"
-    - "remaining_classes" "integer"
-    - "notes" "text"
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table qr_tokens:
-    - "booking_id" "uuid" NOT NULL
-    - "token" "text" NOT NULL
-    - "expires_at" "timestamp with time zone" NOT NULL
-  Table rooms:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "name" "text" NOT NULL
-    - "capacity" "integer" NOT NULL
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
-  Table session_apparatus:
-    - "session_id" "uuid" NOT NULL
-    - "apparatus_id" "uuid" NOT NULL
-    - "quantity" "integer" NOT NULL
-  Table sessions:
-    - "id" "uuid" DEFAULT gen_random_uuid() NOT NULL
-    - "class_type_id" "uuid" NOT NULL
-    - "room_id" "uuid" NOT NULL
-    - "instructor_id" "uuid" NOT NULL
-    - "start_time" "timestamp with time zone" NOT NULL
-    - "end_time" "timestamp with time zone" NOT NULL
-    - "capacity" "integer" NOT NULL
-    - "current_occupancy" "integer" DEFAULT 0 NOT NULL
-    - "created_at" "timestamp with time zone" DEFAULT now() NOT NULL
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.apparatus (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT apparatus_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.bookings (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL,
+  client_id uuid NOT NULL,
+  apparatus_id uuid,
+  status USER-DEFINED NOT NULL DEFAULT 'CONFIRMED'::booking_status,
+  reserved_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT bookings_pkey PRIMARY KEY (id),
+  CONSTRAINT bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT bookings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT bookings_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+);
+CREATE TABLE public.class_types (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  description text,
+  intensity USER-DEFINED,
+  target_audience text,
+  CONSTRAINT class_types_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.client_profiles (
+  client_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'ACTIVE'::client_status,
+  avatar_url text,
+  birthdate date,
+  occupation text,
+  notes text,
+  emergency_contact_name text,
+  emergency_contact_phone text,
+  preferred_apparatus ARRAY NOT NULL DEFAULT '{}'::text[],
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT client_profiles_pkey PRIMARY KEY (client_id),
+  CONSTRAINT client_profiles_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
+);
+CREATE TABLE public.clients (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  phone text,
+  email text UNIQUE,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT clients_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.courses (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  slug text UNIQUE,
+  description text,
+  short_description text,
+  price numeric,
+  currency text NOT NULL DEFAULT 'MXN'::text,
+  duration_label text,
+  level USER-DEFINED DEFAULT 'Multinivel'::course_level,
+  category USER-DEFINED,
+  visibility USER-DEFINED NOT NULL DEFAULT 'PUBLIC'::course_visibility,
+  status USER-DEFINED NOT NULL DEFAULT 'DRAFT'::course_status,
+  tags ARRAY NOT NULL DEFAULT '{}'::text[],
+  cover_image_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  session_count integer NOT NULL,
+  session_duration_minutes integer NOT NULL,
+  lead_instructor_id uuid,
+  class_type_id uuid,
+  default_room_id uuid,
+  CONSTRAINT courses_pkey PRIMARY KEY (id),
+  CONSTRAINT courses_lead_instructor_id_fkey FOREIGN KEY (lead_instructor_id) REFERENCES public.instructors(id),
+  CONSTRAINT courses_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
+  CONSTRAINT courses_default_room_id_fkey FOREIGN KEY (default_room_id) REFERENCES public.rooms(id)
+);
+CREATE TABLE public.instructor_class_types (
+  instructor_id uuid NOT NULL,
+  class_type_id uuid NOT NULL,
+  certified boolean NOT NULL DEFAULT true,
+  certified_at timestamp with time zone,
+  notes text,
+  CONSTRAINT instructor_class_types_pkey PRIMARY KEY (class_type_id, instructor_id),
+  CONSTRAINT instructor_class_types_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
+  CONSTRAINT instructor_class_types_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id)
+);
+CREATE TABLE public.instructors (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  full_name text NOT NULL,
+  bio text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  email text,
+  phone1 text,
+  phone2 text,
+  phone1_has_whatsapp boolean,
+  phone2_has_whatsapp boolean,
+  nick text,
+  CONSTRAINT instructors_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.membership_payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  membership_id uuid NOT NULL,
+  amount numeric NOT NULL CHECK (amount >= 0::numeric),
+  currency text NOT NULL DEFAULT 'MXN'::text,
+  paid_at timestamp with time zone NOT NULL DEFAULT now(),
+  period_start date NOT NULL,
+  period_end date NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'SUCCESS'::payment_status,
+  provider_ref text,
+  notes text,
+  CONSTRAINT membership_payments_pkey PRIMARY KEY (id),
+  CONSTRAINT membership_payments_membership_id_fkey FOREIGN KEY (membership_id) REFERENCES public.memberships(id)
+);
+CREATE TABLE public.membership_types (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  description text,
+  billing_period USER-DEFINED NOT NULL,
+  access_type USER-DEFINED NOT NULL,
+  price numeric NOT NULL CHECK (price >= 0::numeric),
+  currency text NOT NULL DEFAULT 'MXN'::text,
+  class_quota integer CHECK (class_quota >= 0),
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  trial_days integer,
+  access_classes boolean NOT NULL DEFAULT true,
+  access_courses boolean NOT NULL DEFAULT false,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT membership_types_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.membership_usages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  membership_id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  used_at timestamp with time zone NOT NULL DEFAULT now(),
+  credit_delta integer NOT NULL DEFAULT 1,
+  notes text,
+  CONSTRAINT membership_usages_pkey PRIMARY KEY (id),
+  CONSTRAINT membership_usages_membership_id_fkey FOREIGN KEY (membership_id) REFERENCES public.memberships(id),
+  CONSTRAINT membership_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
+);
+CREATE TABLE public.memberships (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  client_id uuid NOT NULL,
+  membership_type_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'ACTIVE'::membership_status,
+  start_date date NOT NULL DEFAULT (now())::date,
+  end_date date NOT NULL,
+  next_billing_date date,
+  auto_renew boolean NOT NULL DEFAULT true,
+  assigned_session_id uuid,
+  remaining_classes integer CHECK (remaining_classes >= 0),
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT memberships_pkey PRIMARY KEY (id),
+  CONSTRAINT memberships_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT memberships_membership_type_id_fkey FOREIGN KEY (membership_type_id) REFERENCES public.membership_types(id),
+  CONSTRAINT memberships_assigned_session_id_fkey FOREIGN KEY (assigned_session_id) REFERENCES public.sessions(id)
+);
+CREATE TABLE public.qr_tokens (
+  booking_id uuid NOT NULL,
+  token text NOT NULL UNIQUE,
+  expires_at timestamp with time zone NOT NULL,
+  CONSTRAINT qr_tokens_pkey PRIMARY KEY (booking_id),
+  CONSTRAINT qr_tokens_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
+);
+CREATE TABLE public.room_apparatus (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL,
+  apparatus_id uuid NOT NULL,
+  quantity integer NOT NULL CHECK (quantity >= 0),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT room_apparatus_pkey PRIMARY KEY (id),
+  CONSTRAINT room_apparatus_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
+  CONSTRAINT room_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+);
+CREATE TABLE public.room_blocks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL,
+  starts_at timestamp with time zone NOT NULL,
+  ends_at timestamp with time zone NOT NULL,
+  reason text,
+  note text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT room_blocks_pkey PRIMARY KEY (id),
+  CONSTRAINT room_blocks_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id)
+);
+CREATE TABLE public.room_recurring_blocks (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  room_id uuid NOT NULL,
+  weekday smallint NOT NULL CHECK (weekday >= 0 AND weekday <= 6),
+  start_time time without time zone NOT NULL,
+  end_time time without time zone NOT NULL,
+  reason text,
+  note text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT room_recurring_blocks_pkey PRIMARY KEY (id),
+  CONSTRAINT room_recurring_blocks_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id)
+);
+CREATE TABLE public.rooms (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  capacity integer NOT NULL CHECK (capacity > 0),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  location text,
+  CONSTRAINT rooms_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.session_apparatus (
+  session_id uuid NOT NULL,
+  apparatus_id uuid NOT NULL,
+  quantity integer NOT NULL CHECK (quantity >= 0),
+  CONSTRAINT session_apparatus_pkey PRIMARY KEY (apparatus_id, session_id),
+  CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+);
+CREATE TABLE public.sessions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  class_type_id uuid NOT NULL,
+  room_id uuid NOT NULL,
+  instructor_id uuid NOT NULL,
+  start_time timestamp with time zone NOT NULL,
+  end_time timestamp with time zone NOT NULL,
+  capacity integer NOT NULL CHECK (capacity > 0),
+  current_occupancy integer NOT NULL DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  course_id uuid,
+  CONSTRAINT sessions_pkey PRIMARY KEY (id),
+  CONSTRAINT sessions_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
+  CONSTRAINT sessions_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
+  CONSTRAINT sessions_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
+  CONSTRAINT sessions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);

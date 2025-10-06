@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -7,13 +7,15 @@ import type { ReactNode } from "react";
 export type NavKey =
   | "dashboard"
   | "calendar"
+  | "courses"
+  | "courseScheduler"
   | "classes"
   | "appointments"
   | "videos"
-  | "courses"
-  | "events"
   | "members"
   | "membershipPlans"
+  | "planningInstructors"
+  | "planningRooms"
   | "contacts"
   | "marketing"
   | "analytics"
@@ -45,35 +47,45 @@ type NavGroup = {
 type NavItem = NavLink | NavGroup;
 
 const NAVIGATION: NavItem[] = [
-  { type: "link", key: "dashboard", label: "Home", icon: "home", href: "/admin" },
-  { type: "link", key: "calendar", label: "Calendar", icon: "calendar_today", href: "/admin/calendar/day" },
+  { type: "link", key: "dashboard", label: "Inicio", icon: "home", href: "/admin" },
+  { type: "link", key: "calendar", label: "Calendario", icon: "calendar_today", href: "/admin/calendar/day" },
   {
     type: "group",
     key: "products",
-    label: "Products",
+    label: "Productos",
     icon: "inventory_2",
     children: [
-      { type: "link", key: "classes", label: "Classes", icon: "inventory_2", href: "/admin/classes" },
-      { type: "link", key: "appointments", label: "1:1 Appointments", icon: "event_available", href: "#" },
-      { type: "link", key: "videos", label: "Videos", icon: "movie", href: "#" },
-      { type: "link", key: "courses", label: "Courses", icon: "school", href: "/admin/courses" },
-      { type: "link", key: "events", label: "Events", icon: "event", href: "#" },
+      { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/admin/courses" },
+      { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/admin/courses/scheduler" },
+      { type: "link", key: "classes", label: "Clases", icon: "inventory_2", href: "/admin/classes" },
+      // { type: "link", key: "appointments", label: "1:1 Appointments", icon: "event_available", href: "#" },
+      // { type: "link", key: "videos", label: "Videos", icon: "movie", href: "#" },
     ],
   },
   {
     type: "group",
     key: "memberships",
-    label: "Memberships",
+    label: "Membresias",
     icon: "card_membership",
     children: [
-      { type: "link", key: "members", label: "Members", icon: "people", href: "/admin/members" },
-      { type: "link", key: "membershipPlans", label: "Plans", icon: "workspace_premium", href: "/admin/memberships" },
+      { type: "link", key: "members", label: "Miembros", icon: "people", href: "/admin/members" },
+      { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/admin/memberships" },
     ],
   },
-  { type: "link", key: "contacts", label: "Contacts", icon: "contacts", href: "#" },
-  { type: "link", key: "marketing", label: "Marketing", icon: "campaign", href: "#" },
-  { type: "link", key: "analytics", label: "Analytics", icon: "analytics", href: "#" },
-  { type: "link", key: "settings", label: "Settings", icon: "settings", href: "#" },
+  {
+    type: "group",
+    key: "planning",
+    label: "Planeacion",
+    icon: "dashboard_customize",
+    children: [
+      { type: "link", key: "planningInstructors", label: "Instructores", icon: "people", href: "/admin/planeacion/instructores" },
+      { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/admin/planeacion/salas" },
+    ],
+  },
+  // { type: "link", key: "contacts", label: "Contacts", icon: "contacts", href: "#" },
+  // { type: "link", key: "marketing", label: "Marketing", icon: "campaign", href: "#" },
+  // { type: "link", key: "analytics", label: "Analytics", icon: "analytics", href: "#" },
+  // { type: "link", key: "settings", label: "Settings", icon: "settings", href: "#" },
 ];
 
 export default function AdminLayout({ title, active, headerToolbar, children }: AdminLayoutProps) {
@@ -164,15 +176,22 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     </nav>
   );
 
+  const BrandBlock = () => (
+    <div className="flex items-center gap-3">
+      <img src="/logo.png" alt="AT Pilates Time" className="h-10 w-auto" />
+      <div className="leading-tight">
+        <p className="text-sm font-semibold text-slate-800">AT Pilates Time</p>
+        <p className="text-xs uppercase text-slate-500 tracking-wide">ATP Tu Fit App</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <div className="flex h-screen">
         <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
-          <div className="flex h-16 items-center border-b border-slate-200 px-6">
-            <svg className="h-8 w-auto text-brand-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.28 15.4c-2.45-.4-3.55-1.54-3.55-3.32 0-1.89 1.34-3.38 3.8-3.38 1.15 0 2.06.31 2.66.75l-1.01 1.7c-.43-.27-.88-.43-1.46-.43-1.12 0-1.78.69-1.78 1.77 0 .97.64 1.63 2.19 2.01 2.39.58 3.16 1.58 3.16 3.14 0 1.95-1.4 3.4-4.14 3.4-1.48 0-2.6-.45-3.33-.97l1.04-1.72c.52.33 1.25.58 2.05.58 1.41 0 2.05-.69 2.05-1.77.01-1.23-.78-1.75-2.58-2.16z" />
-            </svg>
-            <span className="ml-3 text-xl font-semibold">PilatesTime Admin</span>
+          <div className="flex h-16 items-center justify-start border-b border-slate-200 px-6">
+            <BrandBlock />
           </div>
           {renderNav()}
         </aside>
@@ -181,13 +200,13 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
           <div className="fixed inset-0 z-40 flex md:hidden" role="dialog" aria-modal="true">
             <div className="fixed inset-0 bg-slate-900/50" onClick={() => setMobileOpen(false)} />
             <aside className="relative ml-auto flex h-full w-64 flex-col border-l border-slate-200 bg-white shadow-xl">
-              <div className="flex h-16 items-center border-b border-slate-200 px-6">
-                <span className="text-lg font-semibold">PilatesTime</span>
+              <div className="flex h-16 items-center justify-between border-b border-slate-200 px-6">
+                <BrandBlock />
                 <button
                   type="button"
-                  className="ml-auto rounded-md p-2 text-slate-500 hover:bg-slate-100"
+                  className="ml-2 rounded-md p-2 text-slate-500 hover:bg-slate-100"
                   onClick={() => setMobileOpen(false)}
-                  aria-label="Close navigation"
+                  aria-label="Cerrar menu"
                 >
                   <span className="material-icons-outlined">close</span>
                 </button>
@@ -204,7 +223,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
                 type="button"
                 className="rounded-md border border-slate-200 p-2 text-slate-600 md:hidden"
                 onClick={() => setMobileOpen(true)}
-                aria-label="Open navigation"
+                aria-label="Abrir menu"
               >
                 <span className="material-icons-outlined">menu</span>
               </button>
@@ -213,7 +232,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
             <div className="flex items-center gap-4">
               {headerToolbar ?? (
                 <>
-                  <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notifications">
+                  <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
                     <span className="material-icons-outlined text-slate-500">notifications</span>
                   </button>
                   <img src="/angie.jpg" alt="Usuario" className="h-9 w-9 rounded-full object-cover" />
@@ -228,3 +247,6 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     </div>
   );
 }
+
+
+
