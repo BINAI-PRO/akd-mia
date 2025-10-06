@@ -16,6 +16,34 @@ export type Database = {
   public: {
     Tables: {
       // -----------------------------
+      //  CLIENTES
+      // -----------------------------
+      clients: {
+        Row: {
+          id: string
+          full_name: string
+          phone: string | null
+          email: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          full_name?: string
+          phone?: string | null
+          email?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          phone?: string | null
+          email?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+
+      // -----------------------------
       //  INSTRUCTORES
       // -----------------------------
       instructors: {
@@ -73,6 +101,52 @@ export type Database = {
           id?: string
           name?: string
           description?: string | null
+        }
+        Relationships: []
+      }
+
+      // -----------------------------
+      //  TIPOS DE MEMBRESÍA
+      // -----------------------------
+      membership_types: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          billing_period: string
+          access_type: string
+          price: number
+          currency: string
+          class_quota: number | null
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name?: string
+          description?: string | null
+          billing_period?: string
+          access_type?: string
+          price?: number
+          currency?: string
+          class_quota?: number | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          billing_period?: string
+          access_type?: string
+          price?: number
+          currency?: string
+          class_quota?: number | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -326,6 +400,77 @@ export type Database = {
             columns: ["room_id"],
             isOneToOne: false,
             referencedRelation: "rooms",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      // -----------------------------
+      //  MEMBRESÍAS
+      // -----------------------------
+      memberships: {
+        Row: {
+          id: string
+          client_id: string
+          membership_type_id: string
+          status: string
+          start_date: string
+          end_date: string
+          next_billing_date: string | null
+          auto_renew: boolean
+          assigned_session_id: string | null
+          remaining_classes: number | null
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          membership_type_id: string
+          status?: string
+          start_date?: string
+          end_date?: string
+          next_billing_date?: string | null
+          auto_renew?: boolean
+          assigned_session_id?: string | null
+          remaining_classes?: number | null
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          membership_type_id?: string
+          status?: string
+          start_date?: string
+          end_date?: string
+          next_billing_date?: string | null
+          auto_renew?: boolean
+          assigned_session_id?: string | null
+          remaining_classes?: number | null
+          notes?: string | null
+          created_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_client_id_fkey",
+            columns: ["client_id"],
+            isOneToOne: false,
+            referencedRelation: "clients",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_membership_type_id_fkey",
+            columns: ["membership_type_id"],
+            isOneToOne: false,
+            referencedRelation: "membership_types",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_assigned_session_id_fkey",
+            columns: ["assigned_session_id"],
+            isOneToOne: false,
+            referencedRelation: "sessions",
             referencedColumns: ["id"]
           }
         ]

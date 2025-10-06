@@ -3,12 +3,12 @@ import dayjs from "dayjs";
 import MonthPicker from "@/components/MonthPicker";
 import WeekStrip from "@/components/WeekStrip";
 import DayBar from "@/components/DayBar";
-import SessionCard from "@/components/SessionCard";
+import SessionCard, { type SessionSummary } from "@/components/SessionCard";
 import Router from "next/router";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { clampAnchor, earliestAnchor, startOfWeekMX } from "@/lib/date-mx";
 
-type Sess = {
+type ApiSession = {
   id: string;
   classType: string;
   room: string;
@@ -17,8 +17,6 @@ type Sess = {
   end: string;
   capacity: number;
   current_occupancy: number;
-  startLabel?: string;
-  duration?: number;
 };
 
 export default function SchedulePage() {
@@ -31,19 +29,23 @@ export default function SchedulePage() {
   // Ahora siempre es string ISO y respetamos los límites (mes actual + 11)
   const [anchor, setAnchor] = useState<string>(earliestAnchor());
 
-  const [sessions, setSessions] = useState<Sess[]>([]);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
-  const fmtSessions = (arr: Sess[]) =>
-    arr.map((s) => ({
-      ...s,
-      startLabel: dayjs(s.start).format("hh:mm A"),
-      duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
-    }));
+  const toSummary = (s: ApiSession): SessionSummary => ({
+    id: s.id,
+    capacity: s.capacity,
+    current_occupancy: s.current_occupancy,
+    startLabel: dayjs(s.start).format("hh:mm A"),
+    classType: s.classType,
+    instructor: s.instructor,
+    room: s.room,
+    duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
+  });
 
   const fetchDay = async (iso: string) => {
     const res = await fetch(`/api/calendar?date=${iso}`);
-    const data: Sess[] = await res.json();
-    setSessions(fmtSessions(data));
+    const data: ApiSession[] = await res.json();
+    setSessions(data.map(toSummary));
   };
 
   useEffect(() => {
@@ -159,7 +161,7 @@ export default function SchedulePage() {
       <div className="mt-2 space-y-3">
         {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este día.</p>}
         {sessions.map((s) => (
-          <SessionCard key={s.id} s={s} onReserve={handleReserve} />
+          <SessionCard key={s.id} session={s} onReserve={handleReserve} />
         ))}
       </div>
     </section>
