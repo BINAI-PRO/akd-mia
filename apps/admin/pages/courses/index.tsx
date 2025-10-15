@@ -35,9 +35,15 @@ type ClassTypeOption = {
   description?: string | null;
 };
 
+type RoomOption = {
+  id: string;
+  name: string;
+};
+
 type CourseQueryRow = Tables<"courses"> & {
   instructors?: { id: string; full_name: string | null } | null;
   class_types?: { id: string; name: string | null } | null;
+  rooms?: { id: string; name: string | null } | null;
 };
 
 // Nombres de propiedades en espaÃ±ol para la UI, mapeados desde snake_case de la DB
@@ -63,12 +69,16 @@ export type CourseRow = {
   createdAt: string; // created_at
   classTypeId: string | null;
   classTypeName: string | null;
+  defaultRoomId: string | null;
+  defaultRoomName: string | null;
+  hasSessions: boolean;
 };
 
 export type PageProps = {
   initialCourses: CourseRow[];
   instructors: InstructorOption[];
   classTypes: ClassTypeOption[];
+  rooms: RoomOption[];
   levelOptions: string[];
   categoryOptions: string[];
 };
@@ -89,6 +99,7 @@ type FormState = {
   leadInstructorId: string;
   tags: string;
   classTypeId: string;
+  defaultRoomId: string;
 };
 
 type CourseApiResponse = {
@@ -109,14 +120,13 @@ function formatCurrency(value: number, currencyCode: string) {
   return CURRENCY_FORMATTERS[key].format(value);
 }
 
-function mapCourse(row: CourseQueryRow): CourseRow {
+function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): CourseRow {
   return {
     id: row.id,
     title: row.title,
     Descripcion: row.description ?? null,
     shortDescripcion: row.short_description ?? null,
-    Precio:
-      row.price !== null && row.price !== undefined ? Number(row.price) : null,
+    Precio: row.price !== null && row.price !== undefined ? Number(row.price) : null,
     Moneda: row.currency ?? "MXN",
     durationLabel: row.duration_label ?? null,
     Nivel: row.level ?? null,
@@ -129,6 +139,9 @@ function mapCourse(row: CourseQueryRow): CourseRow {
     Estado: (row.status ?? "DRAFT") as CourseEstado,
     Etiquetas: Array.isArray(row.tags) ? row.tags : [],
     coverImageUrl: row.cover_image_url ?? null,
+    defaultRoomId: row.default_room_id ?? null,
+    defaultRoomName: row.rooms?.name ?? null,
+    hasSessions: extras?.hasSessions ?? false,
     updatedAt: row.updated_at ?? "",
     createdAt: row.created_at ?? "",
     classTypeId: row.class_type_id ?? null,
@@ -136,13 +149,47 @@ function mapCourse(row: CourseQueryRow): CourseRow {
   };
 }
 
+const FALLBACK_COURSE_LEVELS = [
+  "Principiante",
+  "Intermedio",
+  "Avanzado",
+  "Multinivel",
+  "Certificación",
+];
+
+const FALLBACK_COURSE_CATEGORIES = [
+  "Grupal",
+  "Individual",
+  "Promoción",
+  "Evento",
+];
+
+async function loadEnumOptions(enumName: string, fallback: string[]): Promise<string[]> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("enum_values", {
+      enum_name: enumName,
+      schema_name: "public",
+    });
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error("Respuesta inválida");
+    const values = (data as string[])
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter((value) => value.length > 0);
+    if (values.length === 0) throw new Error("Enum sin valores");
+    return values;
+  } catch (error) {
+    console.warn(`[courses] enum_values fallback for ${enumName}`, error);
+    return [...fallback];
+  }
+}
+
 // === SSR: lectura de cursos e instructores ===
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [coursesResp, instructorsResp, classTypesResp] = await Promise.all([
+  const [coursesResp, instructorsResp, classTypesResp, roomsResp] = await Promise.all([
     supabaseAdmin
       .from("courses")
       .select(
-        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name)"
+        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)"
       )
       .order("updated_at", { ascending: false }),
     supabaseAdmin
@@ -153,18 +200,60 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       .from("class_types")
       .select("id, name, description")
       .order("name"),
+    supabaseAdmin
+      .from("rooms")
+      .select("id, name")
+      .order("name"),
   ]);
 
   if (coursesResp.error) throw coursesResp.error;
   if (instructorsResp.error) throw instructorsResp.error;
   if (classTypesResp.error) throw classTypesResp.error;
+  if (roomsResp.error) throw roomsResp.error;
 
   const courseRows = (coursesResp.data ?? []) as CourseQueryRow[];
   const instructorRows =
     (instructorsResp.data ?? []) as Tables<"instructors">[];
   const classTypeRows = (classTypesResp.data ?? []) as Tables<"class_types">[];
+  const roomRows = (roomsResp.data ?? []) as Tables<"rooms">[];
 
-  const initialCourses = courseRows.map(mapCourse);
+  const courseIds = courseRows.map((row) => row.id).filter(Boolean);
+  const uniqueCourseIds = Array.from(new Set(courseIds));
+  const coursesWithSessions = new Set<string>();
+  if (uniqueCourseIds.length > 0) {
+    const { data: sessionsData, error: sessionsError } = await supabaseAdmin
+      .from("sessions")
+      .select("course_id")
+      .in("course_id", uniqueCourseIds);
+    if (sessionsError) throw sessionsError;
+    (sessionsData ?? []).forEach(({ course_id }) => {
+      if (course_id) coursesWithSessions.add(course_id);
+    });
+  }
+
+  const enumLevelOptions = await loadEnumOptions("course_level", FALLBACK_COURSE_LEVELS);
+  const enumCategoryOptions = await loadEnumOptions("category", FALLBACK_COURSE_CATEGORIES);
+
+  const levelSet = new Set(enumLevelOptions);
+  const categorySet = new Set(enumCategoryOptions);
+
+  courseRows.forEach((row) => {
+    const levelValue = row.level?.trim();
+    if (levelValue) levelSet.add(levelValue);
+    const categoryValue = row.category?.trim();
+    if (categoryValue) categorySet.add(categoryValue);
+  });
+
+  const levelOptions = Array.from(levelSet).sort((a, b) =>
+    a.localeCompare(b, "es")
+  );
+  const categoryOptions = Array.from(categorySet).sort((a, b) =>
+    a.localeCompare(b, "es")
+  );
+
+  const initialCourses = courseRows.map((row) =>
+    mapCourse(row, { hasSessions: coursesWithSessions.has(row.id) })
+  );
   const instructors = instructorRows.map(({ id, full_name }) => ({
     id,
     full_name,
@@ -174,29 +263,20 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     name,
     description: description ?? null,
   }));
-
-  const levelSet = new Set<string>();
-  courseRows.forEach((row) => {
-    if (row.level && row.level.trim()) levelSet.add(row.level.trim());
-  });
-  if (!levelSet.has("Multinivel")) levelSet.add("Multinivel");
-
-  const categorySet = new Set<string>();
-  courseRows.forEach((row) => {
-    if (row.category && row.category.trim())
-      categorySet.add(row.category.trim());
-  });
-  if (!categorySet.has("General")) categorySet.add("General");
-
-  const levelOptions = Array.from(levelSet).sort((a, b) =>
-    a.localeCompare(b, "es")
-  );
-  const categoryOptions = Array.from(categorySet).sort((a, b) =>
-    a.localeCompare(b, "es")
-  );
+  const rooms = roomRows.map(({ id, name }) => ({
+    id,
+    name,
+  }));
 
   return {
-    props: { initialCourses, instructors, classTypes, levelOptions, categoryOptions },
+    props: {
+      initialCourses,
+      instructors,
+      classTypes,
+      rooms,
+      levelOptions,
+      categoryOptions,
+    },
   };
 };
 
@@ -216,12 +296,20 @@ const DEFAULT_FORM: FormState = {
   leadInstructorId: "",
   tags: "",
   classTypeId: "",
+  defaultRoomId: "",
 };
 
 export default function CoursesPage(
   props: InferGetServerSidePropsType<typeof getServerSideProps>
 ) {
-  const { initialCourses, instructors, classTypes, levelOptions, categoryOptions } =
+  const {
+    initialCourses,
+    instructors,
+    classTypes,
+    rooms: roomOptions,
+    levelOptions,
+    categoryOptions,
+  } =
     props;
 
   const [courses, setCourses] = useState<CourseRow[]>(initialCourses);
@@ -236,6 +324,7 @@ export default function CoursesPage(
     classTypeId: classTypes[0]?.id ?? "",
     level: levelOptions[0] ?? "",
     category: categoryOptions[0] ?? "",
+    defaultRoomId: roomOptions[0]?.id ?? "",
   });
   const [saving, setSaving] = useState(false);
   const [formMessage, setFormMessage] = useState<string | null>(null);
@@ -249,6 +338,11 @@ export default function CoursesPage(
   };
   const [formError, setFormError] = useState<string | null>(null);
   const formRef = useRef<HTMLDivElement | null>(null);
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const isEditing = editingCourseId !== null;
+  const courseBeingEdited = isEditing
+    ? courses.find((course) => course.id === editingCourseId) ?? null
+    : null;
 
   const filteredCourses = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -262,6 +356,8 @@ export default function CoursesPage(
             course.Categoria ?? "",
             course.Nivel ?? "",
             course.classTypeName ?? "",
+            course.defaultRoomName ?? "",
+            course.leadInstructorName ?? "",
           ]
             .join(" ")
             .toLowerCase()
@@ -292,6 +388,7 @@ export default function CoursesPage(
   const resetForm = (options?: {
     nextLevels?: string[];
     nextCategories?: string[];
+    nextRoomId?: string;
   }) => {
     const currentLevels = options?.nextLevels ?? levels;
     const currentCategories = options?.nextCategories ?? categories;
@@ -300,9 +397,42 @@ export default function CoursesPage(
       classTypeId: classTypes[0]?.id ?? "",
       level: currentLevels[0] ?? "",
       category: currentCategories[0] ?? "",
+      defaultRoomId: options?.nextRoomId ?? roomOptions[0]?.id ?? "",
     });
+    setFormError(null);
+    setEditingCourseId(null);
+  };
+
+  const handleEditCourse = (course: CourseRow) => {
+    const nextLevels = ensureOption(levels, course.Nivel);
+    if (nextLevels !== levels) setLevels(nextLevels);
+    const nextCategories = ensureOption(categories, course.Categoria);
+    if (nextCategories !== categories) setCategories(nextCategories);
+
+    setFormState({
+      title: course.title,
+      shortDescription: course.shortDescripcion ?? "",
+      description: course.Descripcion ?? "",
+      price: course.Precio !== null ? String(course.Precio) : "",
+      currency: course.Moneda ?? "MXN",
+      durationLabel: course.durationLabel ?? "",
+      level: course.Nivel ?? "",
+      category: course.Categoria ?? "",
+      sessionCount: String(course.sessionCount ?? ""),
+      sessionDurationMinutes: String(course.sessionDurationMinutes ?? ""),
+      visibility: course.Visibilidad,
+      status: course.Estado,
+      leadInstructorId: course.leadInstructorId ?? "",
+      tags: course.Etiquetas.join(", "),
+      classTypeId: course.classTypeId ?? "",
+      defaultRoomId: course.defaultRoomId ?? "",
+    });
+    setEditingCourseId(course.id);
     setFormMessage(null);
     setFormError(null);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -313,8 +443,15 @@ export default function CoursesPage(
 
     try {
       const trimmedTitle = formState.title.trim();
-      if (!trimmedTitle) throw new Error("El titulo es obligatorio");
-      if (!formState.classTypeId) throw new Error("Selecciona un tipo de curso");
+      if (!trimmedTitle) throw new Error("El título es obligatorio");
+
+      const classTypeId = formState.classTypeId.trim();
+      if (!classTypeId) throw new Error("Selecciona un tipo de curso");
+
+      const defaultRoomId = formState.defaultRoomId.trim();
+      if (hasRoomOptions && !defaultRoomId) {
+        throw new Error("Selecciona una sala predeterminada");
+      }
 
       const parsedSessionCount = Number(formState.sessionCount);
       if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
@@ -323,13 +460,13 @@ export default function CoursesPage(
 
       const parsedSessionDuration = Number(formState.sessionDurationMinutes);
       if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-        throw new Error("La duracion por sesion debe ser mayor a cero");
+        throw new Error("La duración por sesión debe ser mayor a cero");
       }
 
       const priceInput = formState.price.trim();
       const parsedPrice = priceInput.length === 0 ? null : Number(priceInput);
       if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        throw new Error("El precio debe ser un numero valido");
+        throw new Error("El precio debe ser un número válido");
       }
 
       const payload = {
@@ -350,38 +487,65 @@ export default function CoursesPage(
           .split(",")
           .map((tag) => tag.trim())
           .filter((tag) => tag.length > 0),
-        classTypeId: formState.classTypeId,
+        classTypeId,
+        defaultRoomId: defaultRoomId || null,
       };
 
+      const existingCourse = editingCourseId
+        ? courses.find((course) => course.id === editingCourseId)
+        : undefined;
+      if (editingCourseId && existingCourse?.hasSessions) {
+        throw new Error("Este curso ya tiene sesiones programadas y no se puede editar");
+      }
+
       const response = await fetch("/api/courses", {
-        method: "POST",
+        method: editingCourseId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(
+          editingCourseId ? { id: editingCourseId, ...payload } : payload
+        ),
       });
 
       const body = (await response.json().catch(() => ({}))) as Partial<
         CourseApiResponse & { error?: string }
       >;
       if (!response.ok) {
-        throw new Error(body?.error ?? "No se pudo crear el curso");
+        throw new Error(body?.error ?? "No se pudo guardar el curso");
       }
       if (!body?.course) {
         throw new Error("Respuesta inesperada del servidor");
       }
 
-      const newCourse = mapCourse(body.course);
+      const updatedCourse = mapCourse(body.course, {
+        hasSessions: editingCourseId
+          ? existingCourse?.hasSessions ?? false
+          : false,
+      });
 
-      const nextLevels = ensureOption(levels, newCourse.Nivel);
-      const nextCategories = ensureOption(categories, newCourse.Categoria);
+      const nextLevels = ensureOption(levels, updatedCourse.Nivel);
+      const nextCategories = ensureOption(categories, updatedCourse.Categoria);
       if (nextLevels !== levels) setLevels(nextLevels);
       if (nextCategories !== categories) setCategories(nextCategories);
 
-      setCourses((prev) => [newCourse, ...prev]);
-      setFormMessage("Curso creado correctamente");
+      if (editingCourseId) {
+        setCourses((prev) =>
+          prev.map((course) =>
+            course.id === updatedCourse.id ? updatedCourse : course
+          )
+        );
+      } else {
+        setCourses((prev) => [updatedCourse, ...prev]);
+      }
+
+      setFormMessage(
+        editingCourseId
+          ? "Curso actualizado correctamente"
+          : "Curso creado correctamente"
+      );
       resetForm({ nextLevels, nextCategories });
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : "No se pudo crear el curso"
+        error instanceof Error ? error.message : "No se pudo guardar el curso"
       );
     } finally {
       setSaving(false);
@@ -389,6 +553,7 @@ export default function CoursesPage(
   };
 
   const hasClassTypeOptions = classTypes.length > 0;
+  const hasRoomOptions = roomOptions.length > 0;
 
   return (
     <AdminLayoutAny title="Cursos" active="courses">
@@ -443,14 +608,14 @@ export default function CoursesPage(
                   <th className="px-4 py-3">Sesiones</th>
                   <th className="px-4 py-3">Precio</th>
                   <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Actualizado</th>
+                  <th className="px-4 py-3 text-right">Actualizado</th>`r`n                  <th className="px-3 py-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
                 {filteredCourses.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-4 py-10 text-center text-sm text-slate-500"
                     >
                       No hay cursos que coincidan con los filtros.
@@ -479,12 +644,20 @@ export default function CoursesPage(
                               {course.title}
                             </div>
                             <div className="text-xs text-slate-500">
-                              {[course.classTypeName, course.Nivel, course.Categoria ?? "General"]
+                              {[
+                                course.classTypeName,
+                                course.Nivel,
+                                course.Categoria ?? "General",
+                                course.defaultRoomName
+                                  ? `Sala ${course.defaultRoomName}`
+                                  : null,
+                                course.leadInstructorName
+                                  ? `Instructor ${course.leadInstructorName}`
+                                  : null,
+                                course.hasSessions ? "Programado" : null,
+                              ]
                                 .filter(Boolean)
                                 .join(" | ")}
-                              {course.leadInstructorName
-                                ? ` | ${course.leadInstructorName}`
-                                : ""}
                             </div>
                           </div>
                         </div>
@@ -506,6 +679,23 @@ export default function CoursesPage(
                           "DD MMM YYYY"
                         )}
                       </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleEditCourse(course)}
+                          disabled={course.hasSessions || saving}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                          title={
+                            course.hasSessions
+                              ? "No disponible: ya tiene sesiones programadas"
+                              : "Editar curso"
+                          }
+                        >
+                          <span className="material-icons-outlined text-base">
+                            edit
+                          </span>
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -516,18 +706,31 @@ export default function CoursesPage(
 
         <div ref={formRef} className="w-full max-w-[360px] shrink-0">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <h2 className="mb-3 text-base font-semibold text-slate-800">
-              Crear curso
+            <h2 className="mb-1 text-base font-semibold text-slate-800">
+              {isEditing ? "Editar curso" : "Crear curso"}
             </h2>
+            {isEditing && courseBeingEdited && (
+              <p className="mb-3 text-xs text-slate-500">
+                Modificando:{" "}
+                <span className="font-medium text-slate-700">
+                  {courseBeingEdited.title}
+                </span>
+              </p>
+            )}
             {!hasClassTypeOptions && (
               <p className="mb-3 text-sm text-amber-600">
-                Registra al menos una clase antes de crear un curso.
+                Registra al menos un tipo de clase antes de crear un curso.
+              </p>
+            )}
+            {!hasRoomOptions && (
+              <p className="mb-3 text-sm text-amber-600">
+                Registra al menos una sala antes de crear un curso.
               </p>
             )}
             <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Titulo
+                Título
                 </label>
                 <input
                   value={formState.title}
@@ -539,7 +742,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Descripcion corta
+                Descripción corta
                 </label>
                 <input
                   value={formState.shortDescription}
@@ -551,7 +754,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Descripcion
+                Descripción
                 </label>
                 <textarea
                   value={formState.description}
@@ -593,6 +796,25 @@ export default function CoursesPage(
                   {instructors.map((instructor) => (
                     <option key={instructor.id} value={instructor.id}>
                       {instructor.full_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Sala predeterminada
+                </label>
+                <select
+                  value={formState.defaultRoomId}
+                  onChange={handleFormChange("defaultRoomId")}
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+                  disabled={!hasRoomOptions || saving}
+                >
+                  <option value="">Selecciona una sala</option>
+                  {roomOptions.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.name}
                     </option>
                   ))}
                 </select>
@@ -687,14 +909,14 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Categoria
+                    Categoría
                   </label>
                   <select
                     value={formState.category}
                     onChange={handleFormChange("category")}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                   >
-                    <option value="">Selecciona categoria</option>
+                    <option value="">Selecciona categoría</option>
                     {categories.map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -772,18 +994,25 @@ export default function CoursesPage(
               <div className="flex items-center justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => resetForm()}
+                  onClick={() => {
+                    resetForm();
+                    setFormMessage(null);
+                  }}
                   className="rounded-md border border-slate-200 px-4 py-2 text-sm"
                   disabled={saving}
                 >
-                  Limpiar
+                  {isEditing ? "Cancelar" : "Limpiar"}
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !hasClassTypeOptions}
+                  disabled={saving || !hasClassTypeOptions || !hasRoomOptions}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {saving ? "Guardando..." : "Guardar curso"}
+                  {saving
+                    ? "Guardando..."
+                    : isEditing
+                    ? "Actualizar curso"
+                    : "Guardar curso"}
                 </button>
               </div>
             </form>
@@ -815,4 +1044,3 @@ function CourseEstadoBadge({ Estado }: { Estado: CourseEstado }) {
     </span>
   );
 }
-

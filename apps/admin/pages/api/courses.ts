@@ -1,4 +1,4 @@
-﻿import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 function slugify(value: string) {
@@ -26,101 +26,159 @@ type CoursePayload = {
   sessionDurationMinutes?: number | string;
   leadInstructorId?: string | null;
   classTypeId?: string | null;
+  defaultRoomId?: string | null;
 };
 
-type CourseRecord = {
-  created_at: string;
+type NormalizedPayload = {
+  title: string;
+  description: string | null;
+  shortDescription: string | null;
+  parsedPrice: number | null;
+  currency: string;
+  durationLabel: string | null;
+  level: string | null;
+  category: string | null;
+  sessionCount: number;
+  sessionDuration: number;
+  visibility: string;
+  status: string;
+  tags: string[];
+  coverImageUrl: string | null;
+  leadInstructorId: string | null;
+  classTypeId: string;
+  defaultRoomId: string | null;
 };
+
+function normalizePayload(input: CoursePayload): NormalizedPayload {
+  if (!input.title || input.title.trim().length === 0) {
+    throw new Error("El nombre del curso es obligatorio");
+  }
+
+  const parsedPrice =
+    input.price === null || input.price === undefined || input.price === ""
+      ? null
+      : Number(input.price);
+  if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
+    throw new Error("El precio debe ser un número válido");
+  }
+
+  const parsedSessionCount = Number(input.sessionCount);
+  if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
+    throw new Error("La cantidad de sesiones debe ser mayor a cero");
+  }
+
+  const parsedSessionDuration = Number(input.sessionDurationMinutes);
+  if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
+    throw new Error("La duración de cada sesión debe ser mayor a cero");
+  }
+
+  if (!input.classTypeId || input.classTypeId.trim().length === 0) {
+    throw new Error("Debes seleccionar un tipo de curso");
+  }
+
+  return {
+    title: input.title.trim(),
+    description: input.description ?? null,
+    shortDescription: input.shortDescription ?? null,
+    parsedPrice,
+    currency: (input.currency ?? "MXN").toUpperCase(),
+    durationLabel: input.durationLabel ?? null,
+    level: input.level ?? null,
+    category: input.category ?? null,
+    sessionCount: Math.trunc(parsedSessionCount),
+    sessionDuration: Math.trunc(parsedSessionDuration),
+    visibility: (input.visibility ?? "PUBLIC").toUpperCase(),
+    status: (input.status ?? "DRAFT").toUpperCase(),
+    tags: Array.isArray(input.tags)
+      ? input.tags.filter(Boolean).map((tag) => tag.trim()).filter((tag) => tag.length > 0)
+      : [],
+    coverImageUrl: input.coverImageUrl ?? null,
+    leadInstructorId: input.leadInstructorId || null,
+    classTypeId: input.classTypeId.trim(),
+    defaultRoomId: input.defaultRoomId?.trim() || null,
+  };
+}
+
+function buildDatabasePayload(normalized: NormalizedPayload) {
+  return {
+    title: normalized.title,
+    slug: slugify(normalized.title),
+    description: normalized.description,
+    short_description: normalized.shortDescription,
+    price: normalized.parsedPrice !== null ? normalized.parsedPrice.toFixed(2) : null,
+    currency: normalized.currency,
+    duration_label: normalized.durationLabel,
+    level: normalized.level,
+    category: normalized.category,
+    session_count: normalized.sessionCount,
+    session_duration_minutes: normalized.sessionDuration,
+    visibility: normalized.visibility,
+    status: normalized.status,
+    tags: normalized.tags,
+    cover_image_url: normalized.coverImageUrl,
+    lead_instructor_id: normalized.leadInstructorId,
+    class_type_id: normalized.classTypeId,
+    default_room_id: normalized.defaultRoomId,
+  };
+}
+
+const selectColumns =
+  "*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
     try {
-      const {
-        title,
-        description,
-        shortDescription,
-        price,
-        currency,
-        durationLabel,
-        level,
-        category,
-        visibility,
-        status,
-        tags,
-        coverImageUrl,
-        sessionCount,
-        sessionDurationMinutes,
-        leadInstructorId,
-        classTypeId,
-      } = req.body as CoursePayload;
-
-      if (!title || title.trim().length === 0) {
-        return res.status(400).json({ error: "El nombre del curso es obligatorio" });
-      }
-
-      const parsedPrice = price === null || price === undefined || price === ""
-        ? null
-        : Number(price);
-      if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        return res.status(400).json({ error: "El precio debe ser un numero valido" });
-      }
-
-      const parsedSessionCount = Number(sessionCount);
-      if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
-        return res.status(400).json({ error: "La cantidad de sesiones debe ser mayor a cero" });
-      }
-
-      const parsedSessionDuration = Number(sessionDurationMinutes);
-      if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-        return res.status(400).json({ error: "La duracion de cada sesión debe ser mayor a cero" });
-      }
-
-      if (!classTypeId || classTypeId.trim().length === 0) {
-        return res.status(400).json({ error: "Debes seleccionar un tipo de curso" });
-      }
-      const sanitizedClassTypeId = classTypeId.trim();
-
-      const payload = {
-        title: title.trim(),
-        slug: slugify(title),
-        description: description ?? null,
-        short_description: shortDescription ?? null,
-        price: parsedPrice !== null ? parsedPrice.toFixed(2) : null,
-        currency: (currency ?? "MXN").toUpperCase(),
-        duration_label: durationLabel ?? null,
-        level: level ?? null,
-        category: category ?? null,
-        session_count: Math.trunc(parsedSessionCount),
-        session_duration_minutes: Math.trunc(parsedSessionDuration),
-        lead_instructor_id: leadInstructorId || null,
-        class_type_id: sanitizedClassTypeId,
-        visibility: (visibility ?? "PUBLIC").toUpperCase(),
-        status: (status ?? "DRAFT").toUpperCase(),
-        tags: Array.isArray(tags)
-          ? tags.filter(Boolean).map((tag) => tag.trim()).filter((tag) => tag.length > 0)
-          : [],
-        cover_image_url: coverImageUrl ?? null,
-      };
+      const normalized = normalizePayload(req.body as CoursePayload);
+      const payload = buildDatabasePayload(normalized);
 
       const { data, error } = await supabaseAdmin
         .from("courses")
         .insert(payload)
-        .select("*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name)")
+        .select(selectColumns)
         .single();
 
       if (error || !data) {
-        console.error("/api/courses", error);
+        console.error("/api/courses POST", error);
         return res.status(500).json({ error: error?.message ?? "No se pudo crear el curso" });
       }
 
-      return res.status(200).json({
-        course: data,
-        createdAt: (data as CourseRecord)?.created_at,
+      return res.status(200).json({ course: data });
+    } catch (error) {
+      console.error("/api/courses POST", error);
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : "No se pudo crear el curso",
       });
-    } catch (error: unknown) {
-      console.error("/api/courses", error);
-      const message = error instanceof Error ? error.message : "Error inesperado";
-      return res.status(500).json({ error: message });
+    }
+  }
+
+  if (req.method === "PATCH") {
+    try {
+      const { id, ...rest } = req.body as CoursePayload & { id?: string };
+      if (!id) {
+        return res.status(400).json({ error: "Identificador del curso faltante" });
+      }
+
+      const normalized = normalizePayload(rest);
+      const payload = buildDatabasePayload(normalized);
+
+      const { data, error } = await supabaseAdmin
+        .from("courses")
+        .update(payload)
+        .eq("id", id)
+        .select(selectColumns)
+        .single();
+
+      if (error || !data) {
+        console.error("/api/courses PATCH", error);
+        return res.status(500).json({ error: error?.message ?? "No se pudo actualizar el curso" });
+      }
+
+      return res.status(200).json({ course: data });
+    } catch (error) {
+      console.error("/api/courses PATCH", error);
+      return res.status(400).json({
+        error: error instanceof Error ? error.message : "No se pudo actualizar el curso",
+      });
     }
   }
 
@@ -128,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { data, error } = await supabaseAdmin
         .from("courses")
-        .select("*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name)")
+        .select(selectColumns)
         .order("updated_at", { ascending: false });
 
       if (error) {
@@ -136,15 +194,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(200).json({ courses: data ?? [] });
-    } catch (error: unknown) {
-      console.error("/api/courses", error);
-      const message = error instanceof Error ? error.message : "No se pudieron cargar los cursos";
-      return res.status(500).json({ error: message });
+    } catch (error) {
+      console.error("/api/courses GET", error);
+      return res.status(500).json({
+        error: error instanceof Error ? error.message : "No se pudieron cargar los cursos",
+      });
     }
   }
 
-  res.setHeader("Allow", "GET, POST");
-  return res.status(405).json({ error: "Metodo no permitido" });
+  res.setHeader("Allow", "GET, POST, PATCH");
+  return res.status(405).json({ error: "Método no permitido" });
 }
-
-
