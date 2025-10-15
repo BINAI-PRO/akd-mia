@@ -1,4 +1,4 @@
-﻿import type { Tables } from "@/types/database";
+import type { Tables } from "@/types/database";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
@@ -46,7 +46,7 @@ type CourseQueryRow = Tables<"courses"> & {
   rooms?: { id: string; name: string | null } | null;
 };
 
-// Nombres de propiedades en espaÃ±ol para la UI, mapeados desde snake_case de la DB
+// Nombres de propiedades en español para la UI, mapeados desde snake_case de la DB
 export type CourseRow = {
   id: string;
   title: string;
@@ -154,13 +154,13 @@ const FALLBACK_COURSE_LEVELS = [
   "Intermedio",
   "Avanzado",
   "Multinivel",
-  "Certificación",
+  "Certificaci\u00f3n",
 ];
 
 const FALLBACK_COURSE_CATEGORIES = [
   "Grupal",
   "Individual",
-  "Promoción",
+  "Promoci\u00f3n",
   "Evento",
 ];
 
@@ -171,7 +171,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
       schema_name: "public",
     });
     if (error) throw error;
-    if (!Array.isArray(data)) throw new Error("Respuesta inválida");
+    if (!Array.isArray(data)) throw new Error("Respuesta inv\u00e1lida");
     const values = (data as string[])
       .map((value) => (typeof value === "string" ? value.trim() : ""))
       .filter((value) => value.length > 0);
@@ -443,7 +443,7 @@ export default function CoursesPage(
 
     try {
       const trimmedTitle = formState.title.trim();
-      if (!trimmedTitle) throw new Error("El título es obligatorio");
+      if (!trimmedTitle) throw new Error("El t\u00edtulo es obligatorio");
 
       const classTypeId = formState.classTypeId.trim();
       if (!classTypeId) throw new Error("Selecciona un tipo de curso");
@@ -460,13 +460,13 @@ export default function CoursesPage(
 
       const parsedSessionDuration = Number(formState.sessionDurationMinutes);
       if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-        throw new Error("La duración por sesión debe ser mayor a cero");
+        throw new Error("La duraci\u00f3n por sesi\u00f3n debe ser mayor a cero");
       }
 
       const priceInput = formState.price.trim();
       const parsedPrice = priceInput.length === 0 ? null : Number(priceInput);
       if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        throw new Error("El precio debe ser un número válido");
+        throw new Error("El precio debe ser un n\u00famero v\u00e1lido");
       }
 
       const payload = {
@@ -558,6 +558,7 @@ export default function CoursesPage(
   return (
     <AdminLayoutAny title="Cursos" active="courses">
       <Head>
+        <meta charSet="utf-8" />
         <title>PilatesTime Admin - Cursos</title>
       </Head>
       <div className="mx-auto flex max-w-6xl gap-6">
@@ -605,10 +606,11 @@ export default function CoursesPage(
               <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Curso</th>
-                  <th className="px-4 py-3">Sesiones</th>
-                  <th className="px-4 py-3">Precio</th>
-                  <th className="px-4 py-3">Estado</th>
-                  <th className="px-4 py-3 text-right">Actualizado</th>`r`n                  <th className="px-3 py-3 text-right">Acciones</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Sesiones</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Precio</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Estado</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Actualizado</th>
+                  <th className="px-3 py-3 text-right w-14">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -622,82 +624,90 @@ export default function CoursesPage(
                     </td>
                   </tr>
                 ) : (
-                  filteredCourses.map((course) => (
-                    <tr key={course.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {course.coverImageUrl ? (
-                            <Image
-                              src={course.coverImageUrl}
-                              alt=""
-                              width={64}   // 16 * 4
-                              height={40}  // 10 * 4
-                              className="h-10 w-16 rounded object-cover ring-1 ring-slate-200"
-                              priority={false}
-                              unoptimized={false}
-                            />
-                          ) : (
-                            <div className="h-10 w-16 rounded bg-slate-100 ring-1 ring-slate-200" />
-                          )}
-                          <div>
-                            <div className="font-medium text-slate-800">
-                              {course.title}
-                            </div>
-                            <div className="text-xs text-slate-500">
-                              {[
-                                course.classTypeName,
-                                course.Nivel,
-                                course.Categoria ?? "General",
-                                course.defaultRoomName
-                                  ? `Sala ${course.defaultRoomName}`
-                                  : null,
-                                course.leadInstructorName
-                                  ? `Instructor ${course.leadInstructorName}`
-                                  : null,
-                                course.hasSessions ? "Programado" : null,
-                              ]
-                                .filter(Boolean)
-                                .join(" | ")}
+                  filteredCourses.map((course) => {
+                    const secondaryLines: string[] = [];
+                    if (course.classTypeName) secondaryLines.push(course.classTypeName);
+                    const levelCategory = [course.Nivel, course.Categoria ?? "General"].filter(Boolean).join(" \u00b7 ");
+                    if (levelCategory) secondaryLines.push(levelCategory);
+                    if (course.defaultRoomName) secondaryLines.push(`Sala ${course.defaultRoomName}`);
+                    if (course.leadInstructorName) secondaryLines.push(`Instructor ${course.leadInstructorName}`);
+                    const isScheduled = course.hasSessions;
+
+                    return (
+                      <tr key={course.id} className="hover:bg-slate-50">
+                        <td className="px-4 py-4 align-top">
+                          <div className="flex items-start gap-3">
+                            {course.coverImageUrl ? (
+                              <Image
+                                src={course.coverImageUrl}
+                                alt=""
+                                width={64} // 16 * 4
+                                height={40} // 10 * 4
+                                className="h-10 w-16 rounded object-cover ring-1 ring-slate-200"
+                                priority={false}
+                                unoptimized={false}
+                              />
+                            ) : (
+                              <div className="h-10 w-16 rounded bg-slate-100 ring-1 ring-slate-200" />
+                            )}
+                            <div className="space-y-1">
+                              <div className="font-medium text-slate-800 leading-snug">
+                                {course.title}
+                              </div>
+                              <div className="space-y-0.5 text-xs leading-snug text-slate-500">
+                                {secondaryLines.map((line, index) => (
+                                  <p key={`${course.id}-line-${index}`}>{line}</p>
+                                ))}
+                              </div>
+                              {isScheduled && (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-600">
+                                  Programado
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {course.sessionCount} sesiones x{" "}
-                        {course.sessionDurationMinutes} min
-                      </td>
-                      <td className="px-4 py-3 text-slate-700">
-                        {course.Precio !== null
-                          ? formatCurrency(course.Precio, course.Moneda)
-                          : "Gratis"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <CourseEstadoBadge Estado={course.Estado} />
-                      </td>
-                      <td className="px-4 py-3 text-right text-xs text-slate-500">
-                        {dayjs(course.updatedAt ?? course.createdAt).format(
-                          "DD MMM YYYY"
-                        )}
-                      </td>
-                      <td className="px-3 py-3 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleEditCourse(course)}
-                          disabled={course.hasSessions || saving}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-                          title={
-                            course.hasSessions
-                              ? "No disponible: ya tiene sesiones programadas"
-                              : "Editar curso"
-                          }
-                        >
-                          <span className="material-icons-outlined text-base">
-                            edit
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-slate-700">
+                          <div className="leading-tight">
+                            <div>{course.sessionCount} sesiones</div>
+                            <div className="text-xs text-slate-500">
+                              {"\u00d7"} {course.sessionDurationMinutes} min
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 align-top text-sm text-slate-700 whitespace-nowrap">
+                          {course.Precio !== null
+                            ? formatCurrency(course.Precio, course.Moneda)
+                            : "Gratis"}
+                        </td>
+                        <td className="px-4 py-4 align-top">
+                          <CourseEstadoBadge Estado={course.Estado} />
+                        </td>
+                        <td className="px-4 py-4 align-top text-right text-xs text-slate-500 whitespace-nowrap">
+                          {dayjs(course.updatedAt ?? course.createdAt).format(
+                            "DD MMM YYYY"
+                          )}
+                        </td>
+                        <td className="px-3 py-4 align-top text-right">
+                          <button
+                            type="button"
+                            onClick={() => handleEditCourse(course)}
+                            disabled={course.hasSessions || saving}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            title={
+                              course.hasSessions
+                                ? "No disponible: ya tiene sesiones programadas"
+                                : "Editar curso"
+                            }
+                          >
+                            <span className="material-icons-outlined text-base">
+                              edit
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -730,7 +740,7 @@ export default function CoursesPage(
             <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                Título
+                {"T\u00edtulo"}
                 </label>
                 <input
                   value={formState.title}
@@ -742,7 +752,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                Descripción corta
+                {"Descripci\u00f3n corta"}
                 </label>
                 <input
                   value={formState.shortDescription}
@@ -754,7 +764,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                Descripción
+                {"Descripci\u00f3n"}
                 </label>
                 <textarea
                   value={formState.description}
@@ -820,7 +830,7 @@ export default function CoursesPage(
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     Sesiones totales
@@ -835,7 +845,7 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Minutos por sesiÃ³n
+                    {"Minutos por sesi\u00f3n"}
                   </label>
                   <input
                     type="number"
@@ -849,7 +859,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Etiqueta de duraciÃ³n
+                  {"Etiqueta de duraci\u00f3n"}
                 </label>
                 <input
                   value={formState.durationLabel}
@@ -859,7 +869,7 @@ export default function CoursesPage(
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     Precio
@@ -889,7 +899,7 @@ export default function CoursesPage(
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     Nivel
@@ -909,14 +919,14 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Categoría
+                    {"Categor\u00eda"}
                   </label>
                   <select
                     value={formState.category}
                     onChange={handleFormChange("category")}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                   >
-                    <option value="">Selecciona categoría</option>
+                    <option value="">{"Selecciona categor\u00eda"}</option>
                     {categories.map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -938,7 +948,7 @@ export default function CoursesPage(
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
                     Visibilidad
@@ -953,7 +963,7 @@ export default function CoursesPage(
                         onChange={handleFormChange("visibility")}
                         className="h-4 w-4"
                       />
-                      PÃºblico
+                      {"P\u00fablico"}
                     </label>
                     <label className="flex items-center gap-2">
                       <input
@@ -964,7 +974,7 @@ export default function CoursesPage(
                         onChange={handleFormChange("visibility")}
                         className="h-4 w-4"
                       />
-                      Privado (solo invitaciÃ³n)
+                      {"Privado (solo invitaci\u00f3n)"}
                     </label>
                   </div>
                 </div>
