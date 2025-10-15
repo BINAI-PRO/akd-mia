@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -98,7 +98,7 @@ export default function DayAgendaBoard({
         if (filters.classTypeId !== "all") params.set("classTypeId", filters.classTypeId);
         if (debouncedSearch) params.set("search", debouncedSearch);
 
-        const response = await fetch(`/api/admin/calendar/day?${params.toString()}`, {
+        const response = await fetch(`/api/calendar/day?${params.toString()}`, {
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -162,7 +162,7 @@ export default function DayAgendaBoard({
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <span className="text-sm font-semibold text-slate-700">{miniCalendarMonthLabel}</span>
-          <Link href={{ pathname: "/admin/calendar/day", query: { date: todayISO } }} className="hidden">
+          <Link href={{ pathname: "/calendar/day", query: { date: todayISO } }} className="hidden">
             Hoy
           </Link>
         </div>
@@ -176,7 +176,7 @@ export default function DayAgendaBoard({
             {miniCalendarDays.map((day) => (
               <Link
                 key={day.isoDate}
-                href={{ pathname: "/admin/calendar/day", query: { date: day.isoDate } }}
+                href={{ pathname: "/calendar/day", query: { date: day.isoDate } }}
                 className={`flex h-9 items-center justify-center rounded-full transition ${
                   day.isSelected
                     ? "bg-brand-600 text-white"
@@ -190,7 +190,7 @@ export default function DayAgendaBoard({
             ))}
           </div>
           <Link
-            href={{ pathname: "/admin/calendar/day", query: { date: todayISO } }}
+            href={{ pathname: "/calendar/day", query: { date: todayISO } }}
             className="mt-4 flex h-10 items-center justify-center rounded-md border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             Hoy
@@ -217,7 +217,7 @@ export default function DayAgendaBoard({
                   value={filters.search}
                   onChange={(event) => updateFilter("search", event.target.value)}
                   className="h-10 flex-1 border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
-                  placeholder="Buscar por clase, instructor o sala"
+                  placeholder="Buscar por sesión, instructor o sala"
                 />
               </label>
               <div className="flex flex-wrap items-center gap-2">
@@ -253,7 +253,7 @@ export default function DayAgendaBoard({
                   className="h-10 rounded-md border border-slate-200 bg-white px-3 text-xs"
                   disabled={loading}
                 >
-                  <option value="all">Tipo de clase</option>
+                  <option value="all">Clase</option>
                   {filterOptions.classTypes.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
@@ -302,7 +302,7 @@ export default function DayAgendaBoard({
               <thead className="text-left text-slate-500">
                 <tr>
                   <th className="whitespace-nowrap px-4 py-3">Hora</th>
-                  <th className="whitespace-nowrap px-4 py-3">Clase / Evento</th>
+                  <th className="whitespace-nowrap px-4 py-3">Sesión / Evento</th>
                   <th className="whitespace-nowrap px-4 py-3">Ubicacion</th>
                   <th className="whitespace-nowrap px-4 py-3">Staff</th>
                   <th className="whitespace-nowrap px-4 py-3">Capacidad</th>
@@ -335,6 +335,7 @@ export default function DayAgendaBoard({
     </div>
   );
 }
+
 
 
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
@@ -155,7 +155,7 @@ export default function WeekCalendarBoard({
         if (filters.classTypeId !== "all") params.set("classTypeId", filters.classTypeId);
         if (debouncedSearch) params.set("search", debouncedSearch);
 
-        const response = await fetch(`/api/admin/calendar/week?${params.toString()}`, {
+        const response = await fetch(`/api/calendar/week?${params.toString()}`, {
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -221,7 +221,7 @@ export default function WeekCalendarBoard({
             <div className="flex flex-wrap items-center gap-6 font-medium">
               <button className="border-b-2 border-brand-500 pb-2 text-brand-600">Calendario completo</button>
               <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-400" /> Clases
+                <span className="h-2 w-2 rounded-full bg-brand-400" /> Sesiones
               </span>
               <span className="flex items-center gap-2">
               </span>
@@ -237,7 +237,7 @@ export default function WeekCalendarBoard({
                 <input
                   value={filters.search}
                   onChange={(event) => updateFilter("search", event.target.value)}
-                  placeholder="Buscar por clase, instructor o sala"
+                  placeholder="Buscar por sesión, instructor o sala"
                   className="h-full border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
                 />
               </label>
@@ -385,6 +385,7 @@ export default function WeekCalendarBoard({
     </div>
   );
 }
+
 
 
 

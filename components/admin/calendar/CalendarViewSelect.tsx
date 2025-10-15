@@ -15,7 +15,7 @@ export default function CalendarViewSelect({ mode, dateISO }: CalendarViewSelect
     (event: React.ChangeEvent<HTMLSelectElement>) => {
       const next = event.target.value as "week" | "day";
       const query = dateISO ? { date: dateISO } : undefined;
-      router.push({ pathname: `/admin/calendar/${next}`, query });
+      router.push({ pathname: `/calendar/${next}`, query });
     },
     [router, dateISO]
   );
@@ -31,3 +31,4 @@ export default function CalendarViewSelect({ mode, dateISO }: CalendarViewSelect
     </select>
   );
 }
+

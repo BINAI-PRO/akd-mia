@@ -1,14 +1,16 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Img from "@/components/Img";
 
 export type NavKey =
   | "dashboard"
   | "calendar"
   | "courses"
   | "courseScheduler"
+  | "classTypes"
   | "classes"
   | "appointments"
   | "videos"
@@ -47,17 +49,18 @@ type NavGroup = {
 type NavItem = NavLink | NavGroup;
 
 const NAVIGATION: NavItem[] = [
-  { type: "link", key: "dashboard", label: "Inicio", icon: "home", href: "/admin" },
-  { type: "link", key: "calendar", label: "Calendario", icon: "calendar_today", href: "/admin/calendar/day" },
+  { type: "link", key: "dashboard", label: "Inicio", icon: "home", href: "/" },
+  { type: "link", key: "calendar", label: "Calendario", icon: "calendar_today", href: "/calendar/day" },
   {
     type: "group",
     key: "products",
     label: "Productos",
     icon: "inventory_2",
     children: [
-      { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/admin/courses" },
-      { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/admin/courses/scheduler" },
-      { type: "link", key: "classes", label: "Clases", icon: "inventory_2", href: "/admin/classes" },
+      { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
+      { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/courses" },
+      { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/courses/scheduler" },
+      { type: "link", key: "classes", label: "Sesiones", icon: "event", href: "/classes" },
       // { type: "link", key: "appointments", label: "1:1 Appointments", icon: "event_available", href: "#" },
       // { type: "link", key: "videos", label: "Videos", icon: "movie", href: "#" },
     ],
@@ -68,8 +71,8 @@ const NAVIGATION: NavItem[] = [
     label: "Membresias",
     icon: "card_membership",
     children: [
-      { type: "link", key: "members", label: "Miembros", icon: "people", href: "/admin/members" },
-      { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/admin/memberships" },
+      { type: "link", key: "members", label: "Miembros", icon: "people", href: "/members" },
+      { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/memberships" },
     ],
   },
   {
@@ -78,8 +81,8 @@ const NAVIGATION: NavItem[] = [
     label: "Planeacion",
     icon: "dashboard_customize",
     children: [
-      { type: "link", key: "planningInstructors", label: "Instructores", icon: "people", href: "/admin/planeacion/instructores" },
-      { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/admin/planeacion/salas" },
+      { type: "link", key: "planningInstructors", label: "Instructores", icon: "people", href: "/planeacion/instructores" },
+      { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/planeacion/salas" },
     ],
   },
   // { type: "link", key: "contacts", label: "Contacts", icon: "contacts", href: "#" },
@@ -178,7 +181,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
 
   const BrandBlock = () => (
     <div className="flex items-center gap-3">
-      <img src="/logo.png" alt="AT Pilates Time" className="h-10 w-auto" />
+      <Img src="/logo.png" alt="AT Pilates Time" width={160} height={40} className="h-10 w-auto" />
       <div className="leading-tight">
         <p className="text-sm font-semibold text-slate-800">AT Pilates Time</p>
         <p className="text-xs uppercase text-slate-500 tracking-wide">ATP Tu Fit App</p>
@@ -235,7 +238,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
                   <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
                     <span className="material-icons-outlined text-slate-500">notifications</span>
                   </button>
-                  <img src="/angie.jpg" alt="Usuario" className="h-9 w-9 rounded-full object-cover" />
+                  <Img src="/angie.jpg" alt="Usuario" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
                 </>
               )}
             </div>
@@ -247,6 +250,10 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     </div>
   );
 }
+
+
+
+
 
 
 

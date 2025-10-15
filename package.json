@@ -3,9 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "npm run dev:mobile",
+    "dev:mobile": "next dev apps/mobile",
+    "dev:admin": "next dev apps/admin",
+    "build": "npm run build:mobile",
+    "build:mobile": "next build apps/mobile",
+    "build:admin": "next build apps/admin",
+    "build:all": "npm run build:mobile && npm run build:admin",
+    "start": "npm run start:mobile",
+    "start:mobile": "next start apps/mobile",
+    "start:admin": "next start apps/admin",
     "lint": "eslint"
   },
   "dependencies": {

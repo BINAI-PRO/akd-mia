@@ -1,0 +1,180 @@
+﻿import { useCallback, useEffect, useState } from "react";
+import dayjs from "dayjs";
+import MonthPicker from "@/components/MonthPicker";
+import WeekStrip from "@/components/WeekStrip";
+import DayBar from "@/components/DayBar";
+import SessionCard, { type SessionSummary } from "@/components/SessionCard";
+import Router from "next/router";
+import { supabaseBrowser } from "@/lib/supabase-browser";
+import { clampAnchor, earliestAnchor, startOfWeekMX } from "@/lib/date-mx";
+import type { PostgresInsertPayload } from "@supabase/supabase-js";
+import type { Tables } from "@/types/database";
+
+type ApiSession = {
+  id: string;
+  classType: string;
+  room: string;
+  instructor: string;
+  start: string;
+  end: string;
+  capacity: number;
+  current_occupancy: number;
+};
+
+type BookingRow = Tables<"bookings">;
+type SessionState = SessionSummary & { _pending?: boolean };
+
+export default function SchedulePage() {
+  const today = dayjs().format("YYYY-MM-DD");
+
+  // DÃ­a seleccionado (permanece aunque cambie la semana visible)
+  const [selected, setSelected] = useState<string>(today);
+
+  // Anchor = cualquier fecha dentro de la semana visible (DOMâ€“SÃB)
+  // Ahora siempre es string ISO y respetamos los lÃ­mites (mes actual + 11)
+  const [anchor, setAnchor] = useState<string>(earliestAnchor());
+
+  const [sessions, setSessions] = useState<SessionState[]>([]);
+
+  const toSummary = (s: ApiSession): SessionSummary => ({
+    id: s.id,
+    capacity: s.capacity,
+    current_occupancy: s.current_occupancy,
+    startLabel: dayjs(s.start).format("hh:mm A"),
+    classType: s.classType,
+    instructor: s.instructor,
+    room: s.room,
+    duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
+  });
+
+  const fetchDay = useCallback(async (iso: string) => {
+    const res = await fetch(`/api/calendar?date=${iso}`);
+    const data: ApiSession[] = await res.json();
+    setSessions(data.map(toSummary));
+  }, []);
+
+  useEffect(() => {
+    fetchDay(selected);
+  }, [selected, fetchDay]);
+
+  // Realtime: si hay INSERT en bookings, actualizamos ocupaciÃ³n en la lista visible
+  useEffect(() => {
+    const ch = supabaseBrowser
+      .channel("bookings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "bookings" },
+        (payload: PostgresInsertPayload<BookingRow>) => {
+          const sessionId = payload.new.session_id;
+          if (!sessionId) return;
+          setSessions((prev) =>
+            prev.map((session) =>
+              session.id === sessionId
+                ? { ...session, current_occupancy: session.current_occupancy + 1 }
+                : session
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseBrowser.removeChannel(ch);
+    };
+  }, []);
+
+  // === Acciones de UI ===
+
+  // Selector de mes (MES AÃ‘O):
+  // - Mes actual -> semana actual (DOMâ€“SÃB)
+  // - Mes futuro -> semana que contiene el dÃ­a 1 (DOMâ€“SÃB)
+  const handleMonthChange = (isoFirstDay: string) => {
+    const first = dayjs(isoFirstDay);
+    const now = dayjs();
+    let newAnchor: string;
+
+    if (first.month() === now.month() && first.year() === now.year()) {
+      // Mes actual => semana actual
+      newAnchor = startOfWeekMX(now.format("YYYY-MM-DD")).format("YYYY-MM-DD");
+    } else {
+      // Mes futuro => semana que contiene el dÃ­a 1
+      newAnchor = startOfWeekMX(first.format("YYYY-MM-DD")).format("YYYY-MM-DD");
+    }
+
+    setAnchor(clampAnchor(newAnchor)); // NO cambiamos el dÃ­a seleccionado
+  };
+
+  // BotÃ³n HOY: fija selected = hoy y semana visible = semana actual
+  const handleToday = () => {
+    const iso = dayjs().format("YYYY-MM-DD");
+    setSelected(iso);
+    setAnchor(startOfWeekMX(iso).format("YYYY-MM-DD"));
+  };
+
+  // NavegaciÃ³n semanal con Â« Â» (sin permitir ir antes de la semana actual ni mÃ¡s allÃ¡ del rango)
+  const handleWeekShift = (delta: number) => {
+    const newAnchor = dayjs(anchor).add(delta, "week").format("YYYY-MM-DD");
+    setAnchor(clampAnchor(newAnchor)); // el seleccionado permanece
+  };
+
+  // Click en un dÃ­a de la tira
+  const handleSelectDay = (iso: string) => {
+    setSelected(iso);
+  };
+
+    // dentro del componente
+  const handleReserve = async (id: string) => {
+    // deshabilitar botÃ³n en UI
+    setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: true } : s)));
+
+    const res = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: id, clientHint: "Angie" })
+    });
+
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({}));
+      // revertir estado
+      setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: false } : s)));
+      alert(msg?.error || "No se pudo reservar.");
+      return;
+    }
+
+    const { bookingId } = await res.json();
+    // Redirige al detalle (mostrarÃ¡ QR)
+    Router.push(`/bookings/${bookingId}`);
+  };
+
+
+  return (
+    <section className="pt-6 space-y-3">
+      <h2 className="text-2xl font-bold">Reservas</h2>
+
+      {/* Selector de MES AÃ‘O a la izquierda y HOY a la derecha (misma altura h-10) */}
+      <div className="flex items-center justify-between">
+        <MonthPicker anchor={anchor} onMonthChange={handleMonthChange} />
+        <button onClick={handleToday} className="h-10 rounded-xl border px-3 text-sm font-semibold">
+          Hoy
+        </button>
+      </div>
+
+      <WeekStrip
+        anchor={anchor}
+        selected={selected}
+        onSelect={handleSelectDay}
+        onWeekShift={handleWeekShift}
+      />
+
+      <DayBar iso={selected} />
+
+      <div className="mt-2 space-y-3">
+        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este dÃ­a.</p>}
+        {sessions.map((s) => (
+          <SessionCard key={s.id} session={s} onReserve={handleReserve} />
+        ))}
+      </div>
+    </section>
+  );
+}
+

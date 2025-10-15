@@ -1,4 +1,4 @@
-export type SessionSummary = {
+﻿export type SessionSummary = {
   id: string;
   capacity: number;
   current_occupancy: number;
@@ -9,9 +9,15 @@ export type SessionSummary = {
   duration: number;
 };
 
-export default function SessionCard({ session, onReserve }: { session: SessionSummary; onReserve: (id: string) => void }) {
+type SessionCardProps = {
+  session: SessionSummary & { _pending?: boolean };
+  onReserve: (id: string) => void;
+};
+
+export default function SessionCard({ session, onReserve }: SessionCardProps) {
   const spots = session.capacity - session.current_occupancy;
   const soldOut = spots <= 0;
+  const pending = !!session._pending;
   return (
     <div className="relative card p-4">
       <div className="text-sm text-neutral-500">{session.startLabel}</div>
@@ -27,9 +33,15 @@ export default function SessionCard({ session, onReserve }: { session: SessionSu
         ) : (
           <button
             onClick={() => onReserve(session.id)}
-            className="rounded-full bg-brand-500 px-4 py-2 text-white shadow hover:bg-brand-600"
+            disabled={pending}
+            aria-busy={pending}
+            className={`rounded-full px-4 py-2 text-white shadow transition ${
+              pending
+                ? "bg-brand-400 cursor-not-allowed opacity-70"
+                : "bg-brand-500 hover:bg-brand-600"
+            }`}
           >
-            Reservar
+            {pending ? "Reservando..." : "Reservar"}
           </button>
         )}
       </div>
@@ -44,4 +56,5 @@ export default function SessionCard({ session, onReserve }: { session: SessionSu
     </div>
   );
 }
+
 
