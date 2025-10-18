@@ -1,11 +1,14 @@
 ﻿import Head from "next/head";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { useEffect, useMemo, useState } from "react";
 import type { ChangeEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
+
+dayjs.extend(utc);
 
 type CourseOption = {
   id: string;
@@ -62,7 +65,7 @@ type DetailState = {
 };
 
 const sortClasses = (rows: ClassRow[]) =>
-  [...rows].sort((a, b) => dayjs(a.startISO).valueOf() - dayjs(b.startISO).valueOf());
+  [...rows].sort((a, b) => dayjs.utc(a.startISO).valueOf() - dayjs.utc(b.startISO).valueOf());
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   const [sessionsResp, coursesResp, instructorsResp, roomsResp] = await Promise.all([
@@ -86,8 +89,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
 
   const initialClasses: ClassRow[] = sortClasses(
     sessionRows.map((row) => {
-      const start = dayjs(row.start_time);
-      const end = dayjs(row.end_time);
+      const start = dayjs.utc(row.start_time);
+      const end = dayjs.utc(row.end_time);
       const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
       return {
         id: row.id,
@@ -176,8 +179,8 @@ export default function AdminClassesPage({
       return;
     }
     setDetailState({
-      startDate: dayjs(activeClass.startISO).format('YYYY-MM-DD'),
-      startTime: dayjs(activeClass.startISO).format('HH:mm'),
+      startDate: dayjs.utc(activeClass.startISO).format('YYYY-MM-DD'),
+      startTime: dayjs.utc(activeClass.startISO).format('HH:mm'),
       instructorId: activeClass.instructorId ?? '',
       roomId: activeClass.roomId ?? '',
     });
@@ -186,13 +189,18 @@ export default function AdminClassesPage({
   }, [activeClass]);
 
   const filteredClasses = useMemo(() => {
-    const dayFilter = dayjs(dateFilter || undefined);
-    const hasDateFilter = Boolean(dateFilter && dayFilter.isValid());
+    const dayFilter = dateFilter ? dayjs.utc(dateFilter) : null;
+    const nowUtc = dayjs.utc();
+
     return classes.filter((row) => {
       if (courseFilter !== 'all' && row.courseId !== courseFilter) return false;
-      if (hasDateFilter && !dayjs(row.startISO).isSame(dayFilter, 'day')) return false;
-      if (statusFilter === 'upcoming' && dayjs(row.startISO).isBefore(dayjs())) return false;
-      if (statusFilter === 'past' && dayjs(row.endISO).isAfter(dayjs())) return false;
+
+      const start = dayjs.utc(row.startISO);
+      const end = dayjs.utc(row.endISO);
+
+      if (dayFilter && !start.isSame(dayFilter, 'day')) return false;
+      if (statusFilter === 'upcoming' && start.isBefore(nowUtc)) return false;
+      if (statusFilter === 'past' && end.isAfter(nowUtc)) return false;
       return true;
     });
   }, [classes, courseFilter, dateFilter, statusFilter]);
@@ -231,8 +239,8 @@ export default function AdminClassesPage({
         roomId: detailState.roomId || null,
       };
 
-      const originalDate = dayjs(activeClass.startISO).format('YYYY-MM-DD');
-      const originalTime = dayjs(activeClass.startISO).format('HH:mm');
+      const originalDate = dayjs.utc(activeClass.startISO).format('YYYY-MM-DD');
+      const originalTime = dayjs.utc(activeClass.startISO).format('HH:mm');
       if (detailState.startDate !== originalDate) payload.date = detailState.startDate;
       if (detailState.startTime !== originalTime) payload.startTime = detailState.startTime;
 
@@ -248,8 +256,8 @@ export default function AdminClassesPage({
       }
 
       const updated = body.session as SessionQueryRow;
-      const start = dayjs(updated.start_time);
-      const end = dayjs(updated.end_time);
+      const start = dayjs.utc(updated.start_time);
+      const end = dayjs.utc(updated.end_time);
       const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
 
       setClasses((prev) =>
@@ -370,8 +378,8 @@ export default function AdminClassesPage({
   };
 
   const renderStatusBadge = (row: ClassRow) => {
-    const end = dayjs(row.endISO);
-    if (end.isBefore(dayjs())) {
+    const end = dayjs.utc(row.endISO);
+    if (end.isBefore(dayjs.utc())) {
       return <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">Finalizada</span>;
     }
     if (row.occupancy >= row.capacity && row.capacity > 0) {
@@ -570,7 +578,7 @@ export default function AdminClassesPage({
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div className="font-semibold text-slate-800">{activeClass.courseTitle}</div>
                   <div className="text-xs text-slate-500">
-                    {dayjs(activeClass.startISO).format('dddd DD MMM YYYY')} - {activeClass.className}
+                    {dayjs.utc(activeClass.startISO).format('dddd DD MMM YYYY')} - {activeClass.className}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                     <span>Duracion: {activeClass.durationMinutes} min</span>

@@ -5,7 +5,10 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import type { Tables } from "@/types/database";
+
+dayjs.extend(utc);
 
 type ScheduledSession = {
   id: string;
@@ -110,8 +113,8 @@ const UPCOMING_PREVIEW_LIMIT = 5;
 const DEFAULT_TIME = "08:00";
 
 const sortSessionsByStartTime = (a: ScheduledSession, b: ScheduledSession) => {
-  const aTime = a.startTime ? dayjs(a.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
-  const bTime = b.startTime ? dayjs(b.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
+  const aTime = a.startTime ? dayjs.utc(a.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
+  const bTime = b.startTime ? dayjs.utc(b.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
   return aTime - bTime;
 };
 
@@ -492,9 +495,9 @@ export default function CourseSchedulerPage({
 
   const upcomingSessions = useMemo(() => {
     if (!selectedCourse) return [] as ScheduledSession[];
-    const now = dayjs();
+    const now = dayjs.utc();
     const future = selectedCourse.sessions.filter(
-      (session) => session.startTime && dayjs(session.startTime).isAfter(now)
+      (session) => session.startTime && dayjs.utc(session.startTime).isAfter(now)
     );
     const source = future.length > 0 ? future : selectedCourse.sessions;
     return source.slice(0, UPCOMING_PREVIEW_LIMIT);
@@ -1042,8 +1045,8 @@ export default function CourseSchedulerPage({
               ) : (
                 <ul className="space-y-2">
                   {upcomingSessions.map((session) => {
-                    const start = session.startTime ? dayjs(session.startTime) : null;
-                    const end = session.endTime ? dayjs(session.endTime) : null;
+                    const start = session.startTime ? dayjs.utc(session.startTime) : null;
+                    const end = session.endTime ? dayjs.utc(session.endTime) : null;
                     const hasValidStart = start?.isValid();
                     return (
                       <li

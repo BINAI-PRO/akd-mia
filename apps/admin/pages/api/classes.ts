@@ -1,7 +1,10 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert, TablesUpdate } from "@/types/database";
+
+dayjs.extend(utc);
 
 type SessionPayload = Tables<'sessions'> & {
   class_types: Pick<Tables<'class_types'>, 'id' | 'name' | 'description'> | null;
@@ -72,8 +75,8 @@ export default async function handler(
       const occupancy = Number(current.current_occupancy ?? 0);
       const hasBookings = occupancy > 0;
 
-      const originalStart = dayjs(current.start_time);
-      const originalEnd = dayjs(current.end_time);
+      const originalStart = dayjs.utc(current.start_time);
+      const originalEnd = dayjs.utc(current.end_time);
       let durationMinutes = originalEnd.diff(originalStart, 'minute');
       if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
         durationMinutes = Number(current.courses?.session_duration_minutes ?? 60);
@@ -86,7 +89,7 @@ export default async function handler(
         }
         const newDate = date ?? originalStart.format('YYYY-MM-DD');
         const newTime = startTime ?? originalStart.format('HH:mm');
-        const newStart = dayjs(`${newDate}T${newTime}`);
+        const newStart = dayjs.utc(`${newDate}T${newTime}`);
         if (!newStart.isValid()) {
           return res.status(400).json({ error: 'Fecha u hora no validas' });
         }
@@ -187,7 +190,7 @@ export default async function handler(
         return res.status(400).json({ error: 'La capacidad debe ser mayor a cero' });
       }
 
-      const start = dayjs(`${date}T${startTime}`);
+      const start = dayjs.utc(`${date}T${startTime}`);
       if (!start.isValid()) {
         return res.status(400).json({ error: 'Fecha u hora invalidas' });
       }

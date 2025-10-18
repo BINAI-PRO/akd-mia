@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import type { CalendarFilterOption, CalendarSession, MiniCalendarDay } from "./types";
+
+dayjs.extend(utc);
 
 const HEADER_LABELS = ["D", "L", "M", "M", "J", "V", "S"];
 
@@ -40,8 +43,8 @@ type ActiveFilterChip = {
 };
 
 function formatTimeRange(startISO: string, endISO: string) {
-  const start = dayjs(startISO).format("h:mm A");
-  const end = dayjs(endISO).format("h:mm A");
+  const start = dayjs.utc(startISO).format("h:mm A");
+  const end = dayjs.utc(endISO).format("h:mm A");
   return `${start}  ${end}`;
 }
 

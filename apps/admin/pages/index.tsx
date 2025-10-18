@@ -1,11 +1,14 @@
 ﻿
 import Head from "next/head";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import Img from "@/components/Img";
 import type { Tables } from "@/types/database";
+
+dayjs.extend(utc);
 
 type Stats = {
   activeMembers: number;
@@ -298,7 +301,7 @@ export default function AdminDashboardPage({
             ) : (
               <ul className="space-y-4">
                 {upcomingSessions.map((session) => {
-                  const start = dayjs(session.startTime).format("D MMM, HH:mm");
+                  const start = dayjs.utc(session.startTime).format("D MMM, HH:mm");
                   return (
                     <li
                       key={session.id}

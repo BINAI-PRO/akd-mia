@@ -2,7 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
 import type { CalendarFilterOption, CalendarSession } from "./types";
+
+dayjs.extend(utc);
 
 const START_HOUR = 4;
 const END_HOUR = 23;
@@ -49,8 +52,8 @@ function formatHourLabel(hour: number) {
 }
 
 function computeEventStyle(startISO: string, endISO: string) {
-  const start = dayjs(startISO);
-  const end = dayjs(endISO);
+  const start = dayjs.utc(startISO);
+  const end = dayjs.utc(endISO);
   const anchor = start.startOf("day").hour(START_HOUR).minute(0).second(0).millisecond(0);
   const topMinutes = Math.max(0, start.diff(anchor, "minute"));
   const durationMinutes = Math.max(30, end.diff(start, "minute"));
@@ -105,8 +108,8 @@ export default function WeekCalendarBoard({
     return () => clearTimeout(handle);
   }, [filters.search]);
 
-  const weekStart = useMemo(() => dayjs(weekStartISO), [weekStartISO]);
-  const today = useMemo(() => dayjs(todayISO), [todayISO]);
+  const weekStart = useMemo(() => dayjs.utc(weekStartISO), [weekStartISO]);
+  const today = useMemo(() => dayjs.utc(todayISO), [todayISO]);
 
   const colorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -121,7 +124,7 @@ export default function WeekCalendarBoard({
       const date = weekStart.add(offset, "day");
       const isoDate = date.format("YYYY-MM-DD");
       const daySessions = sessions
-        .filter((session) => dayjs(session.startISO).isSame(date, "day"))
+        .filter((session) => dayjs.utc(session.startISO).isSame(date, "day"))
         .map((session) => ({
           ...session,
           color: getColor(session.classTypeId, colorMap),
@@ -360,8 +363,8 @@ export default function WeekCalendarBoard({
 
                 {day.sessions.map((session) => {
                   const { top, height } = computeEventStyle(session.startISO, session.endISO);
-                  const start = dayjs(session.startISO).format("HH:mm");
-                  const end = dayjs(session.endISO).format("HH:mm");
+                  const start = dayjs.utc(session.startISO).format("HH:mm");
+                  const end = dayjs.utc(session.endISO).format("HH:mm");
                   const color = getColor(session.classTypeId, colorMap);
                   return (
                     <div
