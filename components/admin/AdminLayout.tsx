@@ -15,6 +15,7 @@ export type NavKey =
   | "appointments"
   | "videos"
   | "members"
+  | "membershipTypes"
   | "membershipPlans"
   | "planningInstructors"
   | "planningRooms"
@@ -54,8 +55,8 @@ const NAVIGATION: NavItem[] = [
   {
     type: "group",
     key: "products",
-    label: "Productos",
-    icon: "inventory_2",
+    label: "Planeación",
+    icon: "edit_calendar",
     children: [
       { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
       { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/courses" },
@@ -68,20 +69,21 @@ const NAVIGATION: NavItem[] = [
   {
     type: "group",
     key: "memberships",
-    label: "Membresias",
+    label: "Membresías",
     icon: "card_membership",
     children: [
       { type: "link", key: "members", label: "Miembros", icon: "people", href: "/members" },
+      { type: "link", key: "membershipTypes", label: "Tipos de membresías", icon: "badge", href: "/membership-types" },
       { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/memberships" },
     ],
   },
   {
     type: "group",
     key: "planning",
-    label: "Planeacion",
-    icon: "dashboard_customize",
+    label: "Recursos",
+    icon: "extension",
     children: [
-      { type: "link", key: "planningInstructors", label: "Instructores", icon: "people", href: "/planeacion/instructores" },
+      { type: "link", key: "planningInstructors", label: "Instructores", icon: "self_improvement", href: "/planeacion/instructores" },
       { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/planeacion/salas" },
     ],
   },

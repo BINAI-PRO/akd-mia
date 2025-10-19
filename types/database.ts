@@ -121,6 +121,12 @@ export type Database = {
           is_active: boolean
           created_at: string | null
           updated_at: string | null
+          trial_days: number | null
+          access_classes: boolean
+          access_courses: boolean
+          privileges: string | null
+          max_prepaid_years: number | null
+          allow_multi_year: boolean
         }
         Insert: {
           id?: string
@@ -134,6 +140,12 @@ export type Database = {
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null
+          trial_days?: number | null
+          access_classes?: boolean
+          access_courses?: boolean
+          privileges?: string | null
+          max_prepaid_years?: number | null
+          allow_multi_year?: boolean
         }
         Update: {
           id?: string
@@ -147,6 +159,12 @@ export type Database = {
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null
+          trial_days?: number | null
+          access_classes?: boolean
+          access_courses?: boolean
+          privileges?: string | null
+          max_prepaid_years?: number | null
+          allow_multi_year?: boolean
         }
         Relationships: []
       }
@@ -548,6 +566,8 @@ export type Database = {
           remaining_classes: number | null
           notes: string | null
           created_at: string | null
+          term_years: number
+          privileges_snapshot: string | null
         }
         Insert: {
           id?: string
@@ -562,6 +582,8 @@ export type Database = {
           remaining_classes?: number | null
           notes?: string | null
           created_at?: string | null
+          term_years?: number
+          privileges_snapshot?: string | null
         }
         Update: {
           id?: string
@@ -576,6 +598,8 @@ export type Database = {
           remaining_classes?: number | null
           notes?: string | null
           created_at?: string | null
+          term_years?: number
+          privileges_snapshot?: string | null
         }
         Relationships: [
           {
@@ -778,6 +802,7 @@ export type Database = {
           status: string
           provider_ref: string | null
           notes: string | null
+          period_years: number
         }
         Insert: {
           id?: string
@@ -790,6 +815,7 @@ export type Database = {
           status?: string
           provider_ref?: string | null
           notes?: string | null
+          period_years?: number
         }
         Update: {
           id?: string
@@ -802,6 +828,7 @@ export type Database = {
           status?: string
           provider_ref?: string | null
           notes?: string | null
+          period_years?: number
         }
         Relationships: [
           {
@@ -809,6 +836,189 @@ export type Database = {
             columns: ["membership_id"],
             isOneToOne: false,
             referencedRelation: "memberships",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      plan_types: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          privileges: string | null
+          class_count: number
+          price: number
+          currency: string
+          validity_days: number | null
+          is_active: boolean
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name?: string
+          description?: string | null
+          privileges?: string | null
+          class_count: number
+          price: number
+          currency?: string
+          validity_days?: number | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          privileges?: string | null
+          class_count?: number
+          price?: number
+          currency?: string
+          validity_days?: number | null
+          is_active?: boolean
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+
+      plan_purchases: {
+        Row: {
+          id: string
+          client_id: string
+          plan_type_id: string
+          status: string
+          purchased_at: string
+          start_date: string
+          expires_at: string | null
+          initial_classes: number
+          remaining_classes: number
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          plan_type_id: string
+          status?: string
+          purchased_at?: string
+          start_date?: string
+          expires_at?: string | null
+          initial_classes: number
+          remaining_classes: number
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          plan_type_id?: string
+          status?: string
+          purchased_at?: string
+          start_date?: string
+          expires_at?: string | null
+          initial_classes?: number
+          remaining_classes?: number
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_purchases_client_id_fkey",
+            columns: ["client_id"],
+            isOneToOne: false,
+            referencedRelation: "clients",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_purchases_plan_type_id_fkey",
+            columns: ["plan_type_id"],
+            isOneToOne: false,
+            referencedRelation: "plan_types",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      plan_payments: {
+        Row: {
+          id: string
+          plan_purchase_id: string
+          amount: number
+          currency: string
+          paid_at: string
+          status: string
+          provider_ref: string | null
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          plan_purchase_id: string
+          amount: number
+          currency?: string
+          paid_at?: string
+          status?: string
+          provider_ref?: string | null
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          plan_purchase_id?: string
+          amount?: number
+          currency?: string
+          paid_at?: string
+          status?: string
+          provider_ref?: string | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_payments_plan_purchase_id_fkey",
+            columns: ["plan_purchase_id"],
+            isOneToOne: false,
+            referencedRelation: "plan_purchases",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      plan_usages: {
+        Row: {
+          id: string
+          plan_purchase_id: string
+          session_id: string
+          used_at: string
+          credit_delta: number
+          notes: string | null
+        }
+        Insert: {
+          id?: string
+          plan_purchase_id: string
+          session_id: string
+          used_at?: string
+          credit_delta?: number
+          notes?: string | null
+        }
+        Update: {
+          id?: string
+          plan_purchase_id?: string
+          session_id?: string
+          used_at?: string
+          credit_delta?: number
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_usages_plan_purchase_id_fkey",
+            columns: ["plan_purchase_id"],
+            isOneToOne: false,
+            referencedRelation: "plan_purchases",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_usages_session_id_fkey",
+            columns: ["session_id"],
+            isOneToOne: false,
+            referencedRelation: "sessions",
             referencedColumns: ["id"]
           }
         ]

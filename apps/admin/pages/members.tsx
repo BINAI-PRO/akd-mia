@@ -1,4 +1,5 @@
-import Head from "next/head";
+﻿import Head from "next/head";
+import Link from "next/link";
 import dayjs from "dayjs";
 import {
   useMemo,
@@ -21,31 +22,47 @@ const AdminLayoutAny = AdminLayout as unknown as ComponentType<
 
 // ===== Tipos alineados a la DB =====
 // (usa valores REALES de la DB para que los filtros vuelvan a funcionar)
-export type MiembroEstado =
-  | "ACTIVE"
-  | "PAYMENT_FAILED"
-  | "CANCELLED"
-  | "ON_HOLD";
+export type MiembroEstado = "ACTIVE" | "ON_HOLD" | "CANCELED";
 
-// Filas para la UI (mantengo espanol en los nombres mostrados)
+type MembershipState = "ACTIVE" | "EXPIRED" | "NONE";
+
 type MemberRow = {
   id: string;
   name: string;
-  Correo: string | null; // email
-  phone: string | null; // phone
-  Plan: string | null; // membership_types.name
-  Estado: MiembroEstado; // memberships.status o client_profiles.status (fallback)
-  MiembroshipEstado: string | null; // memberships.status del plan activo
-  nextBilling: string | null; // memberships.next_billing_date
-  joinedAt: string; // clients.created_at
+  email: string | null;
+  phone: string | null;
+  membershipName: string | null;
+  membershipStatus: MembershipState;
+  membershipEnd: string | null;
+  membershipNextBilling: string | null;
+  membershipPrivileges: string | null;
+  lastMembershipTypeId: string | null;
+  hasActiveMembership: boolean;
+  planActiveCount: number;
+  Estado: MiembroEstado;
+  joinedAt: string;
 };
 
 type MembershipOption = {
   id: string;
   name: string;
-  price: number | null;
+  price: number;
   currency: string;
-  billingPeriod: string;
+  privileges: string | null;
+  allowMultiYear: boolean;
+  maxPrepaidYears: number | null;
+  isActive: boolean;
+};
+
+type PlanOption = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  currency: string;
+  classCount: number;
+  validityDays: number | null;
+  privileges: string | null;
   isActive: boolean;
 };
 
@@ -53,39 +70,89 @@ type MemberQueryRow = Tables<"clients"> & {
   client_profiles: Pick<Tables<"client_profiles">, "status"> | null;
   memberships: Array<
     Tables<"memberships"> & {
-      membership_types: Pick<Tables<"membership_types">, "name"> | null;
+      membership_types: Pick<Tables<"membership_types">, "name" | "privileges"> | null;
+      membership_payments: Pick<
+        Tables<"membership_payments">,
+        "amount" | "currency" | "paid_at" | "period_start" | "period_end" | "period_years"
+      >[];
+    }
+  > | null;
+  plan_purchases: Array<
+    Tables<"plan_purchases"> & {
+      plan_types: Pick<Tables<"plan_types">, "name" | "privileges"> | null;
     }
   > | null;
 };
 
 type MembershipTypeRow = Tables<"membership_types">;
+type PlanTypeRow = Tables<"plan_types">;
 
 type PageProps = {
   initialMiembros: MemberRow[];
   membershipOptions: MembershipOption[];
+  planOptions: PlanOption[];
 };
 
 // ==== Helpers ====
 function mapMember(row: MemberQueryRow): MemberRow {
-  const profileStatus: MiembroEstado = (row.client_profiles?.status ?? "ACTIVE") as MiembroEstado;
+  const now = dayjs();
   const memberships = row.memberships ?? [];
-  const sorted = [...memberships].sort((a, b) => {
+  const sortedMemberships = [...memberships].sort((a, b) => {
     const aDate = a.end_date ?? a.created_at ?? "";
     const bDate = b.end_date ?? b.created_at ?? "";
     return dayjs(bDate).valueOf() - dayjs(aDate).valueOf();
   });
-  const activeMembership =
-    sorted.find((m) => m.status === "ACTIVE") ?? sorted[0] ?? null;
+  const activeMembership = sortedMemberships.find(
+    (membership) =>
+      membership.status === "ACTIVE" &&
+      membership.end_date &&
+      dayjs(membership.end_date).isSameOrAfter(now, "day")
+  );
+  const latestMembership = sortedMemberships[0] ?? null;
+
+  let membershipStatus: MembershipState = "NONE";
+  if (activeMembership) {
+    membershipStatus = "ACTIVE";
+  } else if (latestMembership) {
+    membershipStatus = "EXPIRED";
+  }
+
+  const membershipName =
+    activeMembership?.membership_types?.name ??
+    latestMembership?.membership_types?.name ??
+    null;
+
+  const membershipPrivileges =
+    activeMembership?.privileges_snapshot ??
+    activeMembership?.membership_types?.privileges ??
+    latestMembership?.privileges_snapshot ??
+    latestMembership?.membership_types?.privileges ??
+    null;
+
+  const membershipEnd = activeMembership?.end_date ?? latestMembership?.end_date ?? null;
+  const membershipNextBilling = activeMembership?.next_billing_date ?? null;
+  const lastMembershipTypeId = activeMembership?.membership_type_id ?? latestMembership?.membership_type_id ?? null;
+
+  const planPurchases = row.plan_purchases ?? [];
+  const planActiveCount = planPurchases.filter((plan) => plan.status === "ACTIVE").length;
+
+  const hasActiveMembership = membershipStatus === "ACTIVE";
+  const Estado: MiembroEstado = hasActiveMembership ? "ACTIVE" : "ON_HOLD";
 
   return {
     id: row.id,
     name: row.full_name,
-    Correo: row.email ?? null,
+    email: row.email ?? null,
     phone: row.phone ?? null,
-    Plan: activeMembership?.membership_types?.name ?? null,
-    Estado: (activeMembership?.status ?? profileStatus) as MiembroEstado,
-    MiembroshipEstado: activeMembership?.status ?? null,
-    nextBilling: activeMembership?.next_billing_date ?? null,
+    membershipName,
+    membershipStatus,
+    membershipEnd,
+    membershipNextBilling,
+    membershipPrivileges,
+    lastMembershipTypeId,
+    hasActiveMembership,
+    planActiveCount,
+    Estado,
     joinedAt: row.created_at,
   };
 }
@@ -94,7 +161,7 @@ const currencyFormatterCache: Record<string, Intl.NumberFormat> = {};
 function getCurrencyFormatter(currency: string) {
   const key = (currency || "MXN").toUpperCase();
   if (!currencyFormatterCache[key]) {
-    currencyFormatterCache[key] = new Intl.NumberFormat("en-US", {
+    currencyFormatterCache[key] = new Intl.NumberFormat("es-MX", {
       style: "currency",
       currency: key,
       maximumFractionDigits: 2,
@@ -103,30 +170,21 @@ function getCurrencyFormatter(currency: string) {
   return currencyFormatterCache[key];
 }
 
-function formatPlanLabel(option: MembershipOption) {
-  if (option.price === null) return `${option.name}  Free`;
-  const fmt = getCurrencyFormatter(option.currency);
-  return `${option.name}  ${fmt.format(option.price)} / ${option.billingPeriod.toLowerCase()}`;
-}
-
 function formatEstadoBadgeData(estado: MiembroEstado) {
   switch (estado) {
     case "ACTIVE":
       return { label: "Activo", tone: "bg-emerald-100 text-emerald-700" };
-    case "PAYMENT_FAILED":
-      return { label: "Pago fallido", tone: "bg-amber-100 text-amber-700" };
-    case "ON_HOLD":
-      return { label: "En pausa", tone: "bg-slate-200 text-slate-700" };
-    case "CANCELLED":
+    case "CANCELED":
       return { label: "Cancelado", tone: "bg-rose-100 text-rose-700" };
+    case "ON_HOLD":
     default:
-      return { label: estado, tone: "bg-slate-200 text-slate-700" };
+      return { label: "Inactivo", tone: "bg-slate-200 text-slate-700" };
   }
 }
 
 // ===== SSR =====
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [clientsResp, typesResp] = await Promise.all([
+  const [clientsResp, membershipTypesResp, planTypesResp] = await Promise.all([
     supabaseAdmin
       .from("clients")
       .select(
@@ -144,7 +202,19 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
           end_date,
           next_billing_date,
           created_at,
-          membership_types(name)
+          term_years,
+          privileges_snapshot,
+          membership_types(name, privileges),
+          membership_payments(amount, currency, paid_at, period_start, period_end, period_years)
+        ),
+        plan_purchases(
+          id,
+          status,
+          start_date,
+          expires_at,
+          initial_classes,
+          remaining_classes,
+          plan_types(name, privileges)
         )
       `
       )
@@ -152,60 +222,103 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       .returns<MemberQueryRow[]>(),
     supabaseAdmin
       .from("membership_types")
-      .select("id, name, price, currency, billing_period, is_active")
+      .select("id, name, price, currency, privileges, allow_multi_year, max_prepaid_years, is_active")
       .order("name")
       .returns<MembershipTypeRow[]>(),
+    supabaseAdmin
+      .from("plan_types")
+      .select("id, name, description, price, currency, class_count, validity_days, privileges, is_active")
+      .order("name")
+      .returns<PlanTypeRow[]>(),
   ]);
 
   if (clientsResp.error) throw clientsResp.error;
-  if (typesResp.error) throw typesResp.error;
+  if (membershipTypesResp.error) throw membershipTypesResp.error;
+  if (planTypesResp.error) throw planTypesResp.error;
 
   const initialMiembros: MemberRow[] = (clientsResp.data ?? []).map(mapMember);
-  const membershipOptions: MembershipOption[] = (typesResp.data ?? []).map((t) => ({
+  const membershipOptions: MembershipOption[] = (membershipTypesResp.data ?? []).map((t) => ({
     id: t.id,
     name: t.name,
-    price: t.price !== null && t.price !== undefined ? Number(t.price) : null,
+    price: Number(t.price ?? 0),
     currency: t.currency ?? "MXN",
-    billingPeriod: t.billing_period,
+    privileges: t.privileges ?? null,
+    allowMultiYear: t.allow_multi_year ?? true,
+    maxPrepaidYears: t.max_prepaid_years ?? null,
     isActive: !!t.is_active,
   }));
 
-  return { props: { initialMiembros, membershipOptions } };
+  const planOptions: PlanOption[] = (planTypesResp.data ?? []).map((plan) => ({
+    id: plan.id,
+    name: plan.name,
+    description: plan.description ?? null,
+    price: Number(plan.price ?? 0),
+    currency: plan.currency ?? "MXN",
+    classCount: Number(plan.class_count ?? 0),
+    validityDays: plan.validity_days ?? null,
+    privileges: plan.privileges ?? null,
+    isActive: !!plan.is_active,
+  }));
+
+  return { props: { initialMiembros, membershipOptions, planOptions } };
 };
 
 // ===== Pagina =====
 export default function AdminMiembrosPage(
-  { initialMiembros, membershipOptions }: InferGetServerSidePropsType<typeof getServerSideProps>
+  { initialMiembros, membershipOptions, planOptions }: InferGetServerSidePropsType<typeof getServerSideProps>
 ) {
   const [rows, setRows] = useState<MemberRow[]>(initialMiembros);
   const [search, setSearch] = useState("");
   const [estadoFilter, setEstadoFilter] = useState<"all" | MiembroEstado>("all");
-  const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [membershipModalOpen, setMembershipModalOpen] = useState(false);
+  const [membershipModalMember, setMembershipModalMember] = useState<MemberRow | null>(null);
+  const [membershipError, setMembershipError] = useState<string | null>(null);
+  const [membershipLoading, setMembershipLoading] = useState(false);
+  const [planModalOpen, setPlanModalOpen] = useState(false);
+  const [planModalMember, setPlanModalMember] = useState<MemberRow | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
 
-  type AssignState = {
-    fullName: string;
-    email: string;
-    phone: string;
+  const membershipDefaultType = useMemo(
+    () => membershipOptions.find((option) => option.isActive) ?? membershipOptions[0] ?? null,
+    [membershipOptions]
+  );
+  const planDefaultType = useMemo(
+    () => planOptions.find((option) => option.isActive) ?? planOptions[0] ?? null,
+    [planOptions]
+  );
+
+  type MembershipFormState = {
     membershipTypeId: string;
+    startDate: string;
+    termYears: number;
+    notes: string;
   };
-  const DEFAULT_ASSIGN: AssignState = {
-    fullName: "",
-    email: "",
-    phone: "",
-    membershipTypeId: "",
+
+  type PlanFormState = {
+    planTypeId: string;
+    startDate: string;
+    notes: string;
   };
-  const [assignState, setAssignState] = useState<AssignState>(() => {
-    const firstActive = membershipOptions.find((o) => o.isActive);
-    return { ...DEFAULT_ASSIGN, membershipTypeId: firstActive?.id ?? "" };
-  });
-  const [assignError, setAssignError] = useState<string | null>(null);
+
+  const [membershipForm, setMembershipForm] = useState<MembershipFormState>(() => ({
+    membershipTypeId: membershipDefaultType?.id ?? "",
+    startDate: dayjs().format("YYYY-MM-DD"),
+    termYears: 1,
+    notes: "",
+  }));
+
+  const [planForm, setPlanForm] = useState<PlanFormState>(() => ({
+    planTypeId: planDefaultType?.id ?? "",
+    startDate: dayjs().format("YYYY-MM-DD"),
+    notes: "",
+  }));
 
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return rows.filter((row) => {
       if (term) {
-        const haystack = `${row.name} ${row.Correo ?? ""} ${row.Plan ?? ""}`.toLowerCase();
+        const haystack = `${row.name} ${row.email ?? ""} ${row.membershipName ?? ""}`.toLowerCase();
         if (!haystack.includes(term)) return false;
       }
       if (estadoFilter !== "all" && row.Estado !== estadoFilter) return false;
@@ -228,65 +341,169 @@ export default function AdminMiembrosPage(
       <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notifications">
         <span className="material-icons-outlined text-slate-500">notifications</span>
       </button>
-      {/* avatar placeholder */}
       <div className="h-9 w-9 rounded-full bg-slate-200" />
     </div>
   );
 
-  const openAssignModal = () => {
-    setAssignError(null);
-    const firstActive = membershipOptions.find((o) => o.isActive);
-    setAssignState({ ...DEFAULT_ASSIGN, membershipTypeId: firstActive?.id ?? "" });
-    setAssignModalOpen(true);
+  const getMembershipOption = (id: string) => membershipOptions.find((option) => option.id === id) ?? null;
+  const getPlanOption = (id: string) => planOptions.find((option) => option.id === id) ?? null;
+
+  const upsertMemberRow = (memberData: MemberQueryRow) => {
+    const mapped = mapMember(memberData);
+    setRows((prev) => {
+      const idx = prev.findIndex((row) => row.id === mapped.id);
+      if (idx === -1) {
+        return [mapped, ...prev];
+      }
+      const clone = [...prev];
+      clone[idx] = mapped;
+      return clone;
+    });
   };
 
-  const closeModals = () => {
-    setAssignModalOpen(false);
-    setConfirmationOpen(false);
-    setAssignError(null);
+  const openMembershipModalFor = (member: MemberRow) => {
+    const preferredOption =
+      (member.lastMembershipTypeId
+        ? membershipOptions.find((option) => option.id === member.lastMembershipTypeId && option.isActive)
+        : null) ??
+      membershipDefaultType;
+
+    setMembershipForm({
+      membershipTypeId: preferredOption?.id ?? "",
+      startDate: dayjs().format("YYYY-MM-DD"),
+      termYears: 1,
+      notes: "",
+    });
+    setMembershipModalMember(member);
+    setMembershipError(null);
+    setMembershipModalOpen(true);
   };
 
-  async function handleAssignMembership(event: React.FormEvent<HTMLFormElement>) {
+  const closeMembershipModal = () => {
+    setMembershipModalOpen(false);
+    setMembershipModalMember(null);
+    setMembershipError(null);
+    setMembershipLoading(false);
+  };
+
+  const openPlanModalFor = (member: MemberRow) => {
+    setPlanForm({
+      planTypeId: planDefaultType?.id ?? "",
+      startDate: dayjs().format("YYYY-MM-DD"),
+      notes: "",
+    });
+    setPlanModalMember(member);
+    setPlanError(null);
+    setPlanModalOpen(true);
+  };
+
+  const closePlanModal = () => {
+    setPlanModalOpen(false);
+    setPlanModalMember(null);
+    setPlanError(null);
+    setPlanLoading(false);
+  };
+
+  async function handleMembershipSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAssignError(null);
+    if (!membershipModalMember) return;
 
-    if (!assignState.fullName.trim()) return setAssignError("El nombre es obligatorio");
-    if (!assignState.membershipTypeId) return setAssignError("Selecciona un plan");
+    if (!membershipForm.membershipTypeId) {
+      setMembershipError("Selecciona un tipo de membresia");
+      return;
+    }
+
+    const selectedOption = getMembershipOption(membershipForm.membershipTypeId);
+    if (!selectedOption) {
+      setMembershipError("El tipo de membresia seleccionado no es valido");
+      return;
+    }
+
+    if (!selectedOption.allowMultiYear && membershipForm.termYears !== 1) {
+      setMembershipError("Esta membresia solo permite pagar un anio a la vez");
+      return;
+    }
+
+    if (
+      selectedOption.maxPrepaidYears &&
+      membershipForm.termYears > selectedOption.maxPrepaidYears
+    ) {
+      setMembershipError(`Esta membresia admite hasta ${selectedOption.maxPrepaidYears} anios por pago`);
+      return;
+    }
+
+    setMembershipLoading(true);
+    setMembershipError(null);
 
     try {
-      //  Ajusta la ruta a la que tengas en tu API real
-      const response = await fetch("/api/members", {
+      const response = await fetch("/api/memberships", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          fullName: assignState.fullName.trim(),
-          email: assignState.email.trim() || null,
-          phone: assignState.phone.trim() || null,
-          membershipTypeId: assignState.membershipTypeId,
+          clientId: membershipModalMember.id,
+          membershipTypeId: membershipForm.membershipTypeId,
+          startDate: membershipForm.startDate,
+          termYears: membershipForm.termYears,
+          notes: membershipForm.notes || null,
         }),
       });
+
+      const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body.error || "No se pudo asignar la membresia");
+        throw new Error(body?.error ?? "No se pudo registrar la membresia");
       }
-      const body = await response.json();
-      const member = mapMember(body.member);
-      setRows((prev) => {
-        const idx = prev.findIndex((r) => r.id === member.id);
-        if (idx >= 0) {
-          const copy = [...prev];
-          copy[idx] = member;
-          return copy;
-        }
-        return [member, ...prev];
-      });
-      setAssignModalOpen(false);
-      setConfirmationOpen(true);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "No se pudo asignar la membresia";
-      setAssignError(message);
+
+      upsertMemberRow(body.member as MemberQueryRow);
+      closeMembershipModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo registrar la membresia";
+      setMembershipError(message);
+      setMembershipLoading(false);
     }
   }
+
+  async function handlePlanSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!planModalMember) return;
+    if (!planForm.planTypeId) {
+      setPlanError("Selecciona un plan");
+      return;
+    }
+
+    setPlanLoading(true);
+    setPlanError(null);
+
+    try {
+      const response = await fetch("/api/plans/purchase", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: planModalMember.id,
+          planTypeId: planForm.planTypeId,
+          startDate: planForm.startDate,
+          notes: planForm.notes || null,
+        }),
+      });
+
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error ?? "No se pudo registrar el plan");
+      }
+
+      upsertMemberRow(body.member as MemberQueryRow);
+      closePlanModal();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo registrar el plan";
+      setPlanError(message);
+      setPlanLoading(false);
+    }
+  }
+
+  const selectedMembershipOption = getMembershipOption(membershipForm.membershipTypeId);
+  const membershipTotal = selectedMembershipOption ? selectedMembershipOption.price * membershipForm.termYears : 0;
+  const membershipCurrency = selectedMembershipOption?.currency ?? "MXN";
+  const membershipMaxYears = selectedMembershipOption?.maxPrepaidYears ?? null;
+  const selectedPlanOption = getPlanOption(planForm.planTypeId);
 
   return (
     <AdminLayoutAny title="Miembros" active="Miembros" headerToolbar={headerToolbar}>
@@ -307,8 +524,8 @@ export default function AdminMiembrosPage(
               <select
                 value={estadoFilter}
                 onChange={(event) => {
-                  const value = event.target.value;
-                  if (value === "all" || value === "ACTIVE" || value === "PAYMENT_FAILED" || value === "ON_HOLD" || value === "CANCELLED") {
+                  const value = event.target.value as "all" | MiembroEstado;
+                  if (value === "all" || value === "ACTIVE" || value === "ON_HOLD" || value === "CANCELED") {
                     setEstadoFilter(value);
                   }
                 }}
@@ -316,18 +533,16 @@ export default function AdminMiembrosPage(
               >
                 <option value="all">Todos los estados</option>
                 <option value="ACTIVE">Activo</option>
-                <option value="PAYMENT_FAILED">Pago fallido</option>
-                <option value="ON_HOLD">En pausa</option>
-                <option value="CANCELLED">Cancelado</option>
+                <option value="ON_HOLD">Inactivo</option>
+                <option value="CANCELED">Cancelado</option>
               </select>
-              <button
-                type="button"
-                onClick={openAssignModal}
-                className="flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+              <Link
+                href="/members/new"
+                className="flex items-center rounded-md border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
               >
                 <span className="material-icons-outlined mr-2 text-base">person_add</span>
-                Asignar membresia
-              </button>
+                Nuevo miembro
+              </Link>
             </div>
           </div>
 
@@ -336,36 +551,88 @@ export default function AdminMiembrosPage(
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-6 py-3">Miembro</th>
-                  <th className="px-6 py-3">Plan</th>
+                  <th className="px-6 py-3">Membresia</th>
+                  <th className="px-6 py-3">Planes activos</th>
                   <th className="px-6 py-3">Estado</th>
-                  <th className="px-6 py-3">Proximo cobro</th>
+                  <th className="px-6 py-3">Acciones</th>
                   <th className="px-6 py-3 text-right">Alta</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-6 text-center text-sm text-slate-500">
+                    <td colSpan={6} className="px-6 py-6 text-center text-sm text-slate-500">
                       No hay miembros que coincidan con los filtros.
                     </td>
                   </tr>
                 ) : (
                   filteredRows.map((row) => {
                     const badge = formatEstadoBadgeData(row.Estado);
+                    const membershipDetails =
+                      row.membershipStatus === "ACTIVE"
+                        ? row.membershipEnd
+                          ? `Vence ${dayjs(row.membershipEnd).format("DD MMM YYYY")}`
+                          : "Activa"
+                        : row.membershipStatus === "EXPIRED" && row.membershipEnd
+                          ? `Vencida ${dayjs(row.membershipEnd).format("DD MMM YYYY")}`
+                          : "Sin membresia";
                     return (
                       <tr key={row.id} className="border-t border-slate-200 hover:bg-slate-50">
-                        <td className="px-6 py-4 font-medium text-slate-800">
-                          <div>{row.name}</div>
-                          <div className="text-xs text-slate-500">{row.Correo ?? "Sin correo"}</div>
+                        <td className="px-6 py-4">
+                          <div className="font-medium text-slate-800">{row.name}</div>
+                          <div className="text-xs text-slate-500">
+                            {row.email ?? "Sin correo"}{row.phone ? `  |  ${row.phone}` : ""}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 text-slate-700">{row.Plan ?? "Sin plan"}</td>
+                        <td className="px-6 py-4 text-slate-700">
+                          <div className="font-medium">
+                            {row.membershipStatus === "ACTIVE"
+                              ? row.membershipName ?? "Membresia activa"
+                              : row.membershipStatus === "EXPIRED"
+                              ? row.membershipName ?? "Membresia expirada"
+                              : "Sin membresia"}
+                          </div>
+                          <div className="text-xs text-slate-500">{membershipDetails}</div>
+                          {row.membershipPrivileges && (
+                            <div className="text-xs text-slate-400">Privilegios: {row.membershipPrivileges}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-slate-700">
+                          {row.planActiveCount > 0 ? `${row.planActiveCount} activos` : "Sin planes"}
+                        </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.tone}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-slate-500">
-                          {row.nextBilling ? dayjs(row.nextBilling).format("DD MMM YYYY") : ""}
+                        <td className="px-6 py-4 text-sm">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openMembershipModalFor(row)}
+                              disabled={membershipOptions.length === 0}
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              <span className="material-icons-outlined text-sm">credit_score</span>
+                              Membresia
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openPlanModalFor(row)}
+                              disabled={!row.hasActiveMembership || planOptions.length === 0}
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+                            >
+                              <span className="material-icons-outlined text-sm">shopping_cart</span>
+                              Plan
+                            </button>
+                            <Link
+                              href={`/members/${row.id}`}
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                            >
+                              <span className="material-icons-outlined text-sm">edit</span>
+                              Editar
+                            </Link>
+                          </div>
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
                           {dayjs(row.joinedAt).format("DD MMM YYYY")}
@@ -393,82 +660,118 @@ export default function AdminMiembrosPage(
         </section>
       </div>
 
-      {assignModalOpen && (
+      {membershipModalOpen && membershipModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
           <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-2xl">
-            <form onSubmit={handleAssignMembership}>
+            <form onSubmit={handleMembershipSubmit}>
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-                <h3 className="text-lg font-semibold text-slate-800">Asignar membresia</h3>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">Registrar membresia</h3>
+                  <p className="text-xs text-slate-500">{membershipModalMember.name}</p>
+                </div>
                 <button
                   type="button"
                   className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"
-                  onClick={closeModals}
-                  aria-label="Close"
+                  onClick={closeMembershipModal}
+                  aria-label="Cerrar"
                 >
                   <span className="material-icons-outlined">close</span>
                 </button>
               </div>
-              <div className="space-y-4 px-6 py-6">
+              <div className="space-y-4 px-6 py-6 text-sm">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600">Nombre del miembro</label>
-                  <input
-                    value={assignState.fullName}
-                    onChange={(e) => setAssignState((p) => ({ ...p, fullName: e.target.value }))}
-                    placeholder="Nombre completo"
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600">Correo</label>
-                  <input
-                    type="email"
-                    value={assignState.email}
-                    onChange={(e) => setAssignState((p) => ({ ...p, email: e.target.value }))}
-                    placeholder="correo@ejemplo.com"
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600">Telefono</label>
-                  <input
-                    value={assignState.phone}
-                    onChange={(e) => setAssignState((p) => ({ ...p, phone: e.target.value }))}
-                    placeholder="Opcional"
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-600">Plan</label>
+                  <label className="block text-xs font-medium text-slate-600">Tipo de membresia</label>
                   <select
-                    value={assignState.membershipTypeId}
-                    onChange={(e) => setAssignState((p) => ({ ...p, membershipTypeId: e.target.value }))}
+                    value={membershipForm.membershipTypeId}
+                    onChange={(event) =>
+                      setMembershipForm((prev) => ({ ...prev, membershipTypeId: event.target.value }))
+                    }
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                   >
-                    <option value="" disabled>
-                      Selecciona un plan
-                    </option>
-                    {membershipOptions.map((o) => (
-                      <option key={o.id} value={o.id} disabled={!o.isActive}>
-                        {formatPlanLabel(o)}{o.isActive ? "" : "  inactivo"}
+                    <option value="">Selecciona un tipo</option>
+                    {membershipOptions.map((option) => (
+                      <option key={option.id} value={option.id} disabled={!option.isActive}>
+                        {option.name}  {getCurrencyFormatter(option.currency).format(option.price)}
+                        {!option.isActive ? "  (inactiva)" : ""}
                       </option>
                     ))}
                   </select>
                 </div>
-                {assignError && <p className="text-sm text-rose-600">{assignError}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Fecha de inicio</label>
+                    <input
+                      type="date"
+                      value={membershipForm.startDate}
+                      onChange={(event) =>
+                        setMembershipForm((prev) => ({ ...prev, startDate: event.target.value }))
+                      }
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">anios pagados</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={membershipMaxYears ?? undefined}
+                      value={membershipForm.termYears}
+                      onChange={(event) =>
+                        setMembershipForm((prev) => ({
+                          ...prev,
+                          termYears: Math.max(1, Number(event.target.value) || 1),
+                        }))
+                      }
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    />
+                    {membershipMaxYears && (
+                      <p className="mt-1 text-xs text-slate-400">
+                        Maximo {membershipMaxYears} {membershipMaxYears === 1 ? "anio" : "anios"} por pago
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <p>
+                    Total a cobrar:{" "}
+                    <span className="font-semibold">
+                      {getCurrencyFormatter(membershipCurrency).format(membershipTotal)}
+                    </span>
+                  </p>
+                  {selectedMembershipOption?.privileges && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Privilegios: {selectedMembershipOption.privileges}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
+                  <textarea
+                    value={membershipForm.notes}
+                    onChange={(event) =>
+                      setMembershipForm((prev) => ({ ...prev, notes: event.target.value }))
+                    }
+                    rows={3}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </div>
+                {membershipError && <p className="text-sm text-rose-600">{membershipError}</p>}
               </div>
               <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
                 <button
                   type="button"
-                  onClick={closeModals}
-                  className="rounded-md border border-slate-200 px-4 py-2 text-sm"
+                  onClick={closeMembershipModal}
+                  className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-600"
+                  disabled={membershipLoading}
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+                  disabled={membershipLoading}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  Asignar
+                  {membershipLoading ? "Registrando..." : "Registrar"}
                 </button>
               </div>
             </form>
@@ -476,23 +779,103 @@ export default function AdminMiembrosPage(
         </div>
       )}
 
-      {confirmationOpen && (
+      {planModalOpen && planModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
-          <div className="w-full max-w-sm rounded-lg border border-emerald-200 bg-white p-8 text-center shadow-2xl">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
-              <span className="material-icons-outlined text-4xl text-emerald-600">check_circle</span>
-            </div>
-            <h3 className="text-xl font-semibold text-emerald-800">Membresia asignada</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              La membresia fue creada y asignada al miembro seleccionado.
-            </p>
-            <button
-              type="button"
-              className="mt-6 w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
-              onClick={closeModals}
-            >
-              Listo
-            </button>
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-2xl">
+            <form onSubmit={handlePlanSubmit}>
+              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">Registrar plan</h3>
+                  <p className="text-xs text-slate-500">{planModalMember.name}</p>
+                </div>
+                <button
+                  type="button"
+                  className="rounded-full p-1.5 text-slate-500 hover:bg-slate-100"
+                  onClick={closePlanModal}
+                  aria-label="Cerrar"
+                >
+                  <span className="material-icons-outlined">close</span>
+                </button>
+              </div>
+              <div className="space-y-4 px-6 py-6 text-sm">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600">Plan</label>
+                  <select
+                    value={planForm.planTypeId}
+                    onChange={(event) =>
+                      setPlanForm((prev) => ({ ...prev, planTypeId: event.target.value }))
+                    }
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <option value="">Selecciona un plan</option>
+                    {planOptions.map((option) => (
+                      <option key={option.id} value={option.id} disabled={!option.isActive}>
+                        {option.name}  {getCurrencyFormatter(option.currency).format(option.price)}
+                        {!option.isActive ? "  (inactivo)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Fecha de inicio</label>
+                    <input
+                      type="date"
+                      value={planForm.startDate}
+                      onChange={(event) =>
+                        setPlanForm((prev) => ({ ...prev, startDate: event.target.value }))
+                      }
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                    {selectedPlanOption ? (
+                      <>
+                        <p>
+                          Clases: <span className="font-semibold">{selectedPlanOption.classCount}</span>
+                        </p>
+                        {selectedPlanOption.validityDays ? (
+                          <p>Validez: {selectedPlanOption.validityDays} dias</p>
+                        ) : (
+                          <p>Sin fecha de expiraciÃ³n</p>
+                        )}
+                      </>
+                    ) : (
+                      <p>Selecciona un plan para ver detalles.</p>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
+                  <textarea
+                    value={planForm.notes}
+                    onChange={(event) =>
+                      setPlanForm((prev) => ({ ...prev, notes: event.target.value }))
+                    }
+                    rows={3}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  />
+                </div>
+                {planError && <p className="text-sm text-rose-600">{planError}</p>}
+              </div>
+              <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={closePlanModal}
+                  className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-600"
+                  disabled={planLoading}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={planLoading}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                >
+                  {planLoading ? "Registrando..." : "Registrar"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

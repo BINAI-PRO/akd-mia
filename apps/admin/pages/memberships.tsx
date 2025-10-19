@@ -1,4 +1,5 @@
-﻿import Head from "next/head";
+import Head from "next/head";
+import Link from "next/link";
 import dayjs from "dayjs";
 import {
   useMemo,
@@ -105,9 +106,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     counts[id] = (counts[id] ?? 0) + 1;
   });
 
-  const initialPlanes: MembershipPlanRow[] = (typesResp.data ?? []).map((row) =>
-    mapPlan(row, counts[row.id] ?? 0)
+  const planTypes = (typesResp.data ?? []).filter(
+    (row) => row.access_type?.toUpperCase() !== "MEMBERSHIP"
   );
+
+  const initialPlanes: MembershipPlanRow[] = planTypes.map((row) => mapPlan(row, counts[row.id] ?? 0));
 
   return { props: { initialPlanes } };
 };
@@ -262,7 +265,7 @@ export default function AdminMembershipsPage(
   }
 
   const headerToolbar = (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-3">
       <select
         value={statusFilter}
         onChange={(event) => {
@@ -277,15 +280,18 @@ export default function AdminMembershipsPage(
         <option value="Activo">Activo</option>
         <option value="Inactivo">Inactivo</option>
       </select>
-      <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notifications">
-        <span className="material-icons-outlined text-slate-500">notifications</span>
-      </button>
-      <div className="h-9 w-9 rounded-full bg-slate-200" />
+      <Link
+        href="/membership-types"
+        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+      >
+        <span className="material-icons-outlined text-sm">workspace_premium</span>
+        Tipos de membresia
+      </Link>
     </div>
   );
 
   return (
-    <AdminLayoutAny title="Planes de membresia" active="MembershipPlans" headerToolbar={headerToolbar}>
+    <AdminLayoutAny title="Planes de membresia" active="membershipPlans" headerToolbar={headerToolbar}>
       <Head>
         <title>Planes  Admin</title>
       </Head>

@@ -1,5 +1,4 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type LookupFilter = { column: "email" | "phone"; value: string };
@@ -15,31 +14,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       fullName,
       email,
       phone,
-      membershipTypeId,
       profileStatus,
-      notes,
+      avatarUrl,
+      birthdate,
+      occupation,
+      profileNotes,
+      emergencyContactName,
+      emergencyContactPhone,
+      preferredApparatus,
     } = req.body as {
       fullName?: string;
       email?: string | null;
       phone?: string | null;
-      membershipTypeId?: string;
       profileStatus?: string;
-      notes?: string | null;
+      avatarUrl?: string | null;
+      birthdate?: string | null;
+      occupation?: string | null;
+      profileNotes?: string | null;
+      emergencyContactName?: string | null;
+      emergencyContactPhone?: string | null;
+      preferredApparatus?: string[] | null;
     };
 
-    if (!fullName || !membershipTypeId) {
-      return res.status(400).json({ error: "Nombre y plan son obligatorios" });
-    }
-
-    const { data: membershipType, error: membershipTypeError } = await supabaseAdmin
-      .from("membership_types")
-      .select("id, name, billing_period, class_quota, trial_days")
-      .eq("id", membershipTypeId)
-      .single();
-
-    if (membershipTypeError || !membershipType) {
-      console.error("/api/members", membershipTypeError);
-      return res.status(400).json({ error: "El plan seleccionado no existe" });
+    if (!fullName) {
+      return res.status(400).json({ error: "El nombre del miembro es obligatorio" });
     }
 
     let clientId: string | null = null;
@@ -97,53 +95,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(500).json({ error: "No se pudo resolver el miembro" });
     }
 
-    const statusValue = (profileStatus ?? "ACTIVE").toUpperCase();
+    const statusValue = (profileStatus ?? "ON_HOLD").toUpperCase();
     const { error: profileError } = await supabaseAdmin
       .from("client_profiles")
       .upsert({
         client_id: clientId,
         status: statusValue,
+        avatar_url: avatarUrl?.trim() || null,
+        birthdate: birthdate?.trim() || null,
+        occupation: occupation?.trim() || null,
+        notes: profileNotes?.trim() || null,
+        emergency_contact_name: emergencyContactName?.trim() || null,
+        emergency_contact_phone: emergencyContactPhone?.trim() || null,
+        preferred_apparatus:
+          Array.isArray(preferredApparatus) && preferredApparatus.length > 0
+            ? preferredApparatus
+                .map((item) => (typeof item === "string" ? item.trim() : ""))
+                .filter((item) => item.length > 0)
+            : [],
       }, { onConflict: "client_id" });
 
     if (profileError) {
       console.error("/api/members", profileError);
       return res.status(500).json({ error: "No se pudo actualizar el perfil" });
-    }
-
-    const startDate = dayjs().format("YYYY-MM-DD");
-    let endDate = startDate;
-
-    if (membershipType.billing_period === "MONTHLY") {
-      endDate = dayjs(startDate).add(1, "month").format("YYYY-MM-DD");
-    } else if (membershipType.billing_period === "ANNUAL") {
-      endDate = dayjs(startDate).add(1, "year").format("YYYY-MM-DD");
-    }
-
-    if (typeof membershipType.trial_days === "number" && membershipType.trial_days > 0) {
-      endDate = dayjs(endDate).add(membershipType.trial_days, "day").format("YYYY-MM-DD");
-    }
-
-    const remainingClasses = membershipType.class_quota ?? null;
-
-    const { data: membership, error: membershipError } = await supabaseAdmin
-      .from("memberships")
-      .insert({
-        client_id: clientId,
-        membership_type_id: membershipTypeId,
-        status: "ACTIVE",
-        start_date: startDate,
-        end_date: endDate,
-        next_billing_date: endDate,
-        auto_renew: true,
-        remaining_classes: remainingClasses,
-        notes: notes ?? null,
-      })
-      .select("id")
-      .single();
-
-    if (membershipError || !membership) {
-      console.error("/api/members", membershipError);
-      return res.status(500).json({ error: "No se pudo asignar la membresia" });
     }
 
     const { data: freshMember, error: fetchError } = await supabaseAdmin
@@ -158,8 +132,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         memberships(
           id,
           status,
+          start_date,
+          end_date,
           next_billing_date,
-          membership_types(name)
+          membership_types(name),
+          membership_payments(amount, currency, paid_at, period_start, period_end, period_years)
+        ),
+        plan_purchases(
+          id,
+          status,
+          initial_classes,
+          remaining_classes,
+          start_date,
+          expires_at,
+          plan_types(name)
         )
       `)
       .eq("id", clientId)
