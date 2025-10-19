@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { useRouter } from "next/router";
 import Img from "@/components/Img";
+import { useAuth } from "@/components/auth/AuthContext";
 
 export type NavKey =
   | "dashboard"
@@ -94,7 +96,29 @@ const NAVIGATION: NavItem[] = [
 ];
 
 export default function AdminLayout({ title, active, headerToolbar, children }: AdminLayoutProps) {
+  const router = useRouter();
+  const { profile, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const displayName = useMemo(() => {
+    if (profile?.fullName) return profile.fullName;
+    if (profile?.email) return profile.email;
+    return "Usuario";
+  }, [profile?.email, profile?.fullName]);
+
+  const avatarUrl = profile?.avatarUrl ?? null;
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const handleSignOut = async () => {
+    await signOut();
+    await router.replace("/login");
+  };
 
   const initialOpenGroups = useMemo(() => {
     const groups = new Set<string>();
@@ -236,12 +260,38 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
             </div>
             <div className="flex items-center gap-4">
               {headerToolbar ?? (
-                <>
+                <div className="flex items-center gap-4">
                   <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
                     <span className="material-icons-outlined text-slate-500">notifications</span>
                   </button>
-                  <Img src="/angie.jpg" alt="Usuario" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
-                </>
+                  <div className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-1">
+                    {avatarUrl ? (
+                      <Img
+                        src={avatarUrl}
+                        alt={displayName}
+                        width={36}
+                        height={36}
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+                        {initials || "U"}
+                      </span>
+                    )}
+                    <div className="flex flex-col text-right">
+                      <span className="text-sm font-semibold leading-tight text-slate-800">
+                        {displayName}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleSignOut}
+                        className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
+                      >
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </header>

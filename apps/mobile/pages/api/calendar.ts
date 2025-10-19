@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseServer } from "@/lib/supabase-server";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import dayjs from "dayjs";
 
 /** Fila que devuelve el SELECT con relaciones anidadas */
@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const end   = dayjs(date).endOf("day").toISOString();
 
     // 1) Sesiones del día con relaciones
-    const { data, error } = await supabaseServer
+    const { data, error } = await supabaseAdmin
       .from("sessions")
       .select(`
         id, start_time, end_time, capacity,
@@ -41,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ids = sessions.map(s => s.id);
     const occ: Record<string, number> = {};
     if (ids.length) {
-      const { data: rows, error: e2 } = await supabaseServer
+      const { data: rows, error: e2 } = await supabaseAdmin
         .from("bookings")
         .select("session_id, status")
         .in("session_id", ids)

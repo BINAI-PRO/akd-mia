@@ -1,11 +1,18 @@
-﻿import type { AppProps } from "next/app";
+import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import "@/styles/globals.css";
 import Header from "@/components/Header";
 import TabBar from "@/components/TabBar";
+import { AuthProvider } from "@/components/auth/AuthContext";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+
+type NextPageWithAuth = AppProps["Component"] & {
+  publicPage?: boolean;
+};
 
 export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
+    if (typeof window === "undefined") return;
     if ("serviceWorker" in navigator) {
       if (process.env.NODE_ENV === "production") {
         navigator.serviceWorker.register("/sw.js");
@@ -22,13 +29,24 @@ export default function App({ Component, pageProps }: AppProps) {
     }
   }, []);
 
+  const ComponentWithAuth = Component as NextPageWithAuth;
+  const isPublic = ComponentWithAuth.publicPage ?? false;
+
   return (
-    <>
-      <Header />
-      <main className="mx-auto max-w-md px-4 pb-28">
+    <AuthProvider>
+      {isPublic ? (
         <Component {...pageProps} />
-      </main>
-      <TabBar />
-    </>
+      ) : (
+        <ProtectedRoute>
+          <>
+            <Header />
+            <main className="mx-auto max-w-md px-4 pb-28">
+              <Component {...pageProps} />
+            </main>
+            <TabBar />
+          </>
+        </ProtectedRoute>
+      )}
+    </AuthProvider>
   );
 }

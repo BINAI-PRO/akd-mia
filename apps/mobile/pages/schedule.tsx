@@ -59,7 +59,8 @@ export default function SchedulePage() {
 
   // Realtime: si hay INSERT en bookings, actualizamos ocupaciÃ³n en la lista visible
   useEffect(() => {
-    const ch = supabaseBrowser
+    const client = supabaseBrowser();
+    const ch = client
       .channel("bookings-realtime")
       .on(
         "postgres_changes",
@@ -79,7 +80,7 @@ export default function SchedulePage() {
       .subscribe();
 
     return () => {
-      supabaseBrowser.removeChannel(ch);
+      client.removeChannel(ch);
     };
   }, []);
 
