@@ -1,5 +1,6 @@
 ﻿
 import Head from "next/head";
+import Link from "next/link";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -71,6 +72,33 @@ const PESO_FORMATTER = new Intl.NumberFormat("es-MX", {
 });
 
 const NUMBER_FORMATTER = new Intl.NumberFormat("es-MX");
+
+type QuickAction = {
+  label: string;
+  icon: string;
+  href?: string;
+  primary?: boolean;
+};
+
+const QUICK_ACTIONS: QuickAction[] = [
+  {
+    label: "Nueva sesión",
+    icon: "add_circle_outline",
+    primary: true,
+    href: "/courses/scheduler",
+  },
+  {
+    label: "Agregar miembro",
+    icon: "person_add",
+    href: "/members/new",
+  },
+];
+
+const UPCOMING_ACTIONS: QuickAction[] = [
+  { label: "Crear factura", icon: "receipt_long" },
+  { label: "Enviar correo", icon: "email" },
+  { label: "Ver reportes", icon: "bar_chart" },
+];
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   const now = dayjs();
@@ -262,30 +290,41 @@ export default function AdminDashboardPage({
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-xl font-semibold">Acceso Directo</h2>
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-xl font-semibold">Acceso directo</h2>
+            <span className="text-xs text-slate-500">
+              Usa los accesos para ir directo a los flujos disponibles.
+            </span>
+          </div>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
-            {[
-              { label: "Nueva sesión", icon: "add_circle_outline", primary: true },
-              { label: "Agregar miembro", icon: "person_add" },
-              { label: "Crear factura", icon: "receipt_long" },
-              { label: "Enviar correo", icon: "email" },
-              { label: "Ver reportes", icon: "bar_chart" },
-            ].map((action) => (
-              <button
+            {QUICK_ACTIONS.map((action) => {
+              const className = [
+                "flex h-24 flex-col items-center justify-center gap-2 rounded-lg border text-center text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60",
+                action.primary
+                  ? "border-brand-500 bg-brand-600 text-white hover:bg-brand-700"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
+              ].join(" ");
+
+              return (
+                <Link key={action.label} href={action.href ?? "#"} className={className}>
+                  <span className="material-icons-outlined text-2xl" aria-hidden="true">
+                    {action.icon}
+                  </span>
+                  <span>{action.label}</span>
+                </Link>
+              );
+            })}
+            {UPCOMING_ACTIONS.map((action) => (
+              <div
                 key={action.label}
-                type="button"
-                onClick={() => alert("Funcion en desarrollo")}
-                className={`flex h-24 flex-col items-center justify-center gap-2 rounded-lg border text-sm font-medium transition ${
-                  action.primary
-                    ? "border-brand-500 bg-brand-500 text-white hover:bg-brand-600"
-                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-                }`}
+                className="flex h-24 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 text-center text-sm font-medium text-slate-500"
+                aria-disabled="true"
               >
                 <span className="material-icons-outlined text-2xl" aria-hidden="true">
                   {action.icon}
                 </span>
                 <span>{action.label}</span>
-              </button>
+              </div>
             ))}
           </div>
         </section>

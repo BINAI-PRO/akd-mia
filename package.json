@@ -13,7 +13,8 @@
     "start": "npm run start:mobile",
     "start:mobile": "next start apps/mobile",
     "start:admin": "next start apps/admin",
-    "lint": "eslint"
+    "lint": "eslint",
+    "create:supabase-user": "node scripts/create-supabase-user.mjs"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",

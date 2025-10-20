@@ -1,4 +1,8 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+This monorepo hosts the **AT Pilates Time** mobile PWA and admin panel. Both apps share Supabase for authentication and data. See `docs/auth-workflow.md` for the end-to-end auth setup guide (linking `auth.users` with `public.clients`, creating admin accounts, etc.).
+
+---
+
+This project was originally bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
 ## Getting Started
 

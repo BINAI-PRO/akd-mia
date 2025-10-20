@@ -65,7 +65,7 @@ export default function Header() {
               onClick={handleSignOut}
               className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
             >
-              Cerrar sesión
+              Cerrar sesion
             </button>
           </div>
         </div>

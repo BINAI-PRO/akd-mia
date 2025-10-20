@@ -11,10 +11,13 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type AuthProfile = {
-  id: string;
+  authUserId: string;
+  clientId: string | null;
   fullName: string;
   avatarUrl: string | null;
   email: string | null;
+  phone: string | null;
+  status: string | null;
   role: string | null;
   isAdmin: boolean;
 };
@@ -24,11 +27,56 @@ type AuthContextValue = {
   session: Session | null;
   profile: AuthProfile | null;
   loading: boolean;
+  profileLoading: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const deriveBaseProfile = (source: User): AuthProfile => {
+  const metadata = (source.user_metadata ?? {}) as Record<string, unknown>;
+  const appMetadata = (source.app_metadata ?? {}) as Record<string, unknown>;
+
+  const fullName =
+    (metadata.full_name as string | undefined) ??
+    (metadata.name as string | undefined) ??
+    (metadata.display_name as string | undefined) ??
+    source.email?.split("@")[0] ??
+    "Usuario";
+
+  const avatarUrl =
+    (metadata.avatar_url as string | undefined) ??
+    (metadata.avatar as string | undefined) ??
+    null;
+
+  const phone = (metadata.phone as string | undefined) ?? null;
+  const role =
+    (metadata.role as string | undefined) ??
+    (appMetadata.role as string | undefined) ??
+    null;
+
+  const isAdmin =
+    Boolean(appMetadata.is_admin ?? metadata.is_admin ?? metadata.admin) ||
+    role === "admin";
+
+  const possibleClientId =
+    (metadata.client_id as string | undefined) ??
+    (metadata.profile_id as string | undefined) ??
+    null;
+
+  return {
+    authUserId: source.id,
+    clientId: possibleClientId,
+    fullName,
+    avatarUrl,
+    email: source.email ?? null,
+    phone,
+    status: null,
+    role,
+    isAdmin,
+  };
+};
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(
@@ -38,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<AuthProfile | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -73,45 +123,64 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [supabase]);
 
-  const profile = useMemo<AuthProfile | null>(() => {
-    if (!user) return null;
+  useEffect(() => {
+    if (!user) {
+      setProfile(null);
+      setProfileLoading(false);
+      return;
+    }
 
-    const metadata = (user.user_metadata ?? {}) as Record<string, unknown>;
-    const appMetadata = (user.app_metadata ?? {}) as Record<string, unknown>;
+    setProfile(deriveBaseProfile(user));
 
-    const fullName =
-      (metadata.full_name as string | undefined) ??
-      (metadata.name as string | undefined) ??
-      (metadata.display_name as string | undefined) ??
-      user.email?.split("@")[0] ??
-      "Usuario";
+    if (typeof window === "undefined") return;
 
-    const avatarUrl =
-      (metadata.avatar_url as string | undefined) ??
-      (metadata.avatar as string | undefined) ??
-      null;
+    const controller = new AbortController();
+    let active = true;
+    setProfileLoading(true);
 
-    const role =
-      (metadata.role as string | undefined) ??
-      (appMetadata.role as string | undefined) ??
-      null;
+    fetch("/api/me", { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(errorBody.error ?? "me endpoint failed");
+        }
+        return response.json() as Promise<{
+          profile: Partial<AuthProfile> & { authUserId: string };
+        }>;
+      })
+      .then(({ profile: remoteProfile }) => {
+        if (!active) return;
+        setProfile((current) => {
+          const base = current ?? deriveBaseProfile(user);
+          return {
+            ...base,
+            ...remoteProfile,
+            clientId: remoteProfile.clientId ?? base.clientId,
+            avatarUrl: remoteProfile.avatarUrl ?? base.avatarUrl,
+            email: remoteProfile.email ?? base.email,
+            phone: remoteProfile.phone ?? base.phone,
+            fullName: remoteProfile.fullName ?? base.fullName,
+            status: remoteProfile.status ?? base.status,
+            role: remoteProfile.role ?? base.role,
+            isAdmin:
+              remoteProfile.isAdmin !== undefined
+                ? remoteProfile.isAdmin
+                : base.isAdmin,
+          };
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        // silently ignore; base profile already set
+      })
+      .finally(() => {
+        if (!active) return;
+        setProfileLoading(false);
+      });
 
-    const isAdmin =
-      Boolean(appMetadata.is_admin ?? metadata.is_admin ?? metadata.admin) ||
-      role === "admin";
-
-    const derivedId =
-      (metadata.profile_id as string | undefined) ??
-      (metadata.client_id as string | undefined) ??
-      user.id;
-
-    return {
-      id: derivedId,
-      fullName,
-      avatarUrl,
-      email: user.email ?? null,
-      role,
-      isAdmin,
+    return () => {
+      active = false;
+      controller.abort();
     };
   }, [user]);
 
@@ -120,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
+    setProfile(null);
   }, [supabase]);
 
   const refreshSession = useCallback(async () => {
@@ -142,10 +212,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       profile,
       loading,
+      profileLoading,
       signOut,
       refreshSession,
     }),
-    [loading, profile, refreshSession, session, signOut, user]
+    [loading, profile, profileLoading, refreshSession, session, signOut, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
