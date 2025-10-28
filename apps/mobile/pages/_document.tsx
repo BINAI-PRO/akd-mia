@@ -5,7 +5,7 @@ export default function Document() {
     <Html lang="es">
       <Head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#4b8bc5" />
+        <meta name="theme-color" content="#8cb7c7" />
         <link rel="icon" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

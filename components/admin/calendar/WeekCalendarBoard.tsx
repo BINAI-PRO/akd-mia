@@ -12,7 +12,7 @@ const END_HOUR = 23;
 const HOURS = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, index) => START_HOUR + index);
 const HOUR_BLOCK_HEIGHT = 48;
 const WEEKDAY_LABELS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB", "DOM"];
-const COLOR_TOKENS = ["bg-brand-500", "bg-indigo-500", "bg-emerald-500", "bg-sky-500", "bg-amber-500"];
+const COLOR_TOKENS = ["bg-brand-500", "bg-indigo-500", "bg-emerald-500", "bg-rose-400", "bg-amber-400"];
 
 const DEFAULT_FILTERS = {
   instructorId: "all",
