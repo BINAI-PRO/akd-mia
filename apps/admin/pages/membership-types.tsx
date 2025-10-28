@@ -90,9 +90,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   if (membershipTypesResp.error) throw membershipTypesResp.error;
   if (membershipsResp.error) throw membershipsResp.error;
 
-  const membershipTypes = (membershipTypesResp.data ?? []).filter(
-    (type) => type.access_type?.toUpperCase() === "MEMBERSHIP"
-  );
+  const membershipTypes = membershipTypesResp.data ?? [];
 
   const activeMemberships = new Map<string, number>();
   (membershipsResp.data ?? []).forEach((membership) => {
