@@ -31,7 +31,7 @@ export default function Header() {
     <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
         <Img
-          src="/logo.png"
+          src="/logo.webp"
           alt="AT"
           width={34}
           height={34}

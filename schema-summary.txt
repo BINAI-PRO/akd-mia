@@ -48,6 +48,7 @@ CREATE TABLE public.clients (
   phone text,
   email text UNIQUE,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  auth_user_id uuid UNIQUE,
   CONSTRAINT clients_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.courses (
@@ -72,6 +73,7 @@ CREATE TABLE public.courses (
   lead_instructor_id uuid,
   class_type_id uuid,
   default_room_id uuid,
+  booking_window_days integer DEFAULT 7 CHECK (booking_window_days >= 0),
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_lead_instructor_id_fkey FOREIGN KEY (lead_instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT courses_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
@@ -144,6 +146,7 @@ CREATE TABLE public.membership_payments (
   status USER-DEFINED NOT NULL DEFAULT 'SUCCESS'::payment_status,
   provider_ref text,
   notes text,
+  period_years integer NOT NULL DEFAULT 1 CHECK (period_years >= 1),
   CONSTRAINT membership_payments_pkey PRIMARY KEY (id),
   CONSTRAINT membership_payments_membership_id_fkey FOREIGN KEY (membership_id) REFERENCES public.memberships(id)
 );
@@ -162,18 +165,10 @@ CREATE TABLE public.membership_types (
   access_classes boolean NOT NULL DEFAULT true,
   access_courses boolean NOT NULL DEFAULT false,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  privileges text,
+  max_prepaid_years integer,
+  allow_multi_year boolean NOT NULL DEFAULT true,
   CONSTRAINT membership_types_pkey PRIMARY KEY (id)
-);
-CREATE TABLE public.membership_usages (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  membership_id uuid NOT NULL,
-  session_id uuid NOT NULL,
-  used_at timestamp with time zone NOT NULL DEFAULT now(),
-  credit_delta integer NOT NULL DEFAULT 1,
-  notes text,
-  CONSTRAINT membership_usages_pkey PRIMARY KEY (id),
-  CONSTRAINT membership_usages_membership_id_fkey FOREIGN KEY (membership_id) REFERENCES public.memberships(id),
-  CONSTRAINT membership_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.memberships (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -188,10 +183,64 @@ CREATE TABLE public.memberships (
   remaining_classes integer CHECK (remaining_classes >= 0),
   notes text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  term_years integer NOT NULL DEFAULT 1 CHECK (term_years >= 1),
+  privileges_snapshot text,
   CONSTRAINT memberships_pkey PRIMARY KEY (id),
   CONSTRAINT memberships_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT memberships_membership_type_id_fkey FOREIGN KEY (membership_type_id) REFERENCES public.membership_types(id),
   CONSTRAINT memberships_assigned_session_id_fkey FOREIGN KEY (assigned_session_id) REFERENCES public.sessions(id)
+);
+CREATE TABLE public.plan_payments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  plan_purchase_id uuid NOT NULL,
+  amount numeric NOT NULL CHECK (amount >= 0::numeric),
+  currency text NOT NULL DEFAULT 'MXN'::text,
+  paid_at timestamp with time zone NOT NULL DEFAULT now(),
+  status USER-DEFINED NOT NULL DEFAULT 'SUCCESS'::payment_status,
+  provider_ref text,
+  notes text,
+  CONSTRAINT plan_payments_pkey PRIMARY KEY (id),
+  CONSTRAINT plan_payments_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id)
+);
+CREATE TABLE public.plan_purchases (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  client_id uuid NOT NULL,
+  plan_type_id uuid NOT NULL,
+  status USER-DEFINED NOT NULL DEFAULT 'ACTIVE'::plan_status,
+  purchased_at timestamp with time zone NOT NULL DEFAULT now(),
+  start_date date NOT NULL DEFAULT (now())::date,
+  expires_at date,
+  initial_classes integer NOT NULL CHECK (initial_classes >= 0),
+  remaining_classes integer NOT NULL CHECK (remaining_classes >= 0),
+  notes text,
+  CONSTRAINT plan_purchases_pkey PRIMARY KEY (id),
+  CONSTRAINT plan_purchases_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT plan_purchases_plan_type_id_fkey FOREIGN KEY (plan_type_id) REFERENCES public.plan_types(id)
+);
+CREATE TABLE public.plan_types (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  privileges text,
+  class_count integer NOT NULL CHECK (class_count > 0),
+  price numeric NOT NULL CHECK (price >= 0::numeric),
+  currency text NOT NULL DEFAULT 'MXN'::text,
+  validity_days integer,
+  is_active boolean NOT NULL DEFAULT true,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT plan_types_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.plan_usages (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  plan_purchase_id uuid NOT NULL,
+  session_id uuid NOT NULL,
+  used_at timestamp with time zone NOT NULL DEFAULT now(),
+  credit_delta integer NOT NULL DEFAULT 1,
+  notes text,
+  CONSTRAINT plan_usages_pkey PRIMARY KEY (id),
+  CONSTRAINT plan_usages_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id),
+  CONSTRAINT plan_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.qr_tokens (
   booking_id uuid NOT NULL,

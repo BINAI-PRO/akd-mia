@@ -4,7 +4,8 @@ export default function Document() {
   return (
     <Html lang="es">
       <Head>
-        <link rel="icon" href="/logo.png" />
+        <link rel="icon" type="image/webp" href="/logo.webp" />
+        <link rel="icon" type="image/png" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

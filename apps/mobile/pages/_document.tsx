@@ -6,7 +6,8 @@ export default function Document() {
       <Head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#8cb7c7" />
-        <link rel="icon" href="/logo.png" />
+        <link rel="icon" type="image/webp" href="/logo.webp" />
+        <link rel="icon" type="image/png" href="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

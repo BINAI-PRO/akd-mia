@@ -101,7 +101,7 @@ export default function MobileLoginPage() {
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
           <div className="flex flex-col items-center gap-3 text-center">
             <Img
-              src="/logo.png"
+              src="/logo.webp"
               alt="AT Pilates Time"
               width={120}
               height={40}

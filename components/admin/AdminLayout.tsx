@@ -207,7 +207,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
 
   const BrandBlock = () => (
     <div className="flex items-center gap-3">
-      <Img src="/logo.png" alt="AT Pilates Time" width={160} height={40} className="h-10 w-auto" />
+      <Img src="/logo.webp" alt="AT Pilates Time" width={160} height={40} className="h-10 w-auto" />
       <div className="leading-tight">
         <p className="text-sm font-semibold text-slate-800">AT Pilates Time</p>
         <p className="text-xs uppercase text-slate-500 tracking-wide">ATP Tu Fit App</p>
