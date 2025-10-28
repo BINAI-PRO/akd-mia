@@ -31,15 +31,15 @@ export default function Header() {
     <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
         <Img
-          src="/logo.webp"
-          alt="AT"
-          width={34}
-          height={34}
-          className="h-[34px] w-[34px] rounded-full border-0 shadow-none"
+          src="/logo.svg"
+          alt="AT Pilates Time"
+          width={160}
+          height={56}
+          className="h-12 w-auto shrink-0"
         />
         <div className="min-w-0">
           <h1 className="text-base font-semibold leading-none">AT Pilates Time</h1>
-          <p className="text-xs leading-none text-neutral-500">ATA?P Tu Fit App</p>
+          <p className="text-xs leading-none text-neutral-500">ATP Tu Fit App</p>
         </div>
 
         <div className="ml-auto flex items-center gap-3">

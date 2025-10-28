@@ -101,11 +101,11 @@ export default function MobileLoginPage() {
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
           <div className="flex flex-col items-center gap-3 text-center">
             <Img
-              src="/logo.webp"
+              src="/logo.svg"
               alt="AT Pilates Time"
-              width={120}
-              height={40}
-              className="h-12 w-auto"
+              width={200}
+              height={70}
+              className="h-14 w-auto"
             />
             <h1 className="text-2xl font-bold text-neutral-900">
               Bienvenida de nuevo
