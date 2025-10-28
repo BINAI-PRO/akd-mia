@@ -5,11 +5,14 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/auth/AuthContext";
 import Img from "@/components/Img";
 
+const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+
 export default function MobileLoginPage() {
   const router = useRouter();
   const { user, loading, refreshSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -24,11 +27,47 @@ export default function MobileLoginPage() {
     }
   }, [loading, redirectTarget, router, user]);
 
+  const passwordIsValid = PASSWORD_REGEX.test(password);
+
+  const handleGoogleLogin = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setFormError(null);
+
+    try {
+      const supabase = supabaseBrowser();
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${redirectTarget}`
+          : redirectTarget;
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesion con Google";
+      setFormError(message);
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
     setSubmitting(true);
     setFormError(null);
+    setPasswordTouched(true);
+
+    if (!passwordIsValid) {
+      setFormError(
+        "La contrasena debe tener entre 8 y 64 caracteres e incluir letras, numeros y al menos un simbolo."
+      );
+      setSubmitting(false);
+      return;
+    }
 
     try {
       const supabase = supabaseBrowser();
@@ -47,7 +86,7 @@ export default function MobileLoginPage() {
       await router.replace(redirectTarget);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesión";
+        error instanceof Error ? error.message : "No se pudo iniciar sesion";
       setFormError(message);
       setSubmitting(false);
     }
@@ -56,7 +95,7 @@ export default function MobileLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesión | AT Pilates Time</title>
+        <title>Iniciar sesion | AT Pilates Time</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -76,10 +115,31 @@ export default function MobileLoginPage() {
             </p>
           </div>
 
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full rounded-xl border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={submitting}
+            >
+              Continuar con Google
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-neutral-200" />
+              <span className="text-[11px] uppercase tracking-wide text-neutral-400">
+                o ingresa con email
+              </span>
+              <span className="h-px flex-1 bg-neutral-200" />
+            </div>
+          </div>
+
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500" htmlFor="email">
-                Correo electrónico
+              <label
+                className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
+                htmlFor="email"
+              >
+                Correo electronico
               </label>
               <input
                 id="email"
@@ -94,8 +154,11 @@ export default function MobileLoginPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500" htmlFor="password">
-                Contraseña
+              <label
+                className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
+                htmlFor="password"
+              >
+                Contrasena
               </label>
               <input
                 id="password"
@@ -104,9 +167,18 @@ export default function MobileLoginPage() {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
+                onBlur={() => setPasswordTouched(true)}
                 className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                placeholder="••••••••"
+                placeholder="********"
               />
+              <p className="text-xs text-neutral-500">
+                Usa entre 8 y 64 caracteres con letras, numeros y al menos un simbolo.
+              </p>
+              {passwordTouched && !passwordIsValid && (
+                <p className="text-xs text-rose-600">
+                  Revisa los requisitos de la contrasena antes de continuar.
+                </p>
+              )}
             </div>
 
             {formError && (
