@@ -21,9 +21,28 @@ export default function Img({
   style,
   sizes = "(max-width: 768px) 100vw, 400px",
   unoptimized = false,
-  ...rest
+  ...imgRest
 }: Props) {
   if (!src) return null;
+
+  const stringSrc = typeof src === "string" ? src : String(src);
+  const useNativeImg =
+    unoptimized || stringSrc.toLowerCase().endsWith(".svg");
+
+  if (useNativeImg) {
+    return (
+      <img
+        src={stringSrc}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+        style={style as React.CSSProperties | undefined}
+        sizes={sizes}
+        {...imgRest}
+      />
+    );
+  }
 
   const w = typeof width === "number" ? width : Number(width);
   const h = typeof height === "number" ? height : Number(height);
@@ -32,15 +51,14 @@ export default function Img({
   if (hasSize) {
     return (
       <Image
-        src={src as string}
+        src={stringSrc}
         alt={alt}
         width={w as number}
         height={h as number}
         className={className}
-        style={style as React.CSSProperties}
+        style={style as React.CSSProperties | undefined}
         sizes={sizes}
-        unoptimized={unoptimized}
-        {...(rest as NextImageRestProps)}
+        {...(imgRest as NextImageRestProps)}
       />
     );
   }
@@ -58,13 +76,12 @@ export default function Img({
       }}
     >
       <Image
-        src={src as string}
+        src={stringSrc}
         alt={alt}
         fill
         sizes={sizes}
         style={{ objectFit: "cover" }}
-        unoptimized={unoptimized}
-        {...(rest as NextImageRestProps)}
+        {...(imgRest as NextImageRestProps)}
       />
     </span>
   );
