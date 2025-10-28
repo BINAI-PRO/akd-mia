@@ -24,27 +24,25 @@ const AdminLayoutAny = AdminLayout as unknown as ComponentType<
 // Usamos espanol en la UI, pero alineamos los valores a la DB en SSR
 export type PlanEstatus = "Activo" | "Inactivo";
 
-export type MembershipPlanRow = {
+export type PlanListRow = {
   id: string;
   name: string;
   description: string | null;
-  billingPeriod: string;
-  Precio: number; // price
-  Moneda: string; // currency
-  trialDays: number | null;
-  classQuota: number | null;
-  AccesosClases: boolean;
-  AccesosCursos: boolean;
-  status: PlanEstatus; // mapeado desde is_active
-  ActivoMiembros: number; // miembros con este plan activo
-  updatedAt: string;
+  price: number;
+  currency: string;
+  classCount: number;
+  validityDays: number | null;
+  privileges: string | null;
+  status: PlanEstatus;
+  activePurchases: number;
+  updatedAt: string | null;
 };
 
-type MembershipTypeRow = Tables<"membership_types">;
-type MembershipRow = Pick<Tables<"memberships">, "membership_type_id">;
+type PlanTypeRow = Tables<"plan_types">;
+type PlanPurchaseRow = Pick<Tables<"plan_purchases">, "plan_type_id" | "status">;
 
 export type PageProps = {
-  initialPlanes: MembershipPlanRow[];
+  initialPlanes: PlanListRow[];
 };
 
 // ================= Helpers =================
@@ -61,56 +59,52 @@ function formatCurrency(value: number, currency: string) {
   return CURRENCY_CACHE[key].format(value);
 }
 
-function mapPlan(row: MembershipTypeRow, activeCount: number): MembershipPlanRow {
+function mapPlan(row: PlanTypeRow, activeCount: number): PlanListRow {
   return {
     id: row.id,
     name: row.name,
     description: row.description ?? null,
-    billingPeriod: row.billing_period ?? "Mensual",
-    Precio: row.price != null ? Number(row.price) : 0,
-    Moneda: row.currency ?? "MXN",
-    trialDays: row.trial_days ?? null,
-    classQuota: row.class_quota ?? null,
-    AccesosClases: row.access_classes ?? true,
-    AccesosCursos: row.access_courses ?? false,
+    price: Number(row.price ?? 0),
+    currency: row.currency ?? "MXN",
+    classCount: Number(row.class_count ?? 0),
+    validityDays: row.validity_days ?? null,
+    privileges: row.privileges ?? null,
     status: row.is_active ? "Activo" : "Inactivo",
-    ActivoMiembros: activeCount,
-    updatedAt: row.updated_at ?? row.created_at,
+    activePurchases: activeCount,
+    updatedAt: row.updated_at ?? row.created_at ?? null,
   };
 }
 
 // ================= SSR =================
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [typesResp, membershipsResp] = await Promise.all([
+  const [planTypesResp, planPurchasesResp] = await Promise.all([
     supabaseAdmin
-      .from("membership_types")
+      .from("plan_types")
       .select(
-        `id, name, description, billing_period, price, currency, trial_days, class_quota, access_classes, access_courses, is_active, updated_at, created_at`
+        `id, name, description, price, currency, class_count, validity_days, privileges, is_active, updated_at, created_at`
       )
-      .order("name")
-      .returns<MembershipTypeRow[]>(),
+      .order("created_at", { ascending: false })
+      .returns<PlanTypeRow[]>(),
     supabaseAdmin
-      .from("memberships")
-      .select("membership_type_id")
-      .eq("status", "ACTIVE")
-      .returns<MembershipRow[]>(),
+      .from("plan_purchases")
+      .select("plan_type_id, status")
+      .returns<PlanPurchaseRow[]>(),
   ]);
 
-  if (typesResp.error) throw typesResp.error;
-  if (membershipsResp.error) throw membershipsResp.error;
+  if (planTypesResp.error) throw planTypesResp.error;
+  if (planPurchasesResp.error) throw planPurchasesResp.error;
 
-  const counts: Record<string, number> = {};
-  (membershipsResp.data ?? []).forEach((row) => {
-    const id = row.membership_type_id;
-    if (!id) return;
-    counts[id] = (counts[id] ?? 0) + 1;
+  const activeCounts = new Map<string, number>();
+  (planPurchasesResp.data ?? []).forEach((purchase) => {
+    if (!purchase.plan_type_id) return;
+    if (purchase.status?.toUpperCase() !== "ACTIVE") return;
+    const current = activeCounts.get(purchase.plan_type_id) ?? 0;
+    activeCounts.set(purchase.plan_type_id, current + 1);
   });
 
-  const planTypes = (typesResp.data ?? []).filter(
-    (row) => row.access_type?.toUpperCase() !== "MEMBERSHIP"
+  const initialPlanes: PlanListRow[] = (planTypesResp.data ?? []).map((row) =>
+    mapPlan(row, activeCounts.get(row.id) ?? 0)
   );
-
-  const initialPlanes: MembershipPlanRow[] = planTypes.map((row) => mapPlan(row, counts[row.id] ?? 0));
 
   return { props: { initialPlanes } };
 };
@@ -119,7 +113,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
 export default function AdminMembershipsPage(
   { initialPlanes }: InferGetServerSidePropsType<typeof getServerSideProps>
 ) {
-  const [Planes, setPlanes] = useState<MembershipPlanRow[]>(initialPlanes);
+  const [plans, setPlans] = useState<PlanListRow[]>(initialPlanes);
   const [statusFilter, setStatusFilter] = useState<"all" | PlanEstatus>("all");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -128,35 +122,31 @@ export default function AdminMembershipsPage(
   type FormState = {
     name: string;
     description: string;
-    billingPeriod: string;
-    Precio: string; // string para inputs
-    Moneda: string;
-    trialDays: string;
-    classQuota: string;
-    AccesosClases: boolean;
-    AccesosCursos: boolean;
-      isActivo: boolean;
+    price: string;
+    currency: string;
+    classCount: string;
+    validityDays: string;
+    privileges: string;
+    isActive: boolean;
   };
 
   const DEFAULT_FORM: FormState = {
     name: "",
     description: "",
-    billingPeriod: "Mensual",
-    Precio: "",
-    Moneda: "MXN",
-    trialDays: "",
-    classQuota: "",
-    AccesosClases: true,
-    AccesosCursos: false,
-    isActivo: true,
+    price: "",
+    currency: "MXN",
+    classCount: "",
+    validityDays: "",
+    privileges: "",
+    isActive: true,
   };
 
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
 
   const filteredPlanes = useMemo(() => {
-    if (statusFilter === "all") return Planes;
-    return Planes.filter((p) => p.status === statusFilter);
-  }, [Planes, statusFilter]);
+    if (statusFilter === "all") return plans;
+    return plans.filter((plan) => plan.status === statusFilter);
+  }, [plans, statusFilter]);
 
   const handleChange = <K extends keyof FormState>(key: K) =>
     (
@@ -196,33 +186,35 @@ export default function AdminMembershipsPage(
     try {
       if (!formState.name.trim()) throw new Error("El nombre es obligatorio");
 
-      const numericPrecio = formState.Precio ? Number(formState.Precio) : 0;
-      if (Number.isNaN(numericPrecio) || numericPrecio < 0)
+      const numericPrice = formState.price ? Number(formState.price) : 0;
+      if (!Number.isFinite(numericPrice) || numericPrice < 0)
         throw new Error("El precio debe ser un numero positivo");
 
-      const trialDaysValue = formState.trialDays ? Number(formState.trialDays) : null;
-      if (trialDaysValue !== null && (Number.isNaN(trialDaysValue) || trialDaysValue < 0))
-        throw new Error("Los dias de prueba deben ser un numero positivo");
+      const classCountValue = Number(formState.classCount);
+      if (!Number.isInteger(classCountValue) || classCountValue <= 0)
+        throw new Error("El numero de sesiones debe ser un entero positivo");
 
-      const classQuotaValue = formState.classQuota ? Number(formState.classQuota) : null;
-      if (classQuotaValue !== null && (Number.isNaN(classQuotaValue) || classQuotaValue < 0))
-        throw new Error("El cupo de sesiones debe ser un numero positivo");
+      let validityDaysValue: number | null = null;
+      if (formState.validityDays.trim()) {
+        const candidate = Number(formState.validityDays);
+        if (!Number.isInteger(candidate) || candidate <= 0) {
+          throw new Error("La vigencia debe ser un entero positivo");
+        }
+        validityDaysValue = candidate;
+      }
 
       const payload = {
-        //  Ajusta los nombres a lo que espere tu API (snake_case vs camelCase)
         name: formState.name.trim(),
         description: formState.description.trim() || null,
-        billing_period: formState.billingPeriod, // si tu API usa camel: billingPeriod
-        price: numericPrecio,
-        currency: formState.Moneda,
-        trial_days: trialDaysValue,
-        class_quota: classQuotaValue,
-        access_classes: formState.AccesosClases,
-        access_courses: formState.AccesosCursos,
-        is_active: formState.isActivo,
+        price: numericPrice,
+        currency: formState.currency.toUpperCase(),
+        classCount: classCountValue,
+        validityDays: validityDaysValue,
+        privileges: formState.privileges.trim() || null,
+        isActive: formState.isActive,
       };
 
-      const res = await fetch("/api/membership-types", {
+      const res = await fetch("/api/plan-types", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -232,8 +224,9 @@ export default function AdminMembershipsPage(
         throw new Error(body.error || "No se pudo crear el plan");
       }
       const body = await res.json();
-      const newRow = mapPlan(body.membershipType ?? body.data ?? body, 0);
-      setPlanes((prev) => [newRow, ...prev]);
+      const inserted = body.planType ?? body.data ?? body;
+      const newRow = mapPlan(inserted, 0);
+      setPlans((prev) => [newRow, ...prev]);
       setMessage("Plan creado correctamente");
       resetForm();
     } catch (err: unknown) {
@@ -244,20 +237,22 @@ export default function AdminMembershipsPage(
     }
   }
 
-  async function togglePlanEstatus(plan: MembershipPlanRow) {
+  async function togglePlanEstatus(plan: PlanListRow) {
     try {
-      const res = await fetch("/api/membership-types", {
+      const res = await fetch("/api/plan-types", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: plan.id, is_active: plan.status !== "Activo" }),
+        body: JSON.stringify({ id: plan.id, isActive: plan.status !== "Activo" }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "No se pudo actualizar el plan");
       }
       const body = await res.json();
-      const updated = mapPlan(body.membershipType ?? body.data ?? body, plan.ActivoMiembros);
-      setPlanes((prev) => prev.map((p) => (p.id === updated.id ? { ...updated, ActivoMiembros: plan.ActivoMiembros } : p)));
+      const updated = mapPlan(body.planType ?? body.data ?? body, plan.activePurchases);
+      setPlans((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...updated, activePurchases: plan.activePurchases } : p))
+      );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "No se pudo actualizar el plan";
       setError(message);
@@ -302,11 +297,11 @@ export default function AdminMembershipsPage(
             <div>
               <h2 className="text-xl font-semibold text-slate-800">Planes</h2>
               <p className="text-sm text-slate-500">
-                Controla precio, cuotas y accesos de cada plan de membresia.
+                Controla precio, sesiones incluidas, vigencia y estado de cada plan.
               </p>
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-500">
-              <span>Total planes: {Planes.length}</span>
+              <span>Total planes: {plans.length}</span>
             </div>
           </div>
 
@@ -331,9 +326,9 @@ export default function AdminMembershipsPage(
                   </tr>
                 ) : (
                   filteredPlanes.map((plan) => {
-                    const accessTokens = [
-                      plan.AccesosClases ? "Sesiones" : null,
-                      plan.AccesosCursos ? "Cursos" : null,
+                    const detailTokens = [
+                      plan.classCount ? `${plan.classCount} sesiones` : null,
+                      plan.validityDays ? `${plan.validityDays} días de vigencia` : null,
                     ].filter(Boolean) as string[];
 
                     return (
@@ -341,22 +336,17 @@ export default function AdminMembershipsPage(
                         <td className="px-6 py-4">
                           <p className="font-medium text-slate-800">{plan.name}</p>
                           <p className="text-xs text-slate-500">{plan.description ?? "Sin descripcion"}</p>
-                        </td>
-                        <td className="px-6 py-4 text-slate-700">
-                          {plan.Precio
-                            ? `${formatCurrency(plan.Precio, plan.Moneda)} / ${plan.billingPeriod.toLowerCase()}`
-                            : "Gratis"}
-                          {plan.trialDays ? (
-                            <span className="ml-1 text-xs text-slate-500"> {plan.trialDays} dias de prueba</span>
-                          ) : null}
-                          {plan.classQuota ? (
-                            <span className="ml-1 text-xs text-slate-500"> {plan.classQuota} sesiones</span>
+                          {plan.privileges ? (
+                            <p className="mt-1 text-xs text-slate-400">Privilegios: {plan.privileges}</p>
                           ) : null}
                         </td>
                         <td className="px-6 py-4 text-slate-700">
-                          {accessTokens.length > 0 ? accessTokens.join(", ") : "Custom"}
+                          {plan.price ? formatCurrency(plan.price, plan.currency) : "Gratis"}
                         </td>
-                        <td className="px-6 py-4 text-slate-700">{plan.ActivoMiembros}</td>
+                        <td className="px-6 py-4 text-slate-700">
+                          {detailTokens.length > 0 ? detailTokens.join(" · ") : "Sin sesiones definidas"}
+                        </td>
+                        <td className="px-6 py-4 text-slate-700">{plan.activePurchases}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             {plan.status === "Activo" ? (
@@ -381,7 +371,7 @@ export default function AdminMembershipsPage(
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
-                          {dayjs(plan.updatedAt).format("DD MMM YYYY")}
+                          {plan.updatedAt ? dayjs(plan.updatedAt).format("DD MMM YYYY") : "—"}
                         </td>
                       </tr>
                     );
@@ -395,7 +385,7 @@ export default function AdminMembershipsPage(
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-semibold">Crear plan</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Define precio, dias de prueba y accesos para un nuevo plan.
+            Define precio, sesiones incluidas, vigencia y privilegios para un nuevo plan.
           </p>
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <div>
@@ -403,7 +393,7 @@ export default function AdminMembershipsPage(
               <input
                 value={formState.name}
                 onChange={handleChange("name")}
-                placeholder="p. ej., Pilates Pro"
+                placeholder="p. ej., Paquete 10 sesiones"
                 className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
               />
             </div>
@@ -412,35 +402,24 @@ export default function AdminMembershipsPage(
               <textarea
                 value={formState.description}
                 onChange={handleChange("description")}
-                placeholder="Descripcion"
+                placeholder="Incluye detalles del plan"
                 rows={3}
                 className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
               />
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-600">Periodo de cobro</label>
-                <select
-                  value={formState.billingPeriod}
-                  onChange={handleChange("billingPeriod")}
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="Mensual">Mensual</option>
-                  <option value="Anual">Anual</option>
-                </select>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-slate-600">Precio</label>
                 <div className="flex gap-2">
                   <input
-                    value={formState.Precio}
-                    onChange={handleChange("Precio")}
+                    value={formState.price}
+                    onChange={handleChange("price")}
                     placeholder="120.00"
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                   />
                   <select
-                    value={formState.Moneda}
-                    onChange={handleChange("Moneda")}
+                    value={formState.currency}
+                    onChange={handleChange("currency")}
                     className="mt-1 w-24 rounded-md border border-slate-200 px-3 py-2 text-sm"
                   >
                     {(["MXN", "USD", "EUR"] as const).map((cur) => (
@@ -451,48 +430,35 @@ export default function AdminMembershipsPage(
                   </select>
                 </div>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600">Sesiones incluidas</label>
+                <input
+                  value={formState.classCount}
+                  onChange={handleChange("classCount")}
+                  placeholder="Ej. 10"
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                />
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-600">Dias de prueba</label>
+                <label className="block text-sm font-medium text-slate-600">Vigencia (dias)</label>
                 <input
-                  value={formState.trialDays}
-                  onChange={handleChange("trialDays")}
+                  value={formState.validityDays}
+                  onChange={handleChange("validityDays")}
                   placeholder="Opcional"
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600">Cupo de sesiones</label>
-                <input
-                  value={formState.classQuota}
-                  onChange={handleChange("classQuota")}
-                  placeholder="Opcional"
+                <label className="block text-sm font-medium text-slate-600">Privilegios</label>
+                <textarea
+                  value={formState.privileges}
+                  onChange={handleChange("privileges")}
+                  placeholder="Beneficios o notas del plan"
+                  rows={3}
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                 />
-              </div>
-            </div>
-            <div>
-              <span className="block text-sm font-medium text-slate-600">Accesos incluidos</span>
-              <div className="mt-2 grid grid-cols-1 gap-2 text-sm">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formState.AccesosClases}
-                    onChange={handleChange("AccesosClases")}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  Sesiones
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formState.AccesosCursos}
-                    onChange={handleChange("AccesosCursos")}
-                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
-                  />
-                  Cursos
-                </label>
               </div>
             </div>
             <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
@@ -501,8 +467,8 @@ export default function AdminMembershipsPage(
                 <input
                   type="checkbox"
                   className="peer sr-only"
-                  checked={formState.isActivo}
-                  onChange={handleChange("isActivo")}
+                  checked={formState.isActive}
+                  onChange={handleChange("isActive")}
                 />
                 <div className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
                 <span className="absolute left-0 top-0 ml-1 mt-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />
