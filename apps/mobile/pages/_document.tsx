@@ -1,4 +1,4 @@
-﻿import { Html, Head, Main, NextScript } from "next/document";
+import { Html, Head, Main, NextScript } from "next/document";
 
 export default function Document() {
   return (
@@ -8,7 +8,7 @@ export default function Document() {
         <meta name="theme-color" content="#8cb7c7" />
         <link rel="icon" type="image/png" href="/logo-icon-192.png" sizes="192x192" />
         <link rel="icon" type="image/png" href="/logo-icon-512.png" sizes="512x512" />
-        <link rel="apple-touch-icon" href="/logo-icon-512.png" />
+        <link rel="apple-touch-icon" href="/logo-icon-1024.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

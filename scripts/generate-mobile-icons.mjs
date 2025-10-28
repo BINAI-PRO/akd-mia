@@ -12,6 +12,7 @@ const sourceLogo = path.join(mobilePublicDir, "logo.svg");
 const ICON_SIZES = [
   { size: 192, name: "logo-icon-192.png" },
   { size: 512, name: "logo-icon-512.png" },
+  { size: 1024, name: "logo-icon-1024.png" },
 ];
 
 async function ensureSquareIcons() {

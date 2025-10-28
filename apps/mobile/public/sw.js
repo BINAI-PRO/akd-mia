@@ -1,5 +1,5 @@
-const CACHE_NAME = "at-pilates-v2";
-const STATIC_ASSETS = ["/logo.png", "/manifest.json"];
+const CACHE_NAME = "at-pilates-v3";
+const STATIC_ASSETS = ["/manifest.json", "/logo-icon-192.png", "/logo-icon-512.png", "/logo-icon-1024.png"];
 const PROTECTED_PAGES = ["/", "/schedule"];
 
 self.addEventListener("install", (event) => {
