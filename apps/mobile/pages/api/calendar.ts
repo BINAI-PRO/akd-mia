@@ -11,6 +11,7 @@ type SessionRow = {
   class_types: { name?: string } | null;
   rooms: { name?: string } | null;
   instructors: { full_name?: string } | null;
+  courses?: { booking_window_days?: number | null } | null;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -26,7 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id, start_time, end_time, capacity,
         class_types ( name ),
         rooms       ( name ),
-        instructors ( full_name )
+        instructors ( full_name ),
+        courses:course_id ( booking_window_days )
       `)
       .gte("start_time", start)
       .lte("start_time", end)
@@ -51,16 +53,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 3) Dar forma para el front
-    const out = sessions.map(s => ({
-      id: s.id,
-      classType: s.class_types?.name ?? "Clase",
-      room: s.rooms?.name ?? "",
-      instructor: s.instructors?.full_name ?? "",
-      start: s.start_time,
-      end: s.end_time,
-      capacity: s.capacity,
-      current_occupancy: occ[s.id] ?? 0,
-    }));
+    const now = dayjs();
+
+    const out = sessions.map(s => {
+      const bookingWindow = s.courses?.booking_window_days;
+      let canBook = true;
+      let availableFrom: string | null = null;
+
+      if (typeof bookingWindow === "number" && Number.isFinite(bookingWindow) && bookingWindow >= 0) {
+        const unlock = dayjs(s.start_time).subtract(bookingWindow, "day").startOf("day");
+        availableFrom = unlock.toISOString();
+        if (unlock.isAfter(now)) {
+          canBook = false;
+        }
+      }
+
+      return {
+        id: s.id,
+        classType: s.class_types?.name ?? "Clase",
+        room: s.rooms?.name ?? "",
+        instructor: s.instructors?.full_name ?? "",
+        start: s.start_time,
+        end: s.end_time,
+        capacity: s.capacity,
+        current_occupancy: occ[s.id] ?? 0,
+        canBook,
+        availableFrom,
+      };
+    });
 
     res.status(200).json(out);
   } catch (error: unknown) {

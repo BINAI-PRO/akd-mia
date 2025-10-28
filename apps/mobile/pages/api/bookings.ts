@@ -13,10 +13,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1) Sesión
     const { data: session, error: e1 } = await supabaseAdmin
       .from("sessions")
-      .select("id, capacity, start_time, end_time")
+      .select("id, capacity, start_time, end_time, course_id")
       .eq("id", sessionId)
       .single();
     if (e1 || !session) return res.status(404).json({ error: "Session not found" });
+
+    if (session.course_id) {
+      const { data: course, error: eCourse } = await supabaseAdmin
+        .from("courses")
+        .select("booking_window_days")
+        .eq("id", session.course_id)
+        .maybeSingle();
+      if (eCourse) return res.status(500).json({ error: "Course lookup failed" });
+
+      if (course?.booking_window_days !== null && course?.booking_window_days !== undefined) {
+        const windowDays = Math.max(0, Number(course.booking_window_days));
+        const unlock = dayjs(session.start_time).subtract(windowDays, "day").startOf("day");
+        if (unlock.isAfter(dayjs())) {
+          return res.status(403).json({
+            error: `Esta reserva se habilita a partir del ${unlock.format("YYYY-MM-DD")}`,
+          });
+        }
+      }
+    }
 
     // 2) Cliente (si no viene clientId, usamos/creamos por nombre)
     let cid: string | undefined = clientId;

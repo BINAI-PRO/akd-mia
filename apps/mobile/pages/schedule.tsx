@@ -19,6 +19,8 @@ type ApiSession = {
   end: string;
   capacity: number;
   current_occupancy: number;
+  canBook: boolean;
+  availableFrom: string | null;
 };
 
 type BookingRow = Tables<"bookings">;
@@ -36,16 +38,24 @@ export default function SchedulePage() {
 
   const [sessions, setSessions] = useState<SessionState[]>([]);
 
-  const toSummary = (s: ApiSession): SessionSummary => ({
-    id: s.id,
-    capacity: s.capacity,
-    current_occupancy: s.current_occupancy,
-    startLabel: dayjs(s.start).format("hh:mm A"),
-    classType: s.classType,
-    instructor: s.instructor,
-    room: s.room,
-    duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
-  });
+  const toSummary = (s: ApiSession): SessionSummary => {
+    const availableLabel = s.availableFrom
+      ? dayjs(s.availableFrom).format("DD/MM/YYYY")
+      : undefined;
+    return {
+      id: s.id,
+      capacity: s.capacity,
+      current_occupancy: s.current_occupancy,
+      startLabel: dayjs(s.start).format("hh:mm A"),
+      classType: s.classType,
+      instructor: s.instructor,
+      room: s.room,
+      duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
+      canBook: s.canBook,
+      availableFrom: s.availableFrom,
+      availableFromLabel: availableLabel,
+    };
+  };
 
   const fetchDay = useCallback(async (iso: string) => {
     const res = await fetch(`/api/calendar?date=${iso}`);

@@ -27,6 +27,7 @@ type CoursePayload = {
   leadInstructorId?: string | null;
   classTypeId?: string | null;
   defaultRoomId?: string | null;
+  bookingWindowDays?: number | string | null;
 };
 
 type NormalizedPayload = {
@@ -47,6 +48,7 @@ type NormalizedPayload = {
   leadInstructorId: string | null;
   classTypeId: string;
   defaultRoomId: string | null;
+  bookingWindowDays: number | null;
 };
 
 function normalizePayload(input: CoursePayload): NormalizedPayload {
@@ -59,7 +61,7 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
       ? null
       : Number(input.price);
   if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-    throw new Error("El precio debe ser un número válido");
+    throw new Error("El precio debe ser un numero valido");
   }
 
   const parsedSessionCount = Number(input.sessionCount);
@@ -69,7 +71,17 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
 
   const parsedSessionDuration = Number(input.sessionDurationMinutes);
   if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-    throw new Error("La duración de cada sesión debe ser mayor a cero");
+    throw new Error("La duracion de cada sesion debe ser mayor a cero");
+  }
+
+  const parsedWindow =
+    input.bookingWindowDays === null ||
+    input.bookingWindowDays === undefined ||
+    input.bookingWindowDays === ""
+      ? null
+      : Number(input.bookingWindowDays);
+  if (parsedWindow !== null && (!Number.isFinite(parsedWindow) || parsedWindow < 0)) {
+    throw new Error("La ventana de reserva debe ser un numero mayor o igual a cero");
   }
 
   if (!input.classTypeId || input.classTypeId.trim().length === 0) {
@@ -90,12 +102,15 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
     visibility: (input.visibility ?? "PUBLIC").toUpperCase(),
     status: (input.status ?? "DRAFT").toUpperCase(),
     tags: Array.isArray(input.tags)
-      ? input.tags.filter(Boolean).map((tag) => tag.trim()).filter((tag) => tag.length > 0)
+      ? input.tags
+          .filter((tag) => typeof tag === "string" && tag.trim().length > 0)
+          .map((tag) => tag.trim())
       : [],
     coverImageUrl: input.coverImageUrl ?? null,
     leadInstructorId: input.leadInstructorId || null,
     classTypeId: input.classTypeId.trim(),
     defaultRoomId: input.defaultRoomId?.trim() || null,
+    bookingWindowDays: parsedWindow === null ? null : Math.trunc(parsedWindow),
   };
 }
 
@@ -119,6 +134,7 @@ function buildDatabasePayload(normalized: NormalizedPayload) {
     lead_instructor_id: normalized.leadInstructorId,
     class_type_id: normalized.classTypeId,
     default_room_id: normalized.defaultRoomId,
+    booking_window_days: normalized.bookingWindowDays,
   };
 }
 
@@ -203,5 +219,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   res.setHeader("Allow", "GET, POST, PATCH");
-  return res.status(405).json({ error: "Método no permitido" });
+  return res.status(405).json({ error: "Metodo no permitido" });
 }

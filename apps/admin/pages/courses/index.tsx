@@ -72,6 +72,7 @@ export type CourseRow = {
   defaultRoomId: string | null;
   defaultRoomName: string | null;
   hasSessions: boolean;
+  bookingWindowDays: number | null;
 };
 
 export type PageProps = {
@@ -100,6 +101,7 @@ type FormState = {
   tags: string;
   classTypeId: string;
   defaultRoomId: string;
+  bookingWindowDays: string;
 };
 
 type CourseApiResponse = {
@@ -121,6 +123,7 @@ function formatCurrency(value: number, currencyCode: string) {
 }
 
 function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): CourseRow {
+  const bookingWindowRaw = (row as { booking_window_days?: number | null }).booking_window_days;
   return {
     id: row.id,
     title: row.title,
@@ -142,6 +145,10 @@ function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): Cou
     defaultRoomId: row.default_room_id ?? null,
     defaultRoomName: row.rooms?.name ?? null,
     hasSessions: extras?.hasSessions ?? false,
+    bookingWindowDays:
+      bookingWindowRaw === null || bookingWindowRaw === undefined
+        ? null
+        : Number(bookingWindowRaw),
     updatedAt: row.updated_at ?? "",
     createdAt: row.created_at ?? "",
     classTypeId: row.class_type_id ?? null,
@@ -189,7 +196,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     supabaseAdmin
       .from("courses")
       .select(
-        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)"
+        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, booking_window_days, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)"
       )
       .order("updated_at", { ascending: false }),
     supabaseAdmin
@@ -297,6 +304,7 @@ const DEFAULT_FORM: FormState = {
   tags: "",
   classTypeId: "",
   defaultRoomId: "",
+  bookingWindowDays: "7",
 };
 
 export default function CoursesPage(
@@ -426,6 +434,10 @@ export default function CoursesPage(
       tags: course.Etiquetas.join(", "),
       classTypeId: course.classTypeId ?? "",
       defaultRoomId: course.defaultRoomId ?? "",
+      bookingWindowDays:
+        course.bookingWindowDays === null || course.bookingWindowDays === undefined
+          ? ""
+          : String(course.bookingWindowDays),
     });
     setEditingCourseId(course.id);
     setFormMessage(null);
@@ -469,6 +481,16 @@ export default function CoursesPage(
         throw new Error("El precio debe ser un n\u00famero v\u00e1lido");
       }
 
+      const trimmedWindow = formState.bookingWindowDays.trim();
+      let bookingWindowDays: number | null = null;
+      if (trimmedWindow.length > 0) {
+        const parsedWindow = Number(trimmedWindow);
+        if (!Number.isFinite(parsedWindow) || parsedWindow < 0) {
+          throw new Error("La ventana de reserva debe ser un n\u00famero mayor o igual a cero");
+        }
+        bookingWindowDays = Math.trunc(parsedWindow);
+      }
+
       const payload = {
         title: trimmedTitle,
         shortDescription: formState.shortDescription.trim() || null,
@@ -489,6 +511,7 @@ export default function CoursesPage(
           .filter((tag) => tag.length > 0),
         classTypeId,
         defaultRoomId: defaultRoomId || null,
+        bookingWindowDays,
       };
 
       const existingCourse = editingCourseId
@@ -855,6 +878,23 @@ export default function CoursesPage(
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700">
+                  Ventana de reserva (d\u00edas)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={formState.bookingWindowDays}
+                  onChange={handleFormChange("bookingWindowDays")}
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+                  placeholder="7"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Define cu\u00e1ntos d\u00edas antes de cada sesi\u00f3n se puede reservar. Deja el campo vac\u00edo para permitir reservas sin l\u00edmite.
+                </p>
               </div>
 
               <div>
