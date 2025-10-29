@@ -37,6 +37,7 @@ export default function Header() {
           height={56}
           className="h-12 w-auto shrink-0"
           unoptimized
+          fallbackSrc="/logo.png"
         />
         <div className="min-w-0">
           <h1 className="text-base font-semibold leading-none">AT Pilates Time</h1>

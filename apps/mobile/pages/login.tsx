@@ -107,6 +107,7 @@ export default function MobileLoginPage() {
               height={70}
               className="h-14 w-auto"
               unoptimized
+              fallbackSrc="/logo.png"
             />
             <h1 className="text-2xl font-bold text-neutral-900">
               Bienvenida de nuevo
