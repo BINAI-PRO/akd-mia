@@ -1,7 +1,7 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import crypto from "crypto";
 import dayjs from "dayjs";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 type ActorInput = {
   actorClientId?: string | null;
@@ -9,7 +9,16 @@ type ActorInput = {
   actorInstructorId?: string | null;
 };
 
-type BookingEventType = 'CREATED' | 'CANCELLED' | 'REBOOKED' | 'CHECKED_IN' | 'CHECKED_OUT';
+type BookingEventType = "CREATED" | "CANCELLED" | "REBOOKED" | "CHECKED_IN" | "CHECKED_OUT";
+
+type AllocatedPlan = {
+  id: string;
+  name: string | null;
+  previousRemaining: number;
+  remaining: number;
+};
+
+const TODAY = () => dayjs().format("YYYY-MM-DD");
 
 async function logBookingEvent(
   bookingId: string,
@@ -51,9 +60,7 @@ async function ensureBookingWindow(session: { start_time: string; course_id: str
     const windowDays = Math.max(0, Number(course.booking_window_days));
     const unlock = dayjs(session.start_time).subtract(windowDays, "day").startOf("day");
     if (unlock.isAfter(dayjs())) {
-      return {
-        error: `Esta reserva se habilita a partir del ${unlock.format("YYYY-MM-DD")}` as const,
-      };
+      return { error: `Esta reserva se habilita a partir del ${unlock.format("YYYY-MM-DD")}` as const };
     }
   }
   return null;
@@ -94,16 +101,159 @@ async function generateQrToken(bookingId: string, sessionStart: string) {
   return token;
 }
 
+function parseActors(body: Record<string, unknown>): ActorInput {
+  return {
+    actorClientId: typeof body.actorClientId === "string" ? body.actorClientId : undefined,
+    actorStaffId: typeof body.actorStaffId === "string" ? body.actorStaffId : undefined,
+    actorInstructorId: typeof body.actorInstructorId === "string" ? body.actorInstructorId : undefined,
+  };
+}
+
+async function tryAllocateSpecificPlan(planId: string, clientId: string, today: string): Promise<AllocatedPlan | null> {
+  const { data: plan, error } = await supabaseAdmin
+    .from("plan_purchases")
+    .select("id, remaining_classes, plan_types(name)")
+    .eq("id", planId)
+    .eq("client_id", clientId)
+    .eq("status", "ACTIVE")
+    .lte("start_date", today)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
+    .maybeSingle();
+
+  if (error || !plan) return null;
+  if ((plan.remaining_classes ?? 0) <= 0) return null;
+
+  const previousRemaining = plan.remaining_classes ?? 0;
+  const { data: updated } = await supabaseAdmin
+    .from("plan_purchases")
+    .update({ remaining_classes: previousRemaining - 1 })
+    .eq("id", plan.id)
+    .eq("remaining_classes", previousRemaining)
+    .select("id, remaining_classes")
+    .maybeSingle();
+
+  if (!updated) return null;
+
+  return {
+    id: plan.id,
+    name: plan.plan_types?.name ?? null,
+    previousRemaining,
+    remaining: updated.remaining_classes ?? previousRemaining - 1,
+  };
+}
+
+async function allocatePlanPurchaseForBooking(
+  clientId: string,
+  sessionId: string,
+  preferredPlanId?: string | null
+): Promise<AllocatedPlan | null> {
+  const today = TODAY();
+  const tried = new Set<string>();
+
+  if (preferredPlanId) {
+    const preferred = await tryAllocateSpecificPlan(preferredPlanId, clientId, today);
+    if (preferred) return preferred;
+    tried.add(preferredPlanId);
+  }
+
+  const { data: planOptions } = await supabaseAdmin
+    .from("plan_purchases")
+    .select("id")
+    .eq("client_id", clientId)
+    .eq("status", "ACTIVE")
+    .lte("start_date", today)
+    .or(`expires_at.is.null,expires_at.gte.${today}`)
+    .gt("remaining_classes", 0)
+    .order("expires_at", { ascending: true, nullsFirst: true })
+    .order("purchased_at", { ascending: true })
+    .limit(10);
+
+  for (const option of planOptions ?? []) {
+    if (!option?.id) continue;
+    if (tried.has(option.id)) continue;
+    const allocated = await tryAllocateSpecificPlan(option.id, clientId, today);
+    if (allocated) return allocated;
+    tried.add(option.id);
+  }
+
+  return null;
+}
+
+async function attachPlanPurchase({
+  bookingId,
+  clientId,
+  sessionId,
+  preferredPlanId,
+}: {
+  bookingId: string;
+  clientId: string;
+  sessionId: string;
+  preferredPlanId?: string | null;
+}) {
+  const allocated = await allocatePlanPurchaseForBooking(clientId, sessionId, preferredPlanId);
+  if (!allocated) return null;
+
+  try {
+    await supabaseAdmin.from("bookings").update({ plan_purchase_id: allocated.id }).eq("id", bookingId);
+
+    await supabaseAdmin.from("plan_usages").insert({
+      plan_purchase_id: allocated.id,
+      booking_id: bookingId,
+      session_id: sessionId,
+      credit_delta: 1,
+      notes: "Reserva auto-asignada",
+    });
+  } catch (error) {
+    await supabaseAdmin
+      .from("plan_purchases")
+      .update({ remaining_classes: allocated.previousRemaining })
+      .eq("id", allocated.id);
+    throw error;
+  }
+
+  return allocated;
+}
+
+async function refundPlanUsage(
+  bookingId: string,
+  planPurchaseId: string | null,
+  sessionId: string
+) {
+  if (!planPurchaseId) return;
+  const { data: plan } = await supabaseAdmin
+    .from("plan_purchases")
+    .select("remaining_classes")
+    .eq("id", planPurchaseId)
+    .maybeSingle();
+  if (!plan) return;
+
+  const currentRemaining = plan.remaining_classes ?? 0;
+  await supabaseAdmin
+    .from("plan_purchases")
+    .update({ remaining_classes: currentRemaining + 1 })
+    .eq("id", planPurchaseId);
+
+  await supabaseAdmin.from("plan_usages").insert({
+    plan_purchase_id: planPurchaseId,
+    booking_id: bookingId,
+    session_id: sessionId,
+    credit_delta: -1,
+    notes: "Cancelación de reserva",
+  });
+}
+
 async function createBooking({
   sessionId,
   clientId,
   clientHint,
   actors,
+  preferredPlanId,
 }: {
   sessionId: string;
   clientId?: string | null;
   clientHint?: string | null;
   actors: ActorInput;
+  preferredPlanId?: string | null;
 }) {
   const { session, error: sessionError } = await ensureSession(sessionId);
   if (sessionError || !session) {
@@ -141,9 +291,27 @@ async function createBooking({
 
   const token = await generateQrToken(booking.id, session.start_time);
 
-  await logBookingEvent(booking.id, "CREATED", { actorClientId: cid, ...actors });
+  const plan = await attachPlanPurchase({
+    bookingId: booking.id,
+    clientId: cid,
+    sessionId,
+    preferredPlanId,
+  });
 
-  return { bookingId: booking.id, token };
+  await logBookingEvent(
+    booking.id,
+    "CREATED",
+    { actorClientId: cid, ...actors },
+    undefined,
+    { planPurchaseId: plan?.id ?? null }
+  );
+
+  return {
+    bookingId: booking.id,
+    token,
+    planPurchaseId: plan?.id ?? null,
+    planName: plan?.name ?? null,
+  };
 }
 
 async function cancelBooking({
@@ -160,7 +328,7 @@ async function cancelBooking({
   const now = new Date().toISOString();
   const { data: booking, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, status, session_id, client_id")
+    .select("id, status, session_id, client_id, plan_purchase_id")
     .eq("id", bookingId)
     .maybeSingle();
   if (error || !booking) {
@@ -176,32 +344,22 @@ async function cancelBooking({
     .update({
       status: "CANCELLED",
       cancelled_at: now,
-      cancelled_by: actors.actorClientId ?? null,
+      cancelled_by: actors.actorClientId ?? booking.client_id ?? null,
     })
     .eq("id", bookingId);
   if (cancelError) throw new Error("Cancel booking failed");
 
+  await refundPlanUsage(bookingId, booking.plan_purchase_id ?? null, booking.session_id);
+
   await logBookingEvent(
     bookingId,
     "CANCELLED",
-    {
-      actorClientId: actors.actorClientId,
-      actorStaffId: actors.actorStaffId,
-      actorInstructorId: actors.actorInstructorId,
-    },
+    actors,
     notes,
-    metadata
+    { ...metadata, planPurchaseId: booking.plan_purchase_id }
   );
 
   return { cancelled: true as const, booking };
-}
-
-function parseActors(body: Record<string, unknown>): ActorInput {
-  return {
-    actorClientId: typeof body.actorClientId === "string" ? body.actorClientId : undefined,
-    actorStaffId: typeof body.actorStaffId === "string" ? body.actorStaffId : undefined,
-    actorInstructorId: typeof body.actorInstructorId === "string" ? body.actorInstructorId : undefined,
-  };
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -229,7 +387,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "PATCH") {
-      const { action, bookingId, newSessionId, notes, metadata, ...actorRest } = req.body || {};
+      const { action, bookingId, newSessionId, notes, metadata, preferredPlanId, ...actorRest } = req.body || {};
       if (action !== "rebook") return res.status(400).json({ error: "Unsupported action" });
       if (!bookingId || !newSessionId) return res.status(400).json({ error: "Missing bookingId or newSessionId" });
 
@@ -237,7 +395,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const { data: original, error: originalError } = await supabaseAdmin
         .from("bookings")
-        .select("id, client_id, session_id")
+        .select("id, client_id, session_id, plan_purchase_id")
         .eq("id", bookingId)
         .maybeSingle();
       if (originalError || !original) {
@@ -249,6 +407,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         clientId: original.client_id,
         clientHint: null,
         actors,
+        preferredPlanId: (preferredPlanId as string | undefined) ?? original.plan_purchase_id ?? undefined,
       });
 
       await supabaseAdmin
