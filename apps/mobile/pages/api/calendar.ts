@@ -2,6 +2,15 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import dayjs from "dayjs";
 
+type WaitlistRow = {
+  id: string;
+  session_id: string;
+  client_id: string;
+  position: number;
+  status: string;
+  created_at: string;
+};
+
 /** Fila que devuelve el SELECT con relaciones anidadas */
 type SessionRow = {
   id: string;
@@ -17,6 +26,7 @@ type SessionRow = {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const date = (req.query.date as string) || dayjs().format("YYYY-MM-DD");
+    const clientId = typeof req.query.clientId === "string" ? req.query.clientId : null;
     const start = dayjs(date).startOf("day").toISOString();
     const end   = dayjs(date).endOf("day").toISOString();
 
@@ -42,6 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 2) Ocupación por sesión (CONFIRMED + CHECKED_IN)
     const ids = sessions.map(s => s.id);
     const occ: Record<string, number> = {};
+    let waitlist: WaitlistRow[] = [];
+
     if (ids.length) {
       const { data: rows, error: e2 } = await supabaseAdmin
         .from("bookings")
@@ -50,6 +62,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .in("status", ["CONFIRMED", "CHECKED_IN"]);
       if (e2) throw e2;
       rows?.forEach(r => { occ[r.session_id] = (occ[r.session_id] ?? 0) + 1; });
+
+      const { data: waitRows, error: waitError } = await supabaseAdmin
+        .from("session_waitlist")
+        .select("id, session_id, client_id, position, status, created_at")
+        .in("session_id", ids);
+      if (waitError) throw waitError;
+      waitlist = (waitRows ?? []) as WaitlistRow[];
     }
 
     // 3) Dar forma para el front
@@ -68,6 +87,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      const sessionWaitlist = waitlist.filter((entry) => entry.session_id === s.id);
+      const pendingWaitlist = sessionWaitlist
+        .filter((entry) => entry.status === "PENDING")
+        .sort((a, b) => {
+          if (a.position === b.position) {
+            return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          }
+          return a.position - b.position;
+        });
+
+      let userWaitlistEntry: WaitlistRow | undefined;
+      let userWaitlistPosition: number | null = null;
+
+      if (clientId) {
+        userWaitlistEntry = sessionWaitlist.find(
+          (entry) => entry.client_id === clientId && entry.status !== "CANCELLED"
+        );
+        if (userWaitlistEntry?.status === "PENDING") {
+          const index = pendingWaitlist.findIndex((entry) => entry.id === userWaitlistEntry?.id);
+          userWaitlistPosition = index >= 0 ? index + 1 : null;
+        }
+      }
+
       return {
         id: s.id,
         classType: s.class_types?.name ?? "Clase",
@@ -79,6 +121,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         current_occupancy: occ[s.id] ?? 0,
         canBook,
         availableFrom,
+        waitlistCount: pendingWaitlist.length,
+        waitlistEntryId: userWaitlistEntry?.id ?? null,
+        waitlistStatus: userWaitlistEntry?.status ?? null,
+        waitlistPosition: userWaitlistPosition,
       };
     });
 

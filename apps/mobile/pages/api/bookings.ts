@@ -2,6 +2,7 @@
 import crypto from "crypto";
 import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { resequenceWaitlist } from "@/lib/waitlist";
 
 type ActorInput = {
   actorClientId?: string | null;
@@ -314,6 +315,73 @@ async function createBooking({
   };
 }
 
+async function promoteFromWaitlist(sessionId: string): Promise<void> {
+  try {
+    const { data: candidate, error } = await supabaseAdmin
+      .from("session_waitlist")
+      .select("id, client_id")
+      .eq("session_id", sessionId)
+      .eq("status", "PENDING")
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !candidate) {
+      return;
+    }
+
+    const claimTime = new Date().toISOString();
+    const { data: claimed, error: claimError } = await supabaseAdmin
+      .from("session_waitlist")
+      .update({ status: "PROMOTED", updated_at: claimTime })
+      .eq("id", candidate.id)
+      .eq("status", "PENDING")
+      .select("id, client_id")
+      .maybeSingle();
+
+    if (claimError || !claimed) {
+      return;
+    }
+
+    try {
+      const result = await createBooking({
+        sessionId,
+        clientId: claimed.client_id,
+        clientHint: null,
+        actors: { actorClientId: claimed.client_id },
+      });
+
+      if ((result as { duplicated?: boolean }).duplicated) {
+        await supabaseAdmin
+          .from("session_waitlist")
+          .update({ status: "CANCELLED", updated_at: new Date().toISOString() })
+          .eq("id", claimed.id);
+        await resequenceWaitlist(sessionId);
+        await promoteFromWaitlist(sessionId);
+        return;
+      }
+
+      await supabaseAdmin
+        .from("session_waitlist")
+        .update({ notified_at: new Date().toISOString() })
+        .eq("id", claimed.id);
+    } catch {
+      await supabaseAdmin
+        .from("session_waitlist")
+        .update({ status: "CANCELLED", updated_at: new Date().toISOString() })
+        .eq("id", claimed.id);
+      await resequenceWaitlist(sessionId);
+      await promoteFromWaitlist(sessionId);
+      return;
+    }
+
+    await resequenceWaitlist(sessionId);
+  } catch {
+    // ignore waitlist promotion failures
+  }
+}
+
 async function cancelBooking({
   bookingId,
   actors,
@@ -358,6 +426,8 @@ async function cancelBooking({
     notes,
     { ...metadata, planPurchaseId: booking.plan_purchase_id }
   );
+
+  await promoteFromWaitlist(booking.session_id);
 
   return { cancelled: true as const, booking };
 }

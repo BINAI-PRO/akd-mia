@@ -7,6 +7,22 @@ CREATE TABLE public.apparatus (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT apparatus_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.booking_events (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  booking_id uuid NOT NULL,
+  actor_client_id uuid,
+  actor_staff_id uuid,
+  actor_instructor_id uuid,
+  event_type text NOT NULL CHECK (event_type = ANY (ARRAY['CREATED'::text, 'CANCELLED'::text, 'REBOOKED'::text, 'CHECKED_IN'::text, 'CHECKED_OUT'::text])),
+  notes text,
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT booking_events_pkey PRIMARY KEY (id),
+  CONSTRAINT booking_events_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
+  CONSTRAINT booking_events_actor_client_id_fkey FOREIGN KEY (actor_client_id) REFERENCES public.clients(id),
+  CONSTRAINT booking_events_actor_staff_id_fkey FOREIGN KEY (actor_staff_id) REFERENCES public.staff(id),
+  CONSTRAINT booking_events_actor_instructor_id_fkey FOREIGN KEY (actor_instructor_id) REFERENCES public.instructors(id)
+);
 CREATE TABLE public.bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
@@ -14,10 +30,16 @@ CREATE TABLE public.bookings (
   apparatus_id uuid,
   status USER-DEFINED NOT NULL DEFAULT 'CONFIRMED'::booking_status,
   reserved_at timestamp with time zone NOT NULL DEFAULT now(),
+  cancelled_at timestamp with time zone,
+  cancelled_by uuid,
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  rebooked_from_booking_id uuid,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
   CONSTRAINT bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
   CONSTRAINT bookings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
-  CONSTRAINT bookings_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+  CONSTRAINT bookings_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id),
+  CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.clients(id),
+  CONSTRAINT bookings_rebooked_from_booking_id_fkey FOREIGN KEY (rebooked_from_booking_id) REFERENCES public.bookings(id)
 );
 CREATE TABLE public.class_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -39,6 +61,8 @@ CREATE TABLE public.client_profiles (
   preferred_apparatus ARRAY NOT NULL DEFAULT '{}'::text[],
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by_client_at timestamp with time zone,
+  avatar_storage_path text,
   CONSTRAINT client_profiles_pkey PRIMARY KEY (client_id),
   CONSTRAINT client_profiles_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
 );
@@ -298,6 +322,19 @@ CREATE TABLE public.session_apparatus (
   CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
   CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
 );
+CREATE TABLE public.session_waitlist (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL,
+  client_id uuid NOT NULL,
+  position integer NOT NULL,
+  status text NOT NULL CHECK (status = ANY (ARRAY['PENDING'::text, 'PROMOTED'::text, 'CANCELLED'::text])),
+  notified_at timestamp with time zone,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT session_waitlist_pkey PRIMARY KEY (id),
+  CONSTRAINT session_waitlist_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT session_waitlist_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
+);
 CREATE TABLE public.sessions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   class_type_id uuid NOT NULL,
@@ -314,4 +351,17 @@ CREATE TABLE public.sessions (
   CONSTRAINT sessions_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
   CONSTRAINT sessions_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT sessions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+);
+CREATE TABLE public.staff (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  auth_user_id uuid UNIQUE,
+  full_name text NOT NULL,
+  email text UNIQUE,
+  role text NOT NULL CHECK (role = ANY (ARRAY['ADMIN'::text, 'RECEPTIONIST'::text, 'INSTRUCTOR'::text, 'OTHER'::text])),
+  phone text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  last_login_at timestamp with time zone,
+  CONSTRAINT staff_pkey PRIMARY KEY (id),
+  CONSTRAINT staff_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id)
 );

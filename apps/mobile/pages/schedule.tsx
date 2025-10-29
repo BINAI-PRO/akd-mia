@@ -22,6 +22,10 @@ type ApiSession = {
   current_occupancy: number;
   canBook: boolean;
   availableFrom: string | null;
+  waitlistCount: number;
+  waitlistEntryId: string | null;
+  waitlistStatus: "PENDING" | "PROMOTED" | "CANCELLED" | null;
+  waitlistPosition: number | null;
 };
 
 type BookingRow = Tables<"bookings">;
@@ -57,14 +61,23 @@ export default function SchedulePage() {
       canBook: s.canBook,
       availableFrom: s.availableFrom,
       availableFromLabel: availableLabel,
+      waitlistCount: s.waitlistCount ?? 0,
+      waitlistEntryId: s.waitlistEntryId ?? null,
+      waitlistStatus: s.waitlistStatus ?? null,
+      waitlistPosition: s.waitlistPosition ?? null,
+      _waitlistBusy: null,
     };
   };
 
   const fetchDay = useCallback(async (iso: string) => {
-    const res = await fetch(`/api/calendar?date=${iso}`);
+    const params = new URLSearchParams({ date: iso });
+    if (profile?.clientId) {
+      params.set("clientId", profile.clientId);
+    }
+    const res = await fetch(`/api/calendar?${params.toString()}`);
     const data: ApiSession[] = await res.json();
     setSessions(data.map(toSummary));
-  }, []);
+  }, [profile?.clientId]);
 
   useEffect(() => {
     fetchDay(selected);
@@ -167,6 +180,103 @@ export default function SchedulePage() {
     router.push(`/bookings/${bookingId}`);
   };
 
+  const handleJoinWaitlist = async (id: string) => {
+    if (!profile?.clientId) {
+      alert("Inicia sesión para unirte a la lista de espera.");
+      return;
+    }
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === id ? { ...session, _waitlistBusy: "join" } : session
+      )
+    );
+
+    const res = await fetch("/api/waitlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId: id, clientId: profile.clientId }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({}));
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === id ? { ...session, _waitlistBusy: null } : session
+        )
+      );
+      alert(msg?.error || "No se pudo agregar a la lista de espera.");
+      return;
+    }
+
+    const data = (await res.json()) as {
+      entry: { id: string; position: number; status: "PENDING" | "PROMOTED" | "CANCELLED" };
+      waitlistCount: number;
+    };
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === id
+          ? {
+              ...session,
+              waitlistEntryId: data.entry.id,
+              waitlistStatus: data.entry.status,
+              waitlistPosition: data.entry.position,
+              waitlistCount: data.waitlistCount,
+              _waitlistBusy: null,
+            }
+          : session
+      )
+    );
+  };
+
+  const handleLeaveWaitlist = async (id: string) => {
+    const waitlistEntry = sessions.find((session) => session.id === id)?.waitlistEntryId;
+    if (!waitlistEntry) {
+      return;
+    }
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === id ? { ...session, _waitlistBusy: "leave" } : session
+      )
+    );
+
+    const res = await fetch("/api/waitlist", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ waitlistId: waitlistEntry }),
+    });
+
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({}));
+      setSessions((prev) =>
+        prev.map((session) =>
+          session.id === id ? { ...session, _waitlistBusy: null } : session
+        )
+      );
+      alert(msg?.error || "No se pudo salir de la lista de espera.");
+      return;
+    }
+
+    const data = (await res.json()) as { removed: boolean; waitlistCount: number };
+
+    setSessions((prev) =>
+      prev.map((session) =>
+        session.id === id
+          ? {
+              ...session,
+              waitlistEntryId: null,
+              waitlistStatus: null,
+              waitlistPosition: null,
+              waitlistCount: data.waitlistCount,
+              _waitlistBusy: null,
+            }
+          : session
+      )
+    );
+  };
+
   return (
     <section className="pt-6 space-y-3">
       <h2 className="text-2xl font-bold">Reservas</h2>
@@ -197,6 +307,8 @@ export default function SchedulePage() {
             session={s}
             onReserve={handleReserve}
             mode={isRebooking ? "rebook" : "reserve"}
+            onJoinWaitlist={handleJoinWaitlist}
+            onLeaveWaitlist={handleLeaveWaitlist}
           />
         ))}
       </div>
