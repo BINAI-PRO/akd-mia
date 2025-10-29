@@ -3,7 +3,6 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/auth/AuthContext";
-import Img from "@/components/Img";
 
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
 
@@ -100,6 +99,7 @@ export default function MobileLoginPage() {
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
           <div className="flex flex-col items-center gap-3 text-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
               alt="AT Pilates Time"

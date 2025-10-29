@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+﻿import dayjs from "dayjs";
 
 export type SessionSummary = {
   id: string;
@@ -17,9 +17,10 @@ export type SessionSummary = {
 type SessionCardProps = {
   session: SessionSummary & { _pending?: boolean };
   onReserve: (id: string) => void;
+  mode?: "reserve" | "rebook";
 };
 
-export default function SessionCard({ session, onReserve }: SessionCardProps) {
+export default function SessionCard({ session, onReserve, mode = "reserve" }: SessionCardProps) {
   const spots = session.capacity - session.current_occupancy;
   const soldOut = spots <= 0;
   const pending = !!session._pending;
@@ -34,6 +35,14 @@ export default function SessionCard({ session, onReserve }: SessionCardProps) {
   const buttonClass = disableButton
     ? "rounded-full bg-brand-200 px-4 py-2 text-white/80 shadow cursor-not-allowed"
     : "rounded-full bg-brand-500 px-4 py-2 text-white shadow transition hover:bg-brand-600";
+
+  const buttonLabel = pending
+    ? mode === "rebook"
+      ? "Reprogramando..."
+      : "Reservando..."
+    : mode === "rebook"
+    ? "Seleccionar"
+    : "Reservar";
 
   return (
     <div className="relative card p-4">
@@ -51,7 +60,7 @@ export default function SessionCard({ session, onReserve }: SessionCardProps) {
           aria-busy={pending}
           className={buttonClass}
         >
-          {pending ? "Reservando..." : "Reservar"}
+          {buttonLabel}
         </button>
       </div>
 

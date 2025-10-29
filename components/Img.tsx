@@ -1,4 +1,5 @@
 // components/Img.tsx
+/* eslint-disable @next/next/no-img-element */
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
 
@@ -25,14 +26,14 @@ export default function Img({
   fallbackSrc,
   ...imgRest
 }: Props) {
-  if (!src) return null;
-
   const stringSrc = typeof src === "string" ? src : String(src);
   const [currentSrc, setCurrentSrc] = useState<string>(stringSrc);
 
   useEffect(() => {
     setCurrentSrc(stringSrc);
   }, [stringSrc]);
+
+  if (!stringSrc) return null;
 
   const handleFallback = (event: React.SyntheticEvent<HTMLImageElement>) => {
     if (fallbackSrc && currentSrc !== fallbackSrc) {

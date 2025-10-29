@@ -30,6 +30,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-20 border-b border-neutral-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
           alt="AT Pilates Time"
