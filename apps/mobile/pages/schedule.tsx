@@ -29,11 +29,11 @@ type SessionState = SessionSummary & { _pending?: boolean };
 export default function SchedulePage() {
   const today = dayjs().format("YYYY-MM-DD");
 
-  // DÃ­a seleccionado (permanece aunque cambie la semana visible)
+  // Día seleccionado (permanece aunque cambie la semana visible)
   const [selected, setSelected] = useState<string>(today);
 
-  // Anchor = cualquier fecha dentro de la semana visible (DOMâ€“SÃB)
-  // Ahora siempre es string ISO y respetamos los lÃ­mites (mes actual + 11)
+  // Anchor = cualquier fecha dentro de la semana visible (DOM–SÁB)
+  // Ahora siempre es string ISO y respetamos los límites (mes actual + 11)
   const [anchor, setAnchor] = useState<string>(earliestAnchor());
 
   const [sessions, setSessions] = useState<SessionState[]>([]);
@@ -67,7 +67,7 @@ export default function SchedulePage() {
     fetchDay(selected);
   }, [selected, fetchDay]);
 
-  // Realtime: si hay INSERT en bookings, actualizamos ocupaciÃ³n en la lista visible
+  // Realtime: si hay INSERT en bookings, actualizamos ocupación en la lista visible
   useEffect(() => {
     const client = supabaseBrowser();
     const ch = client
@@ -96,9 +96,9 @@ export default function SchedulePage() {
 
   // === Acciones de UI ===
 
-  // Selector de mes (MES AÃ‘O):
-  // - Mes actual -> semana actual (DOMâ€“SÃB)
-  // - Mes futuro -> semana que contiene el dÃ­a 1 (DOMâ€“SÃB)
+  // Selector de mes (MES AÑO):
+  // - Mes actual -> semana actual (DOM–SÁB)
+  // - Mes futuro -> semana que contiene el día 1 (DOM–SÁB)
   const handleMonthChange = (isoFirstDay: string) => {
     const first = dayjs(isoFirstDay);
     const now = dayjs();
@@ -108,34 +108,34 @@ export default function SchedulePage() {
       // Mes actual => semana actual
       newAnchor = startOfWeekMX(now.format("YYYY-MM-DD")).format("YYYY-MM-DD");
     } else {
-      // Mes futuro => semana que contiene el dÃ­a 1
+      // Mes futuro => semana que contiene el día 1
       newAnchor = startOfWeekMX(first.format("YYYY-MM-DD")).format("YYYY-MM-DD");
     }
 
-    setAnchor(clampAnchor(newAnchor)); // NO cambiamos el dÃ­a seleccionado
+    setAnchor(clampAnchor(newAnchor)); // NO cambiamos el día seleccionado
   };
 
-  // BotÃ³n HOY: fija selected = hoy y semana visible = semana actual
+  // Botón HOY: fija selected = hoy y semana visible = semana actual
   const handleToday = () => {
     const iso = dayjs().format("YYYY-MM-DD");
     setSelected(iso);
     setAnchor(startOfWeekMX(iso).format("YYYY-MM-DD"));
   };
 
-  // NavegaciÃ³n semanal con Â« Â» (sin permitir ir antes de la semana actual ni mÃ¡s allÃ¡ del rango)
+  // Navegación semanal con « » (sin permitir ir antes de la semana actual ni más allá del rango)
   const handleWeekShift = (delta: number) => {
     const newAnchor = dayjs(anchor).add(delta, "week").format("YYYY-MM-DD");
     setAnchor(clampAnchor(newAnchor)); // el seleccionado permanece
   };
 
-  // Click en un dÃ­a de la tira
+  // Click en un día de la tira
   const handleSelectDay = (iso: string) => {
     setSelected(iso);
   };
 
     // dentro del componente
   const handleReserve = async (id: string) => {
-    // deshabilitar botÃ³n en UI
+    // deshabilitar botón en UI
     setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: true } : s)));
 
     const res = await fetch("/api/bookings", {
@@ -153,7 +153,7 @@ export default function SchedulePage() {
     }
 
     const { bookingId } = await res.json();
-    // Redirige al detalle (mostrarÃ¡ QR)
+    // Redirige al detalle (mostrará QR)
     Router.push(`/bookings/${bookingId}`);
   };
 
@@ -162,7 +162,7 @@ export default function SchedulePage() {
     <section className="pt-6 space-y-3">
       <h2 className="text-2xl font-bold">Reservas</h2>
 
-      {/* Selector de MES AÃ‘O a la izquierda y HOY a la derecha (misma altura h-10) */}
+      {/* Selector de MES AÑO a la izquierda y HOY a la derecha (misma altura h-10) */}
       <div className="flex items-center justify-between">
         <MonthPicker anchor={anchor} onMonthChange={handleMonthChange} />
         <button onClick={handleToday} className="h-10 rounded-xl border px-3 text-sm font-semibold">
@@ -180,7 +180,7 @@ export default function SchedulePage() {
       <DayBar iso={selected} />
 
       <div className="mt-2 space-y-3">
-        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este dÃ­a.</p>}
+        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este día.</p>}
         {sessions.map((s) => (
           <SessionCard key={s.id} session={s} onReserve={handleReserve} />
         ))}

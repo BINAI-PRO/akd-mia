@@ -337,7 +337,7 @@ export default function InstructorsPage({
       setOverrideWeeks(updated.availability.overrides.map((ov) => cloneOverrideWeek(ov)));
       setActiveScheduleTab("typical");
       setPendingWeekKey("");
-      setMsg({ t: "ok", m: "Â¡Cambios guardados!" });
+      setMsg({ t: "ok", m: "¡Cambios guardados!" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Error guardando";
       setMsg({ t: "err", m: message });
@@ -347,9 +347,9 @@ export default function InstructorsPage({
   };
 
   return (
-    <AdminLayout title="PlaneaciÃ³n Â· Instructores" active="planningInstructors">
+    <AdminLayout title="Planeación · Instructores" active="planningInstructors">
       <Head>
-        <title>PilatesTime Â· PlaneaciÃ³n Â· Instructores</title>
+        <title>PilatesTime · Planeación · Instructores</title>
       </Head>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
@@ -385,7 +385,7 @@ export default function InstructorsPage({
           </label>
         </section>
 
-        {/* Datos bÃ¡sicos */}
+        {/* Datos básicos */}
         {selected && (
           <>
             <section className="rounded-lg border border-slate-200 bg-white">
@@ -428,7 +428,7 @@ export default function InstructorsPage({
 
                 <label className="block text-sm">
                   <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-                    TelÃ©fono 1
+                    Teléfono 1
                   </span>
                   <div className="flex items-center gap-2">
                     <input
@@ -446,7 +446,7 @@ export default function InstructorsPage({
 
                 <label className="block text-sm">
                   <span className="mb-1 block text-xs font-semibold uppercase text-slate-500">
-                    TelÃ©fono 2
+                    Teléfono 2
                   </span>
                   <div className="flex items-center gap-2">
                     <input

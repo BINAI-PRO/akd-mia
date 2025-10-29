@@ -116,14 +116,14 @@ BEGIN
     m.end_date   := (m.end_date + INTERVAL '1 year')::date;
   END IF;
 
-  -- PrÃ³ximo cobro
+  -- Próximo cobro
   IF m.auto_renew THEN
     m.next_billing_date := m.end_date;
   ELSE
     m.next_billing_date := NULL;
   END IF;
 
-  -- Reseteo de crÃ©ditos si aplica
+  -- Reseteo de créditos si aplica
   IF mt.class_quota IS NOT NULL THEN
     m.remaining_classes := mt.class_quota;
   ELSE

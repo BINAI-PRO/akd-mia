@@ -254,7 +254,7 @@ CREATE TYPE public.booking_status AS ENUM (
 CREATE TYPE public.category AS ENUM (
     'Grupal',
     'Individual',
-    'PromociÃ³n',
+    'Promoción',
     'Evento'
 );
 
@@ -847,14 +847,14 @@ BEGIN
     m.end_date   := (m.end_date + INTERVAL '1 year')::date;
   END IF;
 
-  -- PrÃ³ximo cobro
+  -- Próximo cobro
   IF m.auto_renew THEN
     m.next_billing_date := m.end_date;
   ELSE
     m.next_billing_date := NULL;
   END IF;
 
-  -- Reseteo de crÃ©ditos si aplica
+  -- Reseteo de créditos si aplica
   IF mt.class_quota IS NOT NULL THEN
     m.remaining_classes := mt.class_quota;
   ELSE
@@ -2087,7 +2087,7 @@ BEGIN
         RETURN NULL;
     END IF;
 
-    -- 1) Compute NEWâˆ’OLD (added paths) and OLDâˆ’NEW (moved-away paths)
+    -- 1) Compute NEW−OLD (added paths) and OLD−NEW (moved-away paths)
     WITH added AS (
         SELECT n.bucket_id, n.name
         FROM new_rows n
@@ -2131,7 +2131,7 @@ BEGIN
         END IF;
     END;
 
-    -- 3) Create destination prefixes (NEWâˆ’OLD) BEFORE pruning sources
+    -- 3) Create destination prefixes (NEW−OLD) BEFORE pruning sources
     IF array_length(v_add_bucket_ids, 1) IS NOT NULL THEN
         WITH candidates AS (
             SELECT DISTINCT t.bucket_id, unnest(storage.get_prefixes(t.name)) AS name
@@ -2144,7 +2144,7 @@ BEGIN
         ON CONFLICT DO NOTHING;
     END IF;
 
-    -- 4) Prune source prefixes bottom-up for OLDâˆ’NEW
+    -- 4) Prune source prefixes bottom-up for OLD−NEW
     IF array_length(v_src_bucket_ids, 1) IS NOT NULL THEN
         -- re-entrancy guard so DELETE on prefixes won't recurse
         IF current_setting('storage.gc.prefixes', true) <> '1' THEN

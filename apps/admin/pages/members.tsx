@@ -837,7 +837,7 @@ export default function AdminMiembrosPage(
                         {selectedPlanOption.validityDays ? (
                           <p>Validez: {selectedPlanOption.validityDays} dias</p>
                         ) : (
-                          <p>Sin fecha de expiraciÃ³n</p>
+                          <p>Sin fecha de expiración</p>
                         )}
                       </>
                     ) : (

@@ -45,7 +45,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     return { notFound: true };
   }
 
-  // 2) SesiÃ³n con joins
+  // 2) Sesión con joins
   const { data: s, error: eSess } = await supabaseAdmin
     .from("sessions")
     .select(
@@ -69,7 +69,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 
   const tokenValue = (qr as QrTokenRow | null)?.token ?? null;
 
-  // 4) Formato de fecha/hora (es-MX, mayÃºsculas)
+  // 4) Formato de fecha/hora (es-MX, mayúsculas)
   const start = new Date(sj.start_time);
   const dateLabel = new Intl.DateTimeFormat("es-MX", {
     weekday: "long",
@@ -104,7 +104,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 export default function BookingDetail({
   data,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  // Guardas: si por alguna razÃ³n no llegÃ³ data, mostramos mensaje amable
+  // Guardas: si por alguna razón no llegó data, mostramos mensaje amable
   if (!data?.session) {
     return (
       <>
@@ -115,7 +115,7 @@ export default function BookingDetail({
           <h1 className="h1 mb-3">Reserva</h1>
           <div className="card p-4">
             <p className="text-neutral-600">
-              No se pudo cargar la informaciÃ³n de la reserva.
+              No se pudo cargar la información de la reserva.
             </p>
           </div>
         </main>
@@ -137,10 +137,10 @@ export default function BookingDetail({
         <section className="card p-4">
           <h2 className="text-lg font-semibold">{s.classType}</h2>
           <p className="text-sm text-neutral-600 mt-1">
-            {s.dateLabel} Â· {s.timeLabel}
+            {s.dateLabel} · {s.timeLabel}
           </p>
           <p className="text-sm text-neutral-600">
-            {s.room ? `${s.room} Â· ` : ""}
+            {s.room ? `${s.room} · ` : ""}
             {s.instructor}
           </p>
         </section>
@@ -164,7 +164,7 @@ export default function BookingDetail({
                 Descargar QR
               </a>
               <p className="text-xs text-neutral-500 text-center">
-                Muestra este cÃ³digo al llegar para registrar tu asistencia.
+                Muestra este código al llegar para registrar tu asistencia.
               </p>
             </>
           ) : (

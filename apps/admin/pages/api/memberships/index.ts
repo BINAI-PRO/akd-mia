@@ -102,13 +102,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (membershipType.max_prepaid_years && parsedTerm > membershipType.max_prepaid_years) {
       return res.status(400).json({
-        error: `Esta membresia admite hasta ${membershipType.max_prepaid_years} aÃ±os por pago`,
+        error: `Esta membresia admite hasta ${membershipType.max_prepaid_years} años por pago`,
       });
     }
 
     if (!membershipType.allow_multi_year && parsedTerm > 1) {
       return res.status(400).json({
-        error: "Esta membresia solo permite pagar un aÃ±o a la vez",
+        error: "Esta membresia solo permite pagar un año a la vez",
       });
     }
 
@@ -221,7 +221,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (fetchError || !memberSnapshot) {
       console.error("/api/memberships POST fetch", fetchError);
-      return res.status(500).json({ error: "La membresia se registrÃ³, pero no pudimos refrescar la informaciÃ³n" });
+      return res.status(500).json({ error: "La membresia se registró, pero no pudimos refrescar la información" });
     }
 
     return res.status(200).json({
