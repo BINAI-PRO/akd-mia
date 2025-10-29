@@ -5,6 +5,7 @@ import MonthPicker from "@/components/MonthPicker";
 import WeekStrip from "@/components/WeekStrip";
 import DayBar from "@/components/DayBar";
 import SessionCard, { type SessionSummary } from "@/components/SessionCard";
+import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { clampAnchor, earliestAnchor, startOfWeekMX } from "@/lib/date-mx";
 import type { PostgresInsertPayload } from "@supabase/supabase-js";
@@ -29,14 +30,10 @@ type SessionState = SessionSummary & { _pending?: boolean };
 export default function SchedulePage() {
   const today = dayjs().format("YYYY-MM-DD");
   const router = useRouter();
+  const { profile } = useAuth();
 
-  // Día seleccionado (permanece aunque cambie la semana visible)
   const [selected, setSelected] = useState<string>(today);
-
-  // Anchor = cualquier fecha dentro de la semana visible (DOM–SÁB)
-  // Ahora siempre es string ISO y respetamos los límites (mes actual + 11)
   const [anchor, setAnchor] = useState<string>(earliestAnchor());
-
   const [sessions, setSessions] = useState<SessionState[]>([]);
 
   const rebookFrom = useMemo(() => {
@@ -73,7 +70,6 @@ export default function SchedulePage() {
     fetchDay(selected);
   }, [selected, fetchDay]);
 
-  // Realtime: si hay INSERT en bookings, actualizamos ocupación en la lista visible
   useEffect(() => {
     const client = supabaseBrowser();
     const ch = client
@@ -100,41 +96,28 @@ export default function SchedulePage() {
     };
   }, []);
 
-  // === Acciones de UI ===
-
-  // Selector de mes (MES AÑO):
-  // - Mes actual -> semana actual (DOM–SÁB)
-  // - Mes futuro -> semana que contiene el día 1 (DOM–SÁB)
   const handleMonthChange = (isoFirstDay: string) => {
     const first = dayjs(isoFirstDay);
     const now = dayjs();
-    let newAnchor: string;
+    const newAnchor =
+      first.month() === now.month() && first.year() === now.year()
+        ? startOfWeekMX(now.format("YYYY-MM-DD")).format("YYYY-MM-DD")
+        : startOfWeekMX(first.format("YYYY-MM-DD")).format("YYYY-MM-DD");
 
-    if (first.month() === now.month() && first.year() === now.year()) {
-      // Mes actual => semana actual
-      newAnchor = startOfWeekMX(now.format("YYYY-MM-DD")).format("YYYY-MM-DD");
-    } else {
-      // Mes futuro => semana que contiene el día 1
-      newAnchor = startOfWeekMX(first.format("YYYY-MM-DD")).format("YYYY-MM-DD");
-    }
-
-    setAnchor(clampAnchor(newAnchor)); // NO cambiamos el día seleccionado
+    setAnchor(clampAnchor(newAnchor));
   };
 
-  // Botón HOY: fija selected = hoy y semana visible = semana actual
   const handleToday = () => {
     const iso = dayjs().format("YYYY-MM-DD");
     setSelected(iso);
     setAnchor(startOfWeekMX(iso).format("YYYY-MM-DD"));
   };
 
-  // Navegación semanal con « » (sin permitir ir antes de la semana actual ni más allá del rango)
   const handleWeekShift = (delta: number) => {
     const newAnchor = dayjs(anchor).add(delta, "week").format("YYYY-MM-DD");
-    setAnchor(clampAnchor(newAnchor)); // el seleccionado permanece
+    setAnchor(clampAnchor(newAnchor));
   };
 
-  // Click en un día de la tira
   const handleSelectDay = (iso: string) => {
     setSelected(iso);
   };
@@ -142,14 +125,21 @@ export default function SchedulePage() {
   const handleReserve = async (id: string) => {
     setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: true } : s)));
 
+    const actorPayload = profile?.clientId ? { actorClientId: profile.clientId } : {};
+
     const requestInit = rebookFrom
       ? {
           method: "PATCH",
-          body: JSON.stringify({ action: "rebook", bookingId: rebookFrom, newSessionId: id }),
+          body: JSON.stringify({ action: "rebook", bookingId: rebookFrom, newSessionId: id, ...actorPayload }),
         }
       : {
           method: "POST",
-          body: JSON.stringify({ sessionId: id, clientHint: "Angie" }),
+          body: JSON.stringify({
+            sessionId: id,
+            clientId: profile?.clientId ?? undefined,
+            clientHint: profile?.fullName ?? "Angie",
+            ...actorPayload,
+          }),
         };
 
     const res = await fetch("/api/bookings", {
@@ -167,10 +157,11 @@ export default function SchedulePage() {
     const { bookingId } = await res.json();
 
     if (rebookFrom) {
-      // Limpia el query param al regresar al detalle
-      router.replace({ pathname: router.pathname, query: { ...router.query, rebookFrom: undefined } }, undefined, {
-        shallow: true,
-      });
+      router.replace(
+        { pathname: router.pathname, query: { ...router.query, rebookFrom: undefined } },
+        undefined,
+        { shallow: true }
+      );
     }
 
     router.push(`/bookings/${bookingId}`);
@@ -201,7 +192,12 @@ export default function SchedulePage() {
       <div className="mt-2 space-y-3">
         {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este día.</p>}
         {sessions.map((s) => (
-          <SessionCard key={s.id} session={s} onReserve={handleReserve} />
+          <SessionCard
+            key={s.id}
+            session={s}
+            onReserve={handleReserve}
+            mode={isRebooking ? "rebook" : "reserve"}
+          />
         ))}
       </div>
     </section>

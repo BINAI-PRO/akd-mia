@@ -9,8 +9,7 @@ type ActorInput = {
   actorInstructorId?: string | null;
 };
 
-const BOOKING_EVENT_TYPES = ["CREATED", "CANCELLED", "REBOOKED", "CHECKED_IN", "CHECKED_OUT"] as const;
-type BookingEventType = (typeof BOOKING_EVENT_TYPES)[number];
+type BookingEventType = 'CREATED' | 'CANCELLED' | 'REBOOKED' | 'CHECKED_IN' | 'CHECKED_OUT';
 
 async function logBookingEvent(
   bookingId: string,
