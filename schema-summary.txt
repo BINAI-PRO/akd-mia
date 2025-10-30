@@ -98,6 +98,7 @@ CREATE TABLE public.courses (
   class_type_id uuid,
   default_room_id uuid,
   booking_window_days integer DEFAULT 7 CHECK (booking_window_days >= 0),
+  cancellation_window_hours integer NOT NULL DEFAULT 24,
   CONSTRAINT courses_pkey PRIMARY KEY (id),
   CONSTRAINT courses_lead_instructor_id_fkey FOREIGN KEY (lead_instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT courses_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
@@ -236,6 +237,7 @@ CREATE TABLE public.plan_purchases (
   expires_at date,
   initial_classes integer NOT NULL CHECK (initial_classes >= 0),
   remaining_classes integer NOT NULL CHECK (remaining_classes >= 0),
+  modality text NOT NULL DEFAULT 'FLEXIBLE'::text CHECK (modality = ANY (ARRAY['FIXED'::text, 'FLEXIBLE'::text])),
   notes text,
   CONSTRAINT plan_purchases_pkey PRIMARY KEY (id),
   CONSTRAINT plan_purchases_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
@@ -259,12 +261,14 @@ CREATE TABLE public.plan_usages (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   plan_purchase_id uuid NOT NULL,
   session_id uuid NOT NULL,
+  booking_id uuid,
   used_at timestamp with time zone NOT NULL DEFAULT now(),
   credit_delta integer NOT NULL DEFAULT 1,
   notes text,
   CONSTRAINT plan_usages_pkey PRIMARY KEY (id),
   CONSTRAINT plan_usages_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id),
-  CONSTRAINT plan_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
+  CONSTRAINT plan_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT plan_usages_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
 );
 CREATE TABLE public.qr_tokens (
   booking_id uuid NOT NULL,

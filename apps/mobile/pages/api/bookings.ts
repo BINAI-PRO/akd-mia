@@ -302,7 +302,21 @@ async function createBooking({
   });
 
   if (!plan) {
-    throw Object.assign(new Error("No hay creditos disponibles en tus planes activos"), { status: 409 });
+    const { data: fixedPlan } = await supabaseAdmin
+      .from("plan_purchases")
+      .select("id")
+      .eq("client_id", cid)
+      .eq("status", "ACTIVE")
+      .eq("modality", "FIXED")
+      .lte("start_date", TODAY())
+      .maybeSingle();
+
+    if (fixedPlan?.id) {
+      throw Object.assign(
+        new Error("Tu plan fijo ya tiene las clases asignadas. Contacta a recepcion si necesitas cambios."),
+        { status: 409 }
+      );
+    }
   }
 
   await logBookingEvent(
@@ -393,16 +407,22 @@ async function cancelBooking({
   actors,
   notes,
   metadata,
+  forceRefund = false,
 }: {
   bookingId: string;
   actors: ActorInput;
   notes?: string;
   metadata?: Record<string, unknown>;
+  forceRefund?: boolean;
 }) {
   const now = new Date().toISOString();
   const { data: booking, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, status, session_id, client_id, plan_purchase_id, sessions:session_id ( start_time, course_id ), plan_purchases:plan_purchase_id ( modality )")
+    .select(
+      `id, status, session_id, client_id, plan_purchase_id,
+       sessions:session_id ( start_time, course_id, courses ( cancellation_window_hours ) ),
+       plan_purchases:plan_purchase_id ( modality )`
+    )
     .eq("id", bookingId)
     .maybeSingle();
   if (error || !booking) {
@@ -423,14 +443,40 @@ async function cancelBooking({
     .eq("id", bookingId);
   if (cancelError) throw new Error("Cancel booking failed");
 
-  await refundPlanUsage(bookingId, booking.plan_purchase_id ?? null, booking.session_id);
+  const sessionInfo = (booking.sessions ??
+    null) as
+    | {
+        start_time?: string;
+        course_id?: string | null;
+        courses?: { cancellation_window_hours?: number | null } | null;
+      }
+    | null;
+  const planInfo = (booking.plan_purchases ?? null) as { modality?: string } | null;
+
+  const windowHours = Number(sessionInfo?.courses?.cancellation_window_hours ?? 24);
+  const sessionStart = sessionInfo?.start_time ? dayjs(sessionInfo.start_time) : null;
+  const allowRefund =
+    !!booking.plan_purchase_id &&
+    (forceRefund ||
+      (planInfo?.modality === "FLEXIBLE" &&
+        sessionStart !== null &&
+        sessionStart.diff(dayjs(now), "hour", true) >= windowHours));
+
+  if (allowRefund) {
+    await refundPlanUsage(bookingId, booking.plan_purchase_id ?? null, booking.session_id);
+  }
 
   await logBookingEvent(
     bookingId,
     "CANCELLED",
     actors,
     notes,
-    { ...metadata, planPurchaseId: booking.plan_purchase_id }
+    {
+      ...metadata,
+      planPurchaseId: booking.plan_purchase_id,
+      refundedCredit: allowRefund,
+      cancellationWindowHours: windowHours,
+    }
   );
 
   await promoteFromWaitlist(booking.session_id);
@@ -450,7 +496,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === "DELETE") {
-      const { bookingId, notes, metadata, ...actorRest } = req.body || {};
+      const { bookingId, notes, metadata, forceRefund, ...actorRest } = req.body || {};
       if (!bookingId) return res.status(400).json({ error: "Missing bookingId" });
       const actors = parseActors(actorRest);
       const result = await cancelBooking({
@@ -458,6 +504,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         actors,
         notes,
         metadata: metadata && typeof metadata === "object" ? (metadata as Record<string, unknown>) : undefined,
+        forceRefund: forceRefund === true,
       });
       return res.status(200).json(result);
     }
@@ -496,6 +543,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         actors,
         notes: notes ?? "Rebooked",
         metadata: { ...(metadata as Record<string, unknown> | undefined), rebookedTo: newBooking.bookingId },
+        forceRefund: true,
       });
 
       await logBookingEvent(

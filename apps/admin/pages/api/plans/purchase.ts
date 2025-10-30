@@ -137,9 +137,20 @@ async function generateFixedPlanBookings(params: {
         modality: "FIXED",
         auto: true,
       });
+      const { error: usageError } = await supabaseAdmin.from("plan_usages").insert({
+        plan_purchase_id: planPurchaseId,
+        booking_id: booking.id,
+        session_id: session.id,
+        credit_delta: 1,
+        notes: "Reserva fija auto-generada",
+      });
+      if (usageError) {
+        throw new Error("No se pudo registrar el uso del plan fijo");
+      }
     }
   } catch (error) {
     if (createdBookingIds.length > 0) {
+      await supabaseAdmin.from("plan_usages").delete().in("booking_id", createdBookingIds);
       await supabaseAdmin.from("qr_tokens").delete().in("booking_id", createdBookingIds);
       await supabaseAdmin.from("booking_events").delete().in("booking_id", createdBookingIds);
       await supabaseAdmin.from("bookings").delete().in("id", createdBookingIds);

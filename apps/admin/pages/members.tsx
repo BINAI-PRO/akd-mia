@@ -795,27 +795,6 @@ export default function AdminMiembrosPage(
                     </p>
                   )}
                 </div>
-className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                    >
-                      <option value="">Selecciona un curso</option>
-                      {courseOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.title}
-                        </option>
-                      ))}
-                    </select>
-                    {selectedCourseOption ? (
-                      <p className="mt-1 text-xs text-slate-500">
-                        Ventana de cancelacion: {selectedCourseOption.cancellationWindowHours} horas.
-                      </p>
-                    ) : (
-                      <p className="mt-1 text-xs text-slate-500">
-                        El curso define los dias y horarios que se reservaran.
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 <div>
                   <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
                   <textarea

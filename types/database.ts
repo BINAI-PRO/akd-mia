@@ -1070,6 +1070,7 @@ export type Database = {
           id: string
           plan_purchase_id: string
           session_id: string
+          booking_id: string | null
           used_at: string
           credit_delta: number
           notes: string | null
@@ -1078,6 +1079,7 @@ export type Database = {
           id?: string
           plan_purchase_id: string
           session_id: string
+          booking_id?: string | null
           used_at?: string
           credit_delta?: number
           notes?: string | null
@@ -1086,6 +1088,7 @@ export type Database = {
           id?: string
           plan_purchase_id?: string
           session_id?: string
+          booking_id?: string | null
           used_at?: string
           credit_delta?: number
           notes?: string | null
@@ -1103,6 +1106,13 @@ export type Database = {
             columns: ["session_id"],
             isOneToOne: false,
             referencedRelation: "sessions",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_usages_booking_id_fkey",
+            columns: ["booking_id"],
+            isOneToOne: false,
+            referencedRelation: "bookings",
             referencedColumns: ["id"]
           }
         ]
