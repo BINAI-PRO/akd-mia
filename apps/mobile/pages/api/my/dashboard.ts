@@ -7,6 +7,7 @@ import {
   ClientLinkConflictError,
   ensureClientForAuthUser,
 } from "@/lib/resolve-client";
+import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 
 dayjs.extend(isSameOrAfter);
 
@@ -51,6 +52,10 @@ export default async function handler(
   } = await supabase.auth.getSession();
 
   if (sessionError) {
+    if (isRefreshTokenMissingError(sessionError)) {
+      await supabase.auth.signOut();
+      return res.status(401).json({ error: "Not authenticated" });
+    }
     return res.status(500).json({ error: sessionError.message });
   }
 

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
+import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type AuthProfile = {
@@ -94,20 +95,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (!supabase) return;
 
-    supabase.auth
-      .getSession()
-      .then(({ data }) => {
+    const initializeSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
         if (!mounted) return;
-        setSession(data.session ?? null);
-        setUser(data.session?.user ?? null);
-        setLoading(false);
-      })
-      .catch(() => {
+
+        if (error) {
+          if (isRefreshTokenMissingError(error)) {
+            await supabase.auth.signOut();
+            if (!mounted) return;
+          }
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(data.session ?? null);
+          setUser(data.session?.user ?? null);
+        }
+      } catch {
         if (!mounted) return;
         setSession(null);
         setUser(null);
+      } finally {
+        if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+
+    void initializeSession();
 
     const {
       data: { subscription },
@@ -196,11 +210,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     setLoading(true);
     try {
-      const {
-        data: { session: nextSession },
-      } = await supabase.auth.getSession();
-      setSession(nextSession ?? null);
+      const { data, error } = await supabase.auth.getSession();
+      if (error) {
+        if (isRefreshTokenMissingError(error)) {
+          await supabase.auth.signOut();
+        }
+        setSession(null);
+        setUser(null);
+        return;
+      }
+      const nextSession = data.session ?? null;
+      setSession(nextSession);
       setUser(nextSession?.user ?? null);
+    } catch {
+      setSession(null);
+      setUser(null);
     } finally {
       setLoading(false);
     }
