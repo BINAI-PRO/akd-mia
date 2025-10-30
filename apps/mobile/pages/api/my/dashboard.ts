@@ -28,6 +28,7 @@ type DashboardResponse = {
     expiresAt: string | null;
     initialClasses: number;
     remainingClasses: number;
+    modality: string;
   }>;
 };
 
@@ -127,7 +128,7 @@ export default async function handler(
   const { data: planData, error: plansError } = await supabaseAdmin
     .from("plan_purchases")
     .select(
-      `id, status, start_date, expires_at, initial_classes, remaining_classes,
+      `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
        plan_types ( name )`
     )
     .eq("client_id", clientId)
@@ -182,6 +183,7 @@ export default async function handler(
     expiresAt: plan.expires_at ?? null,
     initialClasses: plan.initial_classes ?? 0,
     remainingClasses: plan.remaining_classes ?? 0,
+    modality: plan.modality ?? "FLEXIBLE",
   }));
 
   return res.status(200).json({ upcomingBookings, plans });

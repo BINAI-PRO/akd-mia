@@ -24,6 +24,7 @@ type DashboardPlan = {
   expiresAt: string | null;
   initialClasses: number;
   remainingClasses: number;
+  modality: string;
 };
 
 type DashboardResponse = {
@@ -217,47 +218,119 @@ export default function MyReservationsPage() {
           ) : (
             <div className="space-y-3">
               {plans.map((plan) => {
+
+                const isFixed = plan.modality === "FIXED";
+
                 const used = Math.max(0, plan.initialClasses - plan.remainingClasses);
+
                 const ratio =
-                  plan.initialClasses > 0
+
+                  !isFixed && plan.initialClasses > 0
+
                     ? Math.min(100, Math.round((plan.remainingClasses / plan.initialClasses) * 100))
-                    : 0;
+
+                    : 100;
+
                 const expiresLabel = plan.expiresAt
+
                   ? `Vence el ${new Intl.DateTimeFormat("es-MX", {
+
                       day: "2-digit",
+
                       month: "short",
+
                       year: "numeric",
+
                     }).format(new Date(plan.expiresAt))}`
+
+                  : isFixed
+
+                  ? "Fechas preasignadas"
+
                   : "Sin fecha de vencimiento";
+
                 return (
+
                   <div
+
                     key={plan.id}
+
                     className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm"
+
                   >
+
                     <div className="flex items-start justify-between gap-2">
+
                       <div>
+
                         <p className="text-sm font-semibold text-neutral-900">{plan.name}</p>
+
                         <p className="text-xs text-neutral-500">{expiresLabel}</p>
+
+                        {isFixed && (
+
+                          <p className="text-xs text-neutral-500">
+
+                            Modalidad fija: {plan.initialClasses} sesiones asignadas
+
+                          </p>
+
+                        )}
+
                       </div>
+
                       <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-medium text-neutral-600 uppercase tracking-wide">
+
                         {statusLabel(plan.status)}
+
                       </span>
+
                     </div>
 
-                    <div className="mt-3 space-y-1.5">
-                      <div className="flex items-center justify-between text-xs text-neutral-600">
-                        <span>Usadas: {used}</span>
-                        <span>Restantes: {plan.remainingClasses}</span>
+
+
+                    {isFixed ? (
+
+                      <div className="mt-3 space-y-1 text-xs text-neutral-600">
+
+                        <p>Reservas automaticas generadas con el curso asignado.</p>
+
+                        <p>Contacta a recepcion si necesitas reprogramar.</p>
+
                       </div>
-                      <div className="h-2 w-full rounded-full bg-neutral-100">
-                        <div
-                          className="h-2 rounded-full bg-brand-500 transition-all"
-                          style={{ width: `${ratio}%` }}
-                        />
+
+                    ) : (
+
+                      <div className="mt-3 space-y-1.5">
+
+                        <div className="flex items-center justify-between text-xs text-neutral-600">
+
+                          <span>Usadas: {used}</span>
+
+                          <span>Restantes: {plan.remainingClasses}</span>
+
+                        </div>
+
+                        <div className="h-2 w-full rounded-full bg-neutral-100">
+
+                          <div
+
+                            className="h-2 rounded-full bg-brand-500 transition-all"
+
+                            style={{ width: `${ratio}%` }}
+
+                          />
+
+                        </div>
+
                       </div>
-                    </div>
+
+                    )}
+
                   </div>
+
                 );
+
               })}
             </div>
           )}

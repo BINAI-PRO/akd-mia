@@ -1,6 +1,152 @@
 import type { NextApiRequest, NextApiResponse } from "next";
+import crypto from "crypto";
 import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+
+type BookingEventType = "CREATED" | "CANCELLED" | "REBOOKED" | "CHECKED_IN" | "CHECKED_OUT";
+
+type FixedPlanSession = {
+  id: string;
+  start_time: string;
+  capacity: number;
+};
+
+const VALID_MODALITIES = new Set<"FLEXIBLE" | "FIXED">(["FLEXIBLE", "FIXED"]);
+
+function normalizeModality(value: unknown): "FLEXIBLE" | "FIXED" {
+  if (typeof value === "string") {
+    const upper = value.toUpperCase();
+    if (upper === "FIXED") return "FIXED";
+  }
+  return "FLEXIBLE";
+}
+
+async function logBookingEvent(
+  bookingId: string,
+  clientId: string,
+  eventType: BookingEventType,
+  metadata: Record<string, unknown>
+) {
+  await supabaseAdmin.from("booking_events").insert({
+    booking_id: bookingId,
+    actor_client_id: clientId,
+    actor_staff_id: null,
+    actor_instructor_id: null,
+    event_type: eventType,
+    metadata,
+  });
+}
+
+async function countSessionOccupancy(sessionId: string): Promise<number> {
+  const { count, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id", { head: true, count: "exact" })
+    .eq("session_id", sessionId)
+    .neq("status", "CANCELLED");
+
+  if (error) {
+    throw new Error("No se pudo validar la disponibilidad de una sesión del curso");
+  }
+
+  return count ?? 0;
+}
+
+async function generateQrToken(bookingId: string, sessionStart: string) {
+  const token = crypto.randomBytes(6).toString("base64url").slice(0, 10).toUpperCase();
+  const expires = dayjs(sessionStart).add(6, "hour").toISOString();
+
+  const { error } = await supabaseAdmin
+    .from("qr_tokens")
+    .insert({ booking_id: bookingId, token, expires_at: expires });
+
+  if (error) {
+    throw new Error("No se pudo generar el código QR para la reserva automática");
+  }
+
+  return token;
+}
+
+async function generateFixedPlanBookings(params: {
+  planPurchaseId: string;
+  clientId: string;
+  classCount: number;
+  courseId: string;
+  startDateIso: string;
+}) {
+  const { planPurchaseId, clientId, classCount, courseId, startDateIso } = params;
+
+  const { data: sessions, error: sessionsError } = await supabaseAdmin
+    .from("sessions")
+    .select("id, start_time, capacity")
+    .eq("course_id", courseId)
+    .gte("start_time", startDateIso)
+    .order("start_time", { ascending: true })
+    .limit(classCount * 5);
+
+  if (sessionsError) {
+    throw new Error("No se pudieron consultar las sesiones del curso seleccionado");
+  }
+
+  const eligible = (sessions ?? []).slice(0, classCount) as FixedPlanSession[];
+  if (eligible.length < classCount) {
+    throw new Error("El curso no tiene suficientes sesiones futuras para cubrir todas las clases del plan");
+  }
+
+  // Validar disponibilidad antes de reservar
+  for (const session of eligible) {
+    const { data: dup } = await supabaseAdmin
+      .from("bookings")
+      .select("id, status")
+      .eq("session_id", session.id)
+      .eq("client_id", clientId)
+      .maybeSingle();
+
+    if (dup?.id && dup.status !== "CANCELLED") {
+      throw new Error("El cliente ya tiene una reserva en alguna de las sesiones del curso");
+    }
+
+    const occupied = await countSessionOccupancy(session.id);
+    if (occupied >= session.capacity) {
+      throw new Error("Una de las sesiones del curso ya no tiene lugares disponibles");
+    }
+  }
+
+  const createdBookingIds: string[] = [];
+  try {
+    for (const session of eligible) {
+      const { data: booking, error: bookingError } = await supabaseAdmin
+        .from("bookings")
+        .insert({
+          session_id: session.id,
+          client_id: clientId,
+          status: "CONFIRMED",
+          plan_purchase_id: planPurchaseId,
+        })
+        .select("id")
+        .single();
+
+      if (bookingError || !booking) {
+        throw new Error("No se pudo crear una de las reservas automáticas del plan fijo");
+      }
+
+      createdBookingIds.push(booking.id);
+
+      await generateQrToken(booking.id, session.start_time);
+      await logBookingEvent(booking.id, clientId, "CREATED", {
+        planPurchaseId,
+        modality: "FIXED",
+        auto: true,
+      });
+    }
+  } catch (error) {
+    if (createdBookingIds.length > 0) {
+      await supabaseAdmin.from("qr_tokens").delete().in("booking_id", createdBookingIds);
+      await supabaseAdmin.from("booking_events").delete().in("booking_id", createdBookingIds);
+      await supabaseAdmin.from("bookings").delete().in("id", createdBookingIds);
+    }
+    throw error;
+  }
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -9,15 +155,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { clientId, planTypeId, startDate, notes } = req.body as {
+    const {
+      clientId,
+      planTypeId,
+      startDate,
+      notes,
+      modality: rawModality,
+      courseId,
+    } = req.body as {
       clientId?: string;
       planTypeId?: string;
       startDate?: string;
       notes?: string | null;
+      modality?: string;
+      courseId?: string | null;
     };
 
     if (!clientId || !planTypeId) {
       return res.status(400).json({ error: "Cliente y plan son obligatorios" });
+    }
+
+    const modality = normalizeModality(rawModality);
+    if (!VALID_MODALITIES.has(modality)) {
+      return res.status(400).json({ error: "Modalidad de plan inválida" });
+    }
+
+    if (modality === "FIXED" && !courseId) {
+      return res.status(400).json({ error: "Selecciona el curso que se asignará al plan fijo" });
     }
 
     const { data: activeMembership, error: membershipLookupError } = await supabaseAdmin
@@ -54,15 +218,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "El plan seleccionado no existe" });
     }
 
-    const now = startDate ? dayjs(startDate) : dayjs();
-    if (!now.isValid()) {
+    const startReference = startDate ? dayjs(startDate) : dayjs();
+    if (!startReference.isValid()) {
       return res.status(400).json({ error: "Fecha de inicio invalida" });
     }
-    const startIso = now.startOf("day").format("YYYY-MM-DD");
+    const startIso = startReference.startOf("day").format("YYYY-MM-DD");
 
     let expiresAt: string | null = null;
-    if (typeof planType.validity_days === "number" && planType.validity_days > 0) {
-      expiresAt = now.startOf("day").add(planType.validity_days, "day").format("YYYY-MM-DD");
+    if (modality === "FLEXIBLE" && typeof planType.validity_days === "number" && planType.validity_days > 0) {
+      expiresAt = startReference.startOf("day").add(planType.validity_days, "day").format("YYYY-MM-DD");
     }
 
     const initialClasses = Number(planType.class_count ?? 0);
@@ -80,7 +244,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         start_date: startIso,
         expires_at: expiresAt,
         initial_classes: initialClasses,
-        remaining_classes: initialClasses,
+        remaining_classes: modality === "FIXED" ? 0 : initialClasses,
+        modality,
         notes: notes ?? null,
       })
       .select("id")
@@ -89,6 +254,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (purchaseError || !purchase) {
       console.error("/api/plans/purchase insert", purchaseError);
       return res.status(500).json({ error: "No se pudo registrar la compra del plan" });
+    }
+
+    if (modality === "FIXED") {
+      try {
+        await generateFixedPlanBookings({
+          planPurchaseId: purchase.id,
+          clientId,
+          classCount: initialClasses,
+          courseId: courseId!,
+          startDateIso: dayjs(startIso).startOf("day").toISOString(),
+        });
+      } catch (fixedError) {
+        await supabaseAdmin.from("plan_purchases").delete().eq("id", purchase.id);
+        const message =
+          fixedError instanceof Error
+            ? fixedError.message
+            : "No se pudieron generar las reservas automáticas para el plan fijo";
+        return res.status(400).json({ error: message });
+      }
     }
 
     const amount = Number(planType.price ?? 0);
@@ -145,6 +329,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           expires_at,
           initial_classes,
           remaining_classes,
+          modality,
           plan_types(name, privileges)
         )
       `)
@@ -168,4 +353,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: message });
   }
 }
-

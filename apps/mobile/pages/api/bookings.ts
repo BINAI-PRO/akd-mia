@@ -113,7 +113,7 @@ function parseActors(body: Record<string, unknown>): ActorInput {
 async function tryAllocateSpecificPlan(planId: string, clientId: string, today: string): Promise<AllocatedPlan | null> {
   const { data: plan, error } = await supabaseAdmin
     .from("plan_purchases")
-    .select("id, remaining_classes, plan_types(name)")
+    .select("id, modality, remaining_classes, plan_types(name)")
     .eq("id", planId)
     .eq("client_id", clientId)
     .eq("status", "ACTIVE")
@@ -122,6 +122,7 @@ async function tryAllocateSpecificPlan(planId: string, clientId: string, today: 
     .maybeSingle();
 
   if (error || !plan) return null;
+  if (plan.modality !== "FLEXIBLE") return null;
   if ((plan.remaining_classes ?? 0) <= 0) return null;
 
   const previousRemaining = plan.remaining_classes ?? 0;
@@ -165,6 +166,7 @@ async function allocatePlanPurchaseForBooking(
     .lte("start_date", today)
     .or(`expires_at.is.null,expires_at.gte.${today}`)
     .gt("remaining_classes", 0)
+    .eq("modality", "FLEXIBLE")
     .order("expires_at", { ascending: true, nullsFirst: true })
     .order("purchased_at", { ascending: true })
     .limit(10);
@@ -299,6 +301,10 @@ async function createBooking({
     preferredPlanId,
   });
 
+  if (!plan) {
+    throw Object.assign(new Error("No hay creditos disponibles en tus planes activos"), { status: 409 });
+  }
+
   await logBookingEvent(
     booking.id,
     "CREATED",
@@ -396,7 +402,7 @@ async function cancelBooking({
   const now = new Date().toISOString();
   const { data: booking, error } = await supabaseAdmin
     .from("bookings")
-    .select("id, status, session_id, client_id, plan_purchase_id")
+    .select("id, status, session_id, client_id, plan_purchase_id, sessions:session_id ( start_time, course_id ), plan_purchases:plan_purchase_id ( modality )")
     .eq("id", bookingId)
     .maybeSingle();
   if (error || !booking) {

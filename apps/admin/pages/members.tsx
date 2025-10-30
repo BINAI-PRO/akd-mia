@@ -1,4 +1,4 @@
-﻿import Head from "next/head";
+import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
@@ -69,6 +69,13 @@ type PlanOption = {
   isActive: boolean;
 };
 
+type CourseOption = {
+  id: string;
+  title: string;
+  cancellationWindowHours: number;
+  status: string;
+};
+
 type MemberQueryRow = Tables<"clients"> & {
   client_profiles: Pick<Tables<"client_profiles">, "status"> | null;
   memberships: Array<
@@ -94,6 +101,7 @@ type PageProps = {
   initialMiembros: MemberRow[];
   membershipOptions: MembershipOption[];
   planOptions: PlanOption[];
+  courseOptions: CourseOption[];
 };
 
 // ==== Helpers ====
@@ -187,7 +195,7 @@ function formatEstadoBadgeData(estado: MiembroEstado) {
 
 // ===== SSR =====
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [clientsResp, membershipTypesResp, planTypesResp] = await Promise.all([
+  const [clientsResp, membershipTypesResp, planTypesResp, coursesResp] = await Promise.all([
     supabaseAdmin
       .from("clients")
       .select(
@@ -217,6 +225,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
           expires_at,
           initial_classes,
           remaining_classes,
+          modality,
           plan_types(name, privileges)
         )
       `
@@ -233,11 +242,17 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       .select("id, name, description, price, currency, class_count, validity_days, privileges, is_active")
       .order("name")
       .returns<PlanTypeRow[]>(),
+    supabaseAdmin
+      .from("courses")
+      .select("id, title, status, cancellation_window_hours")
+      .order("title")
+      .returns<Tables<"courses">[]>(),
   ]);
 
   if (clientsResp.error) throw clientsResp.error;
   if (membershipTypesResp.error) throw membershipTypesResp.error;
   if (planTypesResp.error) throw planTypesResp.error;
+  if (coursesResp.error) throw coursesResp.error;
 
   const initialMiembros: MemberRow[] = (clientsResp.data ?? []).map(mapMember);
   const membershipOptions: MembershipOption[] = (membershipTypesResp.data ?? []).map((t) => ({
@@ -263,12 +278,24 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     isActive: !!plan.is_active,
   }));
 
-  return { props: { initialMiembros, membershipOptions, planOptions } };
+  const courseOptions: CourseOption[] = (coursesResp.data ?? []).map((course) => ({
+    id: course.id,
+    title: course.title ?? "Curso",
+    cancellationWindowHours: Number(course.cancellation_window_hours ?? 24),
+    status: course.status ?? "DRAFT",
+  }));
+
+  return { props: { initialMiembros, membershipOptions, planOptions, courseOptions } };
 };
 
 // ===== Pagina =====
 export default function AdminMiembrosPage(
-  { initialMiembros, membershipOptions, planOptions }: InferGetServerSidePropsType<typeof getServerSideProps>
+  {
+    initialMiembros,
+    membershipOptions,
+    planOptions,
+    courseOptions,
+  }: InferGetServerSidePropsType<typeof getServerSideProps>
 ) {
   const [rows, setRows] = useState<MemberRow[]>(initialMiembros);
   const [search, setSearch] = useState("");
@@ -302,6 +329,8 @@ export default function AdminMiembrosPage(
     planTypeId: string;
     startDate: string;
     notes: string;
+    modality: "FLEXIBLE" | "FIXED";
+    courseId: string;
   };
 
   const [membershipForm, setMembershipForm] = useState<MembershipFormState>(() => ({
@@ -315,6 +344,8 @@ export default function AdminMiembrosPage(
     planTypeId: planDefaultType?.id ?? "",
     startDate: dayjs().format("YYYY-MM-DD"),
     notes: "",
+    modality: "FLEXIBLE",
+    courseId: "",
   }));
 
   const filteredRows = useMemo(() => {
@@ -394,6 +425,8 @@ export default function AdminMiembrosPage(
       planTypeId: planDefaultType?.id ?? "",
       startDate: dayjs().format("YYYY-MM-DD"),
       notes: "",
+      modality: "FLEXIBLE",
+      courseId: "",
     });
     setPlanModalMember(member);
     setPlanError(null);
@@ -472,6 +505,10 @@ export default function AdminMiembrosPage(
       setPlanError("Selecciona un plan");
       return;
     }
+    if (planForm.modality === "FIXED" && !planForm.courseId) {
+      setPlanError("Selecciona el curso para el plan fijo");
+      return;
+    }
 
     setPlanLoading(true);
     setPlanError(null);
@@ -485,6 +522,8 @@ export default function AdminMiembrosPage(
           planTypeId: planForm.planTypeId,
           startDate: planForm.startDate,
           notes: planForm.notes || null,
+          modality: planForm.modality,
+          courseId: planForm.modality === "FIXED" ? planForm.courseId : null,
         }),
       });
 
@@ -507,6 +546,13 @@ export default function AdminMiembrosPage(
   const membershipCurrency = selectedMembershipOption?.currency ?? "MXN";
   const membershipMaxYears = selectedMembershipOption?.maxPrepaidYears ?? null;
   const selectedPlanOption = getPlanOption(planForm.planTypeId);
+  const selectedCourseOption =
+    planForm.courseId ? courseOptions.find((option) => option.id === planForm.courseId) ?? null : null;
+  const defaultFixedCourseId = useMemo(() => {
+    const firstActive = courseOptions.find((option) => option.status !== "ARCHIVED");
+    return firstActive?.id ?? courseOptions[0]?.id ?? "";
+  }, [courseOptions]);
+  const hasFixedCourses = courseOptions.length > 0;
 
   return (
     <AdminLayoutAny title="Miembros" active="Miembros" headerToolbar={headerToolbar}>
@@ -702,7 +748,9 @@ export default function AdminMiembrosPage(
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600">Fecha de inicio</label>
+                    <label className="block text-xs font-medium text-slate-600">
+                      {planForm.modality === "FIXED" ? "Fecha de inicio del curso" : "Fecha de inicio"}
+                    </label>
                     <input
                       type="date"
                       value={membershipForm.startDate}
@@ -747,6 +795,27 @@ export default function AdminMiembrosPage(
                     </p>
                   )}
                 </div>
+className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecciona un curso</option>
+                      {courseOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.title}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCourseOption ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Ventana de cancelacion: {selectedCourseOption.cancellationWindowHours} horas.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-slate-500">
+                        El curso define los dias y horarios que se reservaran.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
                   <textarea
@@ -819,9 +888,45 @@ export default function AdminMiembrosPage(
                     ))}
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600">Modalidad</label>
+                  <select
+                    value={planForm.modality}
+                    onChange={(event) => {
+                      const next = event.target.value === "FIXED" ? "FIXED" : "FLEXIBLE";
+                      setPlanForm((prev) => ({
+                        ...prev,
+                        modality: next,
+                        courseId: next === "FIXED" ? prev.courseId || defaultFixedCourseId : "",
+                      }));
+                    }}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  >
+                    <option value="FLEXIBLE">Flexible (usa creditos)</option>
+                    <option value="FIXED" disabled={!hasFixedCourses}>
+                      Horario fijo (reservas automaticas)
+                    </option>
+                  </select>
+                  {planForm.modality === "FLEXIBLE" ? (
+                    <p className="mt-1 text-xs text-slate-500">
+                      El alumno usara creditos y reservara manualmente mientras tenga vigencia.
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Las reservas se generan automaticamente para el curso seleccionado.
+                    </p>
+                  )}
+                  {!hasFixedCourses && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      No hay cursos publicados para asignar en modalidad fija.
+                    </p>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-slate-600">Fecha de inicio</label>
+                    <label className="block text-xs font-medium text-slate-600">
+                      {planForm.modality === "FIXED" ? "Fecha de inicio del curso" : "Fecha de inicio"}
+                    </label>
                     <input
                       type="date"
                       value={planForm.startDate}
@@ -833,21 +938,59 @@ export default function AdminMiembrosPage(
                   </div>
                   <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
                     {selectedPlanOption ? (
-                      <>
-                        <p>
-                          Clases: <span className="font-semibold">{selectedPlanOption.classCount}</span>
-                        </p>
-                        {selectedPlanOption.validityDays ? (
-                          <p>Validez: {selectedPlanOption.validityDays} dias</p>
-                        ) : (
-                          <p>Sin fecha de expiración</p>
-                        )}
-                      </>
+                      planForm.modality === "FLEXIBLE" ? (
+                        <>
+                          <p>
+                            Clases: <span className="font-semibold">{selectedPlanOption.classCount}</span>
+                          </p>
+                          {selectedPlanOption.validityDays ? (
+                            <p>Validez: {selectedPlanOption.validityDays} dias</p>
+                          ) : (
+                            <p>Sin fecha de vencimiento</p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p>
+                            Se asignaran{" "}
+                            <span className="font-semibold">{selectedPlanOption.classCount}</span> sesiones del curso.
+                          </p>
+                          <p>El alumno no necesita reservar de forma manual.</p>
+                        </>
+                      )
                     ) : (
                       <p>Selecciona un plan para ver detalles.</p>
                     )}
                   </div>
                 </div>
+                {planForm.modality === "FIXED" && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600">Curso asignado</label>
+                    <select
+                      value={planForm.courseId}
+                      onChange={(event) =>
+                        setPlanForm((prev) => ({ ...prev, courseId: event.target.value }))
+                      }
+                      className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    >
+                      <option value="">Selecciona un curso</option>
+                      {courseOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.title}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCourseOption ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Ventana de cancelacion: {selectedCourseOption.cancellationWindowHours} horas.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-slate-500">
+                        El curso define los dias y horarios que se reservaran.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
                   <textarea
@@ -885,3 +1028,5 @@ export default function AdminMiembrosPage(
     </AdminLayoutAny>
   );
 }
+
+

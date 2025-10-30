@@ -357,6 +357,7 @@ export type Database = {
           lead_instructor_id: string | null
           class_type_id: string | null
           default_room_id: string | null
+          cancellation_window_hours: number
           visibility: string
           status: string
           tags: string[]
@@ -379,6 +380,7 @@ export type Database = {
           lead_instructor_id?: string | null
           class_type_id?: string | null
           default_room_id?: string | null
+          cancellation_window_hours?: number
           visibility?: string
           status?: string
           tags?: string[]
@@ -401,6 +403,7 @@ export type Database = {
           lead_instructor_id?: string | null
           class_type_id?: string | null
           default_room_id?: string | null
+          cancellation_window_hours?: number
           visibility?: string
           status?: string
           tags?: string[]
@@ -758,6 +761,11 @@ export type Database = {
           apparatus_id: string | null
           status: string
           reserved_at: string
+          cancelled_at: string | null
+          cancelled_by: string | null
+          updated_at: string
+          plan_purchase_id: string | null
+          rebooked_from_booking_id: string | null
         }
         Insert: {
           id?: string
@@ -766,6 +774,11 @@ export type Database = {
           apparatus_id?: string | null
           status?: string
           reserved_at?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          updated_at?: string
+          plan_purchase_id?: string | null
+          rebooked_from_booking_id?: string | null
         }
         Update: {
           id?: string
@@ -774,6 +787,11 @@ export type Database = {
           apparatus_id?: string | null
           status?: string
           reserved_at?: string
+          cancelled_at?: string | null
+          cancelled_by?: string | null
+          updated_at?: string
+          plan_purchase_id?: string | null
+          rebooked_from_booking_id?: string | null
         }
         Relationships: [
           {
@@ -958,6 +976,7 @@ export type Database = {
           expires_at: string | null
           initial_classes: number
           remaining_classes: number
+          modality: string
           notes: string | null
         }
         Insert: {
@@ -970,6 +989,7 @@ export type Database = {
           expires_at?: string | null
           initial_classes: number
           remaining_classes: number
+          modality?: string
           notes?: string | null
         }
         Update: {
@@ -982,6 +1002,7 @@ export type Database = {
           expires_at?: string | null
           initial_classes?: number
           remaining_classes?: number
+          modality?: string
           notes?: string | null
         }
         Relationships: [
