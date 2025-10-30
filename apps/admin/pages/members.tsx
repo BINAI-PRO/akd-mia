@@ -1,6 +1,7 @@
 ﻿import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import {
   useMemo,
   useState,
@@ -14,6 +15,8 @@ import type {
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
+
+dayjs.extend(isSameOrAfter);
 
 // Puente de tipos: evita que falle si AdminLayout exige props especificas
 const AdminLayoutAny = AdminLayout as unknown as ComponentType<
