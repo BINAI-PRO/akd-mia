@@ -1,11 +1,14 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   ClientLinkConflictError,
   ensureClientForAuthUser,
 } from "@/lib/resolve-client";
+
+dayjs.extend(isSameOrAfter);
 
 type DashboardResponse = {
   upcomingBookings: Array<{
@@ -102,8 +105,6 @@ export default async function handler(
     return res.status(404).json({ error: "Client profile not found" });
   }
 
-  const now = dayjs().toISOString();
-
   const { data: bookingsData, error: bookingsError } = await supabaseAdmin
     .from("bookings")
     .select(
@@ -118,8 +119,6 @@ export default async function handler(
     )
     .eq("client_id", clientId)
     .in("status", ["CONFIRMED", "CHECKED_IN"])
-    .order("sessions.start_time", { ascending: true })
-    .gte("sessions.start_time", now);
 
   if (bookingsError) {
     return res.status(500).json({ error: bookingsError.message });
@@ -145,6 +144,8 @@ export default async function handler(
     }
   });
 
+  const now = dayjs();
+
   const upcomingBookings = (bookingsData ?? [])
     .map((row) => {
       const sessionRow = row.sessions as
@@ -160,6 +161,12 @@ export default async function handler(
       if (!sessionRow) return null;
 
       const startTime = sessionRow.start_time;
+      if (!startTime) return null;
+
+      if (!dayjs(startTime).isSameOrAfter(now, "minute")) {
+        return null;
+      }
+
       return {
         id: row.id,
         status: row.status,
@@ -174,6 +181,10 @@ export default async function handler(
       };
     })
     .filter(Boolean) as DashboardResponse["upcomingBookings"];
+
+  upcomingBookings.sort((a, b) =>
+    dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf()
+  );
 
   const plans = (planData ?? []).map((plan) => ({
     id: plan.id,
