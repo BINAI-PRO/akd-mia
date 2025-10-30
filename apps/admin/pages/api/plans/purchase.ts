@@ -112,6 +112,7 @@ async function generateFixedPlanBookings(params: {
   }
 
   const createdBookingIds: string[] = [];
+  let planUsageSupportsBookingId = true;
   try {
     for (const session of eligible) {
       const { data: booking, error: bookingError } = await supabaseAdmin
@@ -137,20 +138,47 @@ async function generateFixedPlanBookings(params: {
         modality: "FIXED",
         auto: true,
       });
-      const { error: usageError } = await supabaseAdmin.from("plan_usages").insert({
+      const usagePayload = {
         plan_purchase_id: planPurchaseId,
-        booking_id: booking.id,
         session_id: session.id,
         credit_delta: 1,
         notes: "Reserva fija auto-generada",
-      });
+        ...(planUsageSupportsBookingId ? { booking_id: booking.id } : {}),
+      };
+
+      let { error: usageError } = await supabaseAdmin.from("plan_usages").insert(usagePayload).maybeSingle();
+
+      if (usageError && planUsageSupportsBookingId && usageError.code === "PGRST204") {
+        planUsageSupportsBookingId = false;
+        const fallbackPayload = {
+          plan_purchase_id: planPurchaseId,
+          session_id: session.id,
+          credit_delta: 1,
+          notes: "Reserva fija auto-generada",
+        };
+        ({ error: usageError } = await supabaseAdmin.from("plan_usages").insert(fallbackPayload).maybeSingle());
+      }
+
       if (usageError) {
+        console.error("/api/plans/purchase plan_usage_insert", {
+          message: usageError.message,
+          details: usageError.details,
+          hint: usageError.hint,
+          code: usageError.code,
+        });
         throw new Error("No se pudo registrar el uso del plan fijo");
       }
     }
   } catch (error) {
     if (createdBookingIds.length > 0) {
-      await supabaseAdmin.from("plan_usages").delete().in("booking_id", createdBookingIds);
+      await supabaseAdmin
+        .from("plan_usages")
+        .delete()
+        .eq("plan_purchase_id", planPurchaseId)
+        .in(
+          "session_id",
+          eligible.map((session) => session.id)
+        );
       await supabaseAdmin.from("qr_tokens").delete().in("booking_id", createdBookingIds);
       await supabaseAdmin.from("booking_events").delete().in("booking_id", createdBookingIds);
       await supabaseAdmin.from("bookings").delete().in("id", createdBookingIds);
@@ -255,7 +283,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         start_date: startIso,
         expires_at: expiresAt,
         initial_classes: initialClasses,
-        remaining_classes: modality === "FIXED" ? 0 : initialClasses,
+        remaining_classes: initialClasses,
         modality,
         notes: notes ?? null,
       })

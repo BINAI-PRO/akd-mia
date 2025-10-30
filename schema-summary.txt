@@ -23,6 +23,17 @@ CREATE TABLE public.booking_events (
   CONSTRAINT booking_events_actor_staff_id_fkey FOREIGN KEY (actor_staff_id) REFERENCES public.staff(id),
   CONSTRAINT booking_events_actor_instructor_id_fkey FOREIGN KEY (actor_instructor_id) REFERENCES public.instructors(id)
 );
+CREATE TABLE public.booking_notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  booking_id uuid NOT NULL,
+  notification_type text NOT NULL CHECK (notification_type = ANY (ARRAY['EMAIL'::text, 'PUSH'::text])),
+  deliver_at timestamp with time zone NOT NULL,
+  delivered_at timestamp with time zone,
+  payload jsonb NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT booking_notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT booking_notifications_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
+);
 CREATE TABLE public.bookings (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
@@ -34,12 +45,14 @@ CREATE TABLE public.bookings (
   cancelled_by uuid,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   rebooked_from_booking_id uuid,
+  plan_purchase_id uuid,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
   CONSTRAINT bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
   CONSTRAINT bookings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT bookings_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id),
   CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.clients(id),
-  CONSTRAINT bookings_rebooked_from_booking_id_fkey FOREIGN KEY (rebooked_from_booking_id) REFERENCES public.bookings(id)
+  CONSTRAINT bookings_rebooked_from_booking_id_fkey FOREIGN KEY (rebooked_from_booking_id) REFERENCES public.bookings(id),
+  CONSTRAINT bookings_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id)
 );
 CREATE TABLE public.class_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -237,8 +250,8 @@ CREATE TABLE public.plan_purchases (
   expires_at date,
   initial_classes integer NOT NULL CHECK (initial_classes >= 0),
   remaining_classes integer NOT NULL CHECK (remaining_classes >= 0),
-  modality text NOT NULL DEFAULT 'FLEXIBLE'::text CHECK (modality = ANY (ARRAY['FIXED'::text, 'FLEXIBLE'::text])),
   notes text,
+  modality text DEFAULT 'FLEXIBLE'::text CHECK (modality = ANY (ARRAY['FIXED'::text, 'FLEXIBLE'::text])),
   CONSTRAINT plan_purchases_pkey PRIMARY KEY (id),
   CONSTRAINT plan_purchases_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT plan_purchases_plan_type_id_fkey FOREIGN KEY (plan_type_id) REFERENCES public.plan_types(id)
@@ -261,14 +274,12 @@ CREATE TABLE public.plan_usages (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   plan_purchase_id uuid NOT NULL,
   session_id uuid NOT NULL,
-  booking_id uuid,
   used_at timestamp with time zone NOT NULL DEFAULT now(),
   credit_delta integer NOT NULL DEFAULT 1,
   notes text,
   CONSTRAINT plan_usages_pkey PRIMARY KEY (id),
   CONSTRAINT plan_usages_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id),
-  CONSTRAINT plan_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT plan_usages_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
+  CONSTRAINT plan_usages_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.qr_tokens (
   booking_id uuid NOT NULL,
