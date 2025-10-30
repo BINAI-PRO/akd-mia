@@ -1,4 +1,5 @@
 ﻿
+import { useCallback, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -7,6 +8,8 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
 import Img from "@/components/Img";
+import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
+import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
 
 dayjs.extend(utc);
@@ -47,8 +50,6 @@ type PageProps = {
 };
 
 type PaymentRow = Pick<Tables<'membership_payments'>, 'amount' | 'currency'>;
-
-type BookingRow = Pick<Tables<'bookings'>, 'session_id' | 'status'>;
 
 type UpcomingSessionRow = Tables<'sessions'> & {
   class_types: Pick<Tables<'class_types'>, 'name'> | null;
@@ -114,7 +115,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       paymentsResp,
       unpaidResp,
       upcomingSessionsResp,
-      bookingsResp,
       recentPaymentsResp,
     ] = await Promise.all([
       supabaseAdmin
@@ -146,10 +146,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
         .order("start_time", { ascending: true })
         .limit(5),
       supabaseAdmin
-        .from("bookings")
-        .select("session_id, status")
-        .gte("reserved_at", now.subtract(30, "day").toISOString()),
-      supabaseAdmin
         .from("membership_payments")
         .select(
           "id, amount, currency, status, paid_at, memberships ( clients ( full_name ), membership_types ( name ) )"
@@ -159,7 +155,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     ]);
 
     const paymentRows = (paymentsResp.data ?? []) as PaymentRow[];
-    const bookingRows = (bookingsResp.data ?? []) as BookingRow[];
     const upcomingRows = (upcomingSessionsResp.data ?? []) as UpcomingSessionRow[];
     const recentRows = (recentPaymentsResp.data ?? []) as RecentPaymentRow[];
 
@@ -170,14 +165,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       unpaidInvoices: unpaidResp.count ?? 0,
     };
 
-    const bookingOccupancy = new Map<string, number>();
-    bookingRows.forEach((row) => {
-      if (!row.session_id) return;
-      const current = bookingOccupancy.get(row.session_id) ?? 0;
-      if (row.status !== "CANCELLED") {
-        bookingOccupancy.set(row.session_id, current + 1);
-      }
-    });
+    const occupancyMap = await fetchSessionOccupancy(upcomingRows.map((row) => row.id));
 
     const upcomingSessions: UpcomingSession[] = upcomingRows.map((row) => ({
       id: row.id,
@@ -187,7 +175,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       instructor: row.instructors?.full_name ?? "-",
       room: row.rooms?.name ?? "-",
       capacity: row.capacity ?? 0,
-      occupancy: bookingOccupancy.get(row.id) ?? row.current_occupancy ?? 0,
+      occupancy: occupancyMap[row.id] ?? 0,
     }));
 
     const recentPayments: RecentPayment[] = recentRows.map((row) => ({
@@ -231,6 +219,18 @@ export default function AdminDashboardPage({
   recentPayments,
   referralUrl,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetails = useCallback((sessionId: string) => {
+    setDetailSessionId(sessionId);
+    setDetailOpen(true);
+  }, []);
+
+  const closeDetails = useCallback(() => {
+    setDetailOpen(false);
+  }, []);
+
   return (
     <AdminLayout
       title="Tablero"
@@ -344,7 +344,7 @@ export default function AdminDashboardPage({
                   return (
                     <li
                       key={session.id}
-                      className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
+                      className="flex flex-col gap-3 rounded-lg border border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <div>
                         <p className="text-sm text-slate-500">{start}</p>
@@ -353,11 +353,23 @@ export default function AdminDashboardPage({
                           {session.instructor}  {session.room}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          {session.occupancy}/{session.capacity}
-                        </p>
-                        <p className="text-xs text-slate-500">Ocupacion</p>
+                      <div className="flex flex-col items-end gap-2 text-right">
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {session.occupancy}/{session.capacity}
+                          </p>
+                          <p className="text-xs text-slate-500">Ocupación</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => openDetails(session.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                        >
+                          <span className="material-icons-outlined text-sm" aria-hidden="true">
+                            visibility
+                          </span>
+                          Ver
+                        </button>
                       </div>
                     </li>
                   );
@@ -451,6 +463,7 @@ export default function AdminDashboardPage({
           </div>
         </section>
       </div>
+      <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
     </AdminLayout>
   );
 }

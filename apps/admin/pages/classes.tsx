@@ -7,6 +7,7 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
 
 dayjs.extend(utc);
@@ -99,6 +100,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   ]);
 
   const sessionRows = (sessionsResp.data ?? []) as SessionQueryRow[];
+  const occupancyMap = await fetchSessionOccupancy(sessionRows.map((row) => row.id));
   const courseRows = (coursesResp.data ?? []) as CourseQueryRow[];
 
   const initialClasses: ClassRow[] = sortClasses(
@@ -120,7 +122,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
         startISO: row.start_time,
         endISO: row.end_time,
         capacity: row.capacity ?? 0,
-        occupancy: row.current_occupancy ?? 0,
+        occupancy: occupancyMap[row.id] ?? 0,
         durationMinutes,
       };
     })

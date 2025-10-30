@@ -125,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status,
         reserved_at,
         plan_purchase_id,
-        clients ( id, full_name, email, phone ),
+        clients:clients!bookings_client_id_fkey ( id, full_name, email, phone ),
         plan_purchases (
           id,
           modality,
@@ -187,7 +187,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     });
 
-  const activeOccupancy = participants.filter((participant) => participant.status !== "CANCELLED").length;
+  const activeOccupancy = participants.filter(
+    (participant) => participant.status.toUpperCase() !== "CANCELLED"
+  ).length;
 
   const waitlistData = (waitlistRows ?? []) as WaitlistRow[];
   const waitlist =
@@ -213,7 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     start && end && start.isValid() && end.isValid() ? Math.max(end.diff(start, "minute"), 0) : null;
 
   const capacity = sessionRow.capacity ?? null;
-  const occupancy = sessionRow.current_occupancy ?? activeOccupancy;
+  const occupancy = activeOccupancy;
   const availableSpots =
     capacity !== null && Number.isFinite(capacity) ? Math.max(capacity - occupancy, 0) : null;
 

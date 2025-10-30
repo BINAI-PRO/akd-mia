@@ -492,6 +492,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const actors = parseActors(actorRest);
       const result = await createBooking({ sessionId, clientId, clientHint, actors });
+      if ((result as { duplicated?: boolean }).duplicated) {
+        const duplicate = result as { bookingId?: string };
+        return res.status(409).json({
+          error: "Ya tienes una reserva activa para esta sesión.",
+          bookingId: duplicate.bookingId,
+        });
+      }
       return res.status(200).json(result);
     }
 

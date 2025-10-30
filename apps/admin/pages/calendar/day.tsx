@@ -6,6 +6,7 @@ import CalendarViewSelect from "@/components/admin/calendar/CalendarViewSelect";
 import DayAgendaBoard from "@/components/admin/calendar/DayAgendaBoard";
 import type { CalendarFilterOption, CalendarSession, CalendarSessionRow, MiniCalendarDay } from "@/components/admin/calendar/types";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 
 
 type PageProps = {
@@ -58,7 +59,10 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   if (roomsResp.error) throw roomsResp.error;
   if (classTypesResp.error) throw classTypesResp.error;
 
-  const initialSessions: CalendarSession[] = (sessionsResp.data ?? []).map((session) => ({
+  const sessionRows = (sessionsResp.data ?? []) as CalendarSessionRow[];
+  const occupancyMap = await fetchSessionOccupancy(sessionRows.map((session) => session.id));
+
+  const initialSessions: CalendarSession[] = sessionRows.map((session) => ({
     id: session.id,
     startISO: session.start_time,
     endISO: session.end_time,
@@ -70,7 +74,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     roomId: session.room_id ?? null,
     roomName: session.rooms?.name ?? null,
     capacity: session.capacity ?? 0,
-    occupancy: session.current_occupancy ?? 0,
+    occupancy: occupancyMap[session.id] ?? 0,
   }));
 
   const monthStart = selected.startOf("month");
