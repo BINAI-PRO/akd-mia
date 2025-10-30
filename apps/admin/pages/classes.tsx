@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -185,6 +186,8 @@ export default function AdminClassesPage({
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkMessage, setBulkMessage] = useState<string | null>(null);
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [sessionDetailId, setSessionDetailId] = useState<string | null>(null);
+  const [sessionDetailOpen, setSessionDetailOpen] = useState(false);
 
   const instructorOptions = instructors;
   const roomOptions = rooms;
@@ -213,6 +216,15 @@ export default function AdminClassesPage({
     () => classes.find((row) => row.id === activeClassId) ?? null,
     [classes, activeClassId]
   );
+
+  const openSessionDetails = useCallback((sessionId: string) => {
+    setSessionDetailId(sessionId);
+    setSessionDetailOpen(true);
+  }, []);
+
+  const closeSessionDetails = useCallback(() => {
+    setSessionDetailOpen(false);
+  }, []);
 
   useEffect(() => {
     if (!activeClass) {
@@ -841,12 +853,13 @@ export default function AdminClassesPage({
                     <th className="px-4 py-3">Horario</th>
                     <th className="px-4 py-3">Cupo</th>
                     <th className="px-4 py-3">Estado</th>
+                    <th className="px-4 py-3">Detalles</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredClasses.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-6 text-center text-sm text-slate-500">
+                      <td colSpan={7} className="px-6 py-6 text-center text-sm text-slate-500">
                         No hay sesiones que coincidan con los filtros.
                       </td>
                     </tr>
@@ -880,6 +893,21 @@ export default function AdminClassesPage({
                           <td className="px-4 py-3 text-slate-700">{row.scheduleLabel}</td>
                           <td className="px-4 py-3 text-slate-700">{occupancyLabel}</td>
                           <td className="px-4 py-3">{renderStatusBadge(row)}</td>
+                          <td className="px-4 py-3">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openSessionDetails(row.id);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                            >
+                              <span className="material-icons-outlined text-sm" aria-hidden="true">
+                                visibility
+                              </span>
+                              Ver
+                            </button>
+                          </td>
                         </tr>
                       );
                     })
@@ -906,6 +934,18 @@ export default function AdminClassesPage({
                       Cupo: {activeClass.occupancy}/{activeClass.capacity}
                       {activeClass.occupancy > 0 ? ' (con reservaciones)' : ''}
                     </span>
+                  </div>
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => openSessionDetails(activeClass.id)}
+                      className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                    >
+                      <span className="material-icons-outlined text-sm" aria-hidden="true">
+                        visibility
+                      </span>
+                      Ver participantes y lista de espera
+                    </button>
                   </div>
                 </div>
 
@@ -986,6 +1026,11 @@ export default function AdminClassesPage({
           </div>
         </section>
       </div>
+      <SessionDetailsModal
+        sessionId={sessionDetailId}
+        open={sessionDetailOpen}
+        onClose={closeSessionDetails}
+      />
     </AdminLayout>
   );
 }

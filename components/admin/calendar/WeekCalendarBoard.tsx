@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import type { CalendarFilterOption, CalendarSession } from "./types";
+import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 
 dayjs.extend(utc);
 
@@ -89,6 +90,8 @@ export default function WeekCalendarBoard({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const isFirstFetch = useRef(true);
 
@@ -193,6 +196,15 @@ export default function WeekCalendarBoard({
     setFilters((prev) => ({ ...prev, [field]: DEFAULT_FILTERS[field] }));
   }, []);
 
+  const openDetails = useCallback((sessionId: string) => {
+    setDetailSessionId(sessionId);
+    setDetailOpen(true);
+  }, []);
+
+  const closeDetails = useCallback(() => {
+    setDetailOpen(false);
+  }, []);
+
   const activeFilterChips = useMemo<ActiveFilterChip[]>(() => {
     const chips: ActiveFilterChip[] = [];
     const trimmedSearch = filters.search.trim();
@@ -216,8 +228,9 @@ export default function WeekCalendarBoard({
 
   const totalSessions = sessions.length;
 
-  return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6">
+return (
+    <>
+      <div className="mx-auto flex max-w-7xl flex-col gap-6">
       <section className="rounded-xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-col gap-3 text-sm text-slate-600 md:flex-row md:items-center md:gap-4">
@@ -371,6 +384,15 @@ export default function WeekCalendarBoard({
                       key={session.id}
                       className={`absolute left-1 right-1 rounded-md px-3 py-2 text-white shadow-sm transition hover:shadow-lg ${color}`}
                       style={{ top, height }}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => openDetails(session.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openDetails(session.id);
+                        }
+                      }}
                     >
                       <p className="text-xs opacity-90">
                         {start}  {end}
@@ -385,7 +407,9 @@ export default function WeekCalendarBoard({
           ))}
         </div>
       </section>
-    </div>
+      </div>
+      <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
+    </>
   );
 }
 

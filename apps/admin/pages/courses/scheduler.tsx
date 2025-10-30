@@ -1,8 +1,9 @@
 ﻿import Head from "next/head";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -260,6 +261,8 @@ export default function CourseSchedulerPage({
   const [planMessage, setPlanMessage] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [isPlanning, setIsPlanning] = useState(false);
+  const [sessionDetailId, setSessionDetailId] = useState<string | null>(null);
+  const [sessionDetailOpen, setSessionDetailOpen] = useState(false);
 
   useEffect(() => {
     setCoursesState(courses);
@@ -502,6 +505,15 @@ export default function CourseSchedulerPage({
     const source = future.length > 0 ? future : selectedCourse.sessions;
     return source.slice(0, UPCOMING_PREVIEW_LIMIT);
   }, [selectedCourse]);
+
+  const openSessionDetails = useCallback((sessionId: string) => {
+    setSessionDetailId(sessionId);
+    setSessionDetailOpen(true);
+  }, []);
+
+  const closeSessionDetails = useCallback(() => {
+    setSessionDetailOpen(false);
+  }, []);
 
   const hasValidDrafts =
     draftSessions.length > 0 &&
@@ -1062,9 +1074,21 @@ export default function CourseSchedulerPage({
                             {session.roomName ? ` - Salon: ${session.roomName}` : ""}
                           </div>
                         </div>
-                        {end && end.isValid() && (
-                          <span className="text-xs text-slate-500">Termina {end.format("HH:mm")}</span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-3">
+                          {end && end.isValid() && (
+                            <span className="text-xs text-slate-500">Termina {end.format("HH:mm")}</span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openSessionDetails(session.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                          >
+                            <span className="material-icons-outlined text-sm" aria-hidden="true">
+                              visibility
+                            </span>
+                            Ver
+                          </button>
+                        </div>
                       </li>
                     );
                   })}
@@ -1094,6 +1118,11 @@ export default function CourseSchedulerPage({
           </ul>
         </section>
       </div>
+      <SessionDetailsModal
+        sessionId={sessionDetailId}
+        open={sessionDetailOpen}
+        onClose={closeSessionDetails}
+      />
     </AdminLayout>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import type { CalendarFilterOption, CalendarSession, MiniCalendarDay } from "./types";
+import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 
 dayjs.extend(utc);
 
@@ -65,6 +66,8 @@ export default function DayAgendaBoard({
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const isFirstFetch = useRef(true);
 
@@ -128,6 +131,15 @@ export default function DayAgendaBoard({
     setFilters((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  const openDetails = useCallback((sessionId: string) => {
+    setDetailSessionId(sessionId);
+    setDetailOpen(true);
+  }, []);
+
+  const closeDetails = useCallback(() => {
+    setDetailOpen(false);
+  }, []);
+
   const handleClearFilters = useCallback(() => {
     setFilters({ ...DEFAULT_FILTERS });
   }, []);
@@ -160,8 +172,9 @@ export default function DayAgendaBoard({
   const agendaLabel = useMemo(() => dayjs(selectedDateISO).format("D [de] MMMM, YYYY"), [selectedDateISO]);
   const totalSessions = sessions.length;
 
-  return (
-    <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem,1fr]">
+return (
+    <>
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem,1fr]">
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <span className="text-sm font-semibold text-slate-700">{miniCalendarMonthLabel}</span>
@@ -309,6 +322,7 @@ export default function DayAgendaBoard({
                   <th className="whitespace-nowrap px-4 py-3">Ubicacion</th>
                   <th className="whitespace-nowrap px-4 py-3">Staff</th>
                   <th className="whitespace-nowrap px-4 py-3">Capacidad</th>
+                  <th className="whitespace-nowrap px-4 py-3">Detalles</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -328,6 +342,18 @@ export default function DayAgendaBoard({
                     <td className="px-4 py-3 text-slate-500">
                       {session.capacity > 0 ? `${session.occupancy}/${session.capacity}` : "N/A"}
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => openDetails(session.id)}
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                      >
+                        <span className="material-icons-outlined text-sm" aria-hidden="true">
+                          visibility
+                        </span>
+                        Ver
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -335,7 +361,9 @@ export default function DayAgendaBoard({
           </div>
         </div>
       </section>
-    </div>
+      </div>
+      <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
+    </>
   );
 }
 
