@@ -1,6 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  ClientLinkConflictError,
+  ensureClientForAuthUser,
+} from "@/lib/resolve-client";
 import type { Tables } from "@/types/database";
 
 type ClientRow = Tables<"clients"> & {
@@ -89,7 +93,46 @@ export default async function handler(
     return res.status(500).json({ error: error.message });
   }
 
-  const profile = client as ClientRow | null;
+  let profile = client as ClientRow | null;
+
+  if (!profile) {
+    try {
+      const ensured = await ensureClientForAuthUser({
+        authUserId: session.user.id,
+        email: session.user.email ?? null,
+        fullName,
+        phone,
+      });
+
+      if (ensured?.id) {
+        const {
+          data: hydrated,
+          error: hydrateError,
+        } = await supabaseAdmin
+          .from("clients")
+          .select(
+            "id, full_name, email, phone, client_profiles ( avatar_url, status )"
+          )
+          .eq("id", ensured.id)
+          .maybeSingle();
+
+        if (hydrateError) {
+          return res.status(500).json({ error: hydrateError.message });
+        }
+
+        profile = hydrated as ClientRow | null;
+      }
+    } catch (linkError: unknown) {
+      if (linkError instanceof ClientLinkConflictError) {
+        return res.status(409).json({ error: linkError.message });
+      }
+      const message =
+        linkError instanceof Error
+          ? linkError.message
+          : "Failed to resolve client profile";
+      return res.status(500).json({ error: message });
+    }
+  }
 
   return res.status(200).json({
     profile: {

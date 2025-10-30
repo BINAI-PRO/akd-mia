@@ -887,6 +887,66 @@ export type Database = {
         Relationships: []
       }
 
+      // -----------------------------
+      //  PERFIL DE CLIENTE
+      // -----------------------------
+      client_profiles: {
+        Row: {
+          client_id: string
+          status: string
+          avatar_url: string | null
+          birthdate: string | null
+          occupation: string | null
+          notes: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          preferred_apparatus: string[]
+          created_at: string
+          updated_at: string
+          updated_by_client_at: string | null
+          avatar_storage_path: string | null
+        }
+        Insert: {
+          client_id: string
+          status?: string
+          avatar_url?: string | null
+          birthdate?: string | null
+          occupation?: string | null
+          notes?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          preferred_apparatus?: string[]
+          created_at?: string
+          updated_at?: string
+          updated_by_client_at?: string | null
+          avatar_storage_path?: string | null
+        }
+        Update: {
+          client_id?: string
+          status?: string
+          avatar_url?: string | null
+          birthdate?: string | null
+          occupation?: string | null
+          notes?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          preferred_apparatus?: string[]
+          created_at?: string
+          updated_at?: string
+          updated_by_client_at?: string | null
+          avatar_storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_profiles_client_id_fkey",
+            columns: ["client_id"],
+            isOneToOne: true,
+            referencedRelation: "clients",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
       plan_purchases: {
         Row: {
           id: string

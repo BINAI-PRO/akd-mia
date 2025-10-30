@@ -156,7 +156,7 @@ function mapMember(row: MemberQueryRow): MemberRow {
     hasActiveMembership,
     planActiveCount,
     Estado,
-    joinedAt: row.created_at,
+    joinedAt: row.created_at ?? "",
   };
 }
 

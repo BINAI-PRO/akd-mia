@@ -2,6 +2,10 @@
 import dayjs from "dayjs";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import {
+  ClientLinkConflictError,
+  ensureClientForAuthUser,
+} from "@/lib/resolve-client";
 
 type DashboardResponse = {
   upcomingBookings: Array<{
@@ -60,7 +64,40 @@ export default async function handler(
     return res.status(500).json({ error: clientError.message });
   }
 
-  if (!client?.id) {
+  let clientId = client?.id ?? null;
+
+  if (!clientId) {
+    const metadata = (session.user.user_metadata ?? {}) as Record<string, unknown>;
+    const fallbackFullName =
+      (metadata.full_name as string | undefined) ??
+      (metadata.name as string | undefined) ??
+      (metadata.display_name as string | undefined) ??
+      session.user.email ??
+      null;
+    const fallbackPhone = (metadata.phone as string | undefined) ?? null;
+
+    try {
+      const ensured = await ensureClientForAuthUser({
+        authUserId: session.user.id,
+        email: session.user.email ?? null,
+        fullName: fallbackFullName,
+        phone: fallbackPhone,
+      });
+
+      clientId = ensured?.id ?? null;
+    } catch (linkError: unknown) {
+      if (linkError instanceof ClientLinkConflictError) {
+        return res.status(409).json({ error: linkError.message });
+      }
+      const message =
+        linkError instanceof Error
+          ? linkError.message
+          : "Failed to resolve client profile";
+      return res.status(500).json({ error: message });
+    }
+  }
+
+  if (!clientId) {
     return res.status(404).json({ error: "Client profile not found" });
   }
 
@@ -78,7 +115,7 @@ export default async function handler(
        ),
        qr_tokens ( token )`
     )
-    .eq("client_id", client.id)
+    .eq("client_id", clientId)
     .in("status", ["CONFIRMED", "CHECKED_IN"])
     .order("sessions.start_time", { ascending: true })
     .gte("sessions.start_time", now);
@@ -93,7 +130,7 @@ export default async function handler(
       `id, status, start_date, expires_at, initial_classes, remaining_classes,
        plan_types ( name )`
     )
-    .eq("client_id", client.id)
+    .eq("client_id", clientId)
     .order("purchased_at", { ascending: false });
 
   if (plansError) {
