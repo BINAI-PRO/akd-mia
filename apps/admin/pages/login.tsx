@@ -23,6 +23,31 @@ export default function AdminLoginPage() {
     }
   }, [loading, redirectTarget, router, user]);
 
+  const handleGoogleLogin = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    setFormError(null);
+
+    try {
+      const supabase = supabaseBrowser();
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}${redirectTarget}`
+          : redirectTarget;
+      await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesion con Google";
+      setFormError(message);
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
@@ -70,6 +95,24 @@ export default function AdminLoginPage() {
               Ingresa tus credenciales para continuar.
             </p>
           </header>
+
+          <div className="space-y-3 pb-6">
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              className="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+              disabled={submitting}
+            >
+              Continuar con Google
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="h-px flex-1 bg-slate-200" />
+              <span className="text-[11px] uppercase tracking-wide text-slate-400">
+                o ingresa con email
+              </span>
+              <span className="h-px flex-1 bg-slate-200" />
+            </div>
+          </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">

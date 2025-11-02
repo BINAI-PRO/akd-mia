@@ -97,8 +97,8 @@ async function generateQrToken(bookingId: string, sessionStart: string) {
   const expires = dayjs(sessionStart).add(6, "hour").toISOString();
   const { error } = await supabaseAdmin
     .from("qr_tokens")
-    .insert({ booking_id: bookingId, token, expires_at: expires });
-  if (error) throw new Error("Insert token failed");
+    .upsert({ booking_id: bookingId, token, expires_at: expires }, { onConflict: "booking_id" });
+  if (error) throw new Error("Upsert token failed");
   return token;
 }
 
@@ -285,17 +285,43 @@ async function createBooking({
     throw Object.assign(new Error("Session full"), { status: 409 });
   }
 
-  const { data: booking, error: insertError } = await supabaseAdmin
-    .from("bookings")
-    .insert({ session_id: sessionId, client_id: cid, status: "CONFIRMED" })
-    .select("id")
-    .single();
-  if (insertError || !booking) throw new Error("Insert booking failed");
+  const nowIso = new Date().toISOString();
+  let bookingId: string;
+  let reusedCancelledBooking = false;
 
-  const token = await generateQrToken(booking.id, session.start_time);
+  if (dup?.id && dup.status === "CANCELLED") {
+    const { data: reopened, error: reopenError } = await supabaseAdmin
+      .from("bookings")
+      .update({
+        status: "CONFIRMED",
+        cancelled_at: null,
+        cancelled_by: null,
+        reserved_at: nowIso,
+        plan_purchase_id: null,
+        updated_at: nowIso,
+        rebooked_from_booking_id: null,
+      })
+      .eq("id", dup.id)
+      .select("id")
+      .single();
+
+    if (reopenError || !reopened) throw new Error("Reopen booking failed");
+    bookingId = reopened.id;
+    reusedCancelledBooking = true;
+  } else {
+    const { data: booking, error: insertError } = await supabaseAdmin
+      .from("bookings")
+      .insert({ session_id: sessionId, client_id: cid, status: "CONFIRMED" })
+      .select("id")
+      .single();
+    if (insertError || !booking) throw new Error("Insert booking failed");
+    bookingId = booking.id;
+  }
+
+  const token = await generateQrToken(bookingId, session.start_time);
 
   const plan = await attachPlanPurchase({
-    bookingId: booking.id,
+    bookingId,
     clientId: cid,
     sessionId,
     preferredPlanId,
@@ -319,16 +345,23 @@ async function createBooking({
     }
   }
 
+  const eventMetadata: Record<string, unknown> = {
+    planPurchaseId: plan?.id ?? null,
+  };
+  if (reusedCancelledBooking) {
+    eventMetadata.reactivatedFromCancelled = true;
+  }
+
   await logBookingEvent(
-    booking.id,
+    bookingId,
     "CREATED",
     { actorClientId: cid, ...actors },
     undefined,
-    { planPurchaseId: plan?.id ?? null }
+    eventMetadata
   );
 
   return {
-    bookingId: booking.id,
+    bookingId,
     token,
     planPurchaseId: plan?.id ?? null,
     planName: plan?.name ?? null,

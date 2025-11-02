@@ -21,6 +21,7 @@ type AuthProfile = {
   status: string | null;
   role: string | null;
   isAdmin: boolean;
+  permissions: string[];
 };
 
 type AuthContextValue = {
@@ -76,6 +77,7 @@ const deriveBaseProfile = (source: User): AuthProfile => {
     status: null,
     role,
     isAdmin,
+    permissions: [],
   };
 };
 
@@ -180,6 +182,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               remoteProfile.isAdmin !== undefined
                 ? remoteProfile.isAdmin
                 : base.isAdmin,
+            permissions: Array.isArray(remoteProfile.permissions)
+              ? remoteProfile.permissions
+              : base.permissions,
           };
         });
       })

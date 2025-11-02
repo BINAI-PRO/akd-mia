@@ -7,7 +7,6 @@ import utc from "dayjs/plugin/utc";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
-import Img from "@/components/Img";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
@@ -231,28 +230,29 @@ export default function AdminDashboardPage({
     setDetailOpen(false);
   }, []);
 
+  const headerToolbar = (
+    <div className="flex items-center gap-4">
+      <div className="relative hidden lg:block">
+        <span className="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          search
+        </span>
+        <input
+          type="search"
+          placeholder="Buscar..."
+          className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+        />
+      </div>
+      <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
+        <span className="material-icons-outlined text-slate-500">notifications</span>
+      </button>
+    </div>
+  );
+
   return (
     <AdminLayout
       title="Tablero"
       active="dashboard"
-      headerToolbar={
-        <div className="flex items-center gap-4">
-          <div className="relative hidden lg:block">
-            <span className="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              search
-            </span>
-            <input
-              type="search"
-              placeholder="Buscar..."
-              className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-            />
-          </div>
-          <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
-            <span className="material-icons-outlined text-slate-500">notifications</span>
-          </button>
-          <Img src="/angie.jpg" alt="Usuario" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
-        </div>
-      }
+      headerToolbar={headerToolbar}
     >
       <Head>
         <title>AT Pilates Time - Tablero</title>

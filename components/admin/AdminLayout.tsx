@@ -1,8 +1,7 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/router";
 import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
@@ -21,6 +20,7 @@ export type NavKey =
   | "membershipPlans"
   | "planningInstructors"
   | "planningRooms"
+  | "planningStaff"
   | "contacts"
   | "marketing"
   | "analytics"
@@ -57,25 +57,23 @@ const NAVIGATION: NavItem[] = [
   {
     type: "group",
     key: "products",
-    label: "Planeación",
+    label: "Planeacion",
     icon: "edit_calendar",
     children: [
       { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
       { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/courses" },
       { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/courses/scheduler" },
       { type: "link", key: "classes", label: "Sesiones", icon: "event", href: "/classes" },
-      // { type: "link", key: "appointments", label: "1:1 Appointments", icon: "event_available", href: "#" },
-      // { type: "link", key: "videos", label: "Videos", icon: "movie", href: "#" },
     ],
   },
   {
     type: "group",
     key: "memberships",
-    label: "Membresías",
+    label: "Membresias",
     icon: "card_membership",
     children: [
       { type: "link", key: "members", label: "Miembros", icon: "people", href: "/members" },
-      { type: "link", key: "membershipTypes", label: "Tipos de membresías", icon: "badge", href: "/membership-types" },
+      { type: "link", key: "membershipTypes", label: "Tipos de membresia", icon: "badge", href: "/membership-types" },
       { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/memberships" },
     ],
   },
@@ -87,18 +85,74 @@ const NAVIGATION: NavItem[] = [
     children: [
       { type: "link", key: "planningInstructors", label: "Instructores", icon: "self_improvement", href: "/planeacion/instructores" },
       { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/planeacion/salas" },
+      { type: "link", key: "planningStaff", label: "Staff", icon: "group", href: "/planeacion/staff" },
     ],
   },
-  // { type: "link", key: "contacts", label: "Contacts", icon: "contacts", href: "#" },
-  // { type: "link", key: "marketing", label: "Marketing", icon: "campaign", href: "#" },
-  // { type: "link", key: "analytics", label: "Analytics", icon: "analytics", href: "#" },
-  // { type: "link", key: "settings", label: "Settings", icon: "settings", href: "#" },
 ];
+
+const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
+  MASTER: "ALL",
+  LOCATION_MANAGER: [
+    "dashboard",
+    "calendar",
+    "courses",
+    "courseScheduler",
+    "classTypes",
+    "classes",
+    "members",
+    "membershipTypes",
+    "membershipPlans",
+    "planningInstructors",
+    "planningRooms",
+  ],
+  RECEPTIONIST: ["dashboard", "calendar", "classes", "members", "membershipPlans"],
+  INSTRUCTOR: ["calendar"],
+};
+
+function filterNavigation(role: string | null | undefined): NavItem[] {
+  const config = role ? ROLE_NAV_CONFIG[role] : "ALL";
+  if (!role || config === "ALL") {
+    return NAVIGATION;
+  }
+
+  const allowed = new Set(config);
+
+  return NAVIGATION.reduce<NavItem[]>((acc, item) => {
+    if (item.type === "link") {
+      if (allowed.has(item.key)) acc.push(item);
+      return acc;
+    }
+
+    const children = item.children.filter((child) => allowed.has(child.key));
+    if (children.length > 0) {
+      acc.push({ ...item, children });
+    }
+    return acc;
+  }, []);
+}
 
 export default function AdminLayout({ title, active, headerToolbar, children }: AdminLayoutProps) {
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, profileLoading, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const filteredNavigation = useMemo(() => filterNavigation(profile?.role), [profile?.role]);
+
+  const initialOpenGroups = useMemo(() => {
+    const groups = new Set<string>();
+    filteredNavigation.forEach((item) => {
+      if (item.type === "group" && item.children.some((child) => child.key === active)) {
+        groups.add(item.key);
+      }
+    });
+    return groups;
+  }, [filteredNavigation, active]);
+
+  const [openGroups, setOpenGroups] = useState<Set<string>>(initialOpenGroups);
+
+  useEffect(() => {
+    setOpenGroups(initialOpenGroups);
+  }, [initialOpenGroups]);
 
   const displayName = useMemo(() => {
     if (profile?.fullName) return profile.fullName;
@@ -107,30 +161,20 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
   }, [profile?.email, profile?.fullName]);
 
   const avatarUrl = profile?.avatarUrl ?? null;
-  const initials = displayName
-    .split(" ")
-    .filter(Boolean)
-    .map((word) => word[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const initials = useMemo(() => {
+    return displayName
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => word[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+  }, [displayName]);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     await router.replace("/login");
-  };
-
-  const initialOpenGroups = useMemo(() => {
-    const groups = new Set<string>();
-    NAVIGATION.forEach((item) => {
-      if (item.type === "group" && item.children.some((child) => child.key === active)) {
-        groups.add(item.key);
-      }
-    });
-    return groups;
-  }, [active]);
-
-  const [openGroups, setOpenGroups] = useState<Set<string>>(initialOpenGroups);
+  }, [router, signOut]);
 
   const toggleGroup = (key: string) => {
     setOpenGroups((prev) => {
@@ -152,12 +196,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     ].join(" ");
 
     return (
-      <Link
-        key={link.key}
-        href={link.href}
-        className={className}
-        onClick={() => setMobileOpen(false)}
-      >
+      <Link key={link.key} href={link.href} className={className} onClick={() => setMobileOpen(false)}>
         <span className="material-icons-outlined mr-3 text-lg" aria-hidden="true">
           {link.icon}
         </span>
@@ -168,7 +207,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
 
   const renderNav = (isMobile = false) => (
     <nav className={`flex-1 space-y-1 ${isMobile ? "p-3" : "p-4"}`}>
-      {NAVIGATION.map((item) => {
+      {filteredNavigation.map((item) => {
         if (item.type === "link") {
           return renderLink(item);
         }
@@ -198,7 +237,9 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
                 expand_more
               </span>
             </button>
-            <div className={`${isExpanded ? "block" : "hidden"} space-y-1 pl-8`}>{item.children.map((child) => renderLink(child))}</div>
+            <div className={`${isExpanded ? "block" : "hidden"} space-y-1 pl-8`}>
+              {item.children.map((child) => renderLink(child))}
+            </div>
           </div>
         );
       })}
@@ -210,7 +251,30 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
       <Img src="/logo.webp" alt="AT Pilates Time" width={160} height={40} className="h-10 w-auto" />
       <div className="leading-tight">
         <p className="text-sm font-semibold text-slate-800">AT Pilates Time</p>
-        <p className="text-xs uppercase text-slate-500 tracking-wide">ATP Tu Fit App</p>
+        <p className="text-xs uppercase tracking-wide text-slate-500">ATP Tu Fit App</p>
+      </div>
+    </div>
+  );
+
+  const UserBadge = () => (
+    <div className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-1">
+      {avatarUrl ? (
+        <Img src={avatarUrl} alt={displayName} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
+      ) : (
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+          {initials || "U"}
+        </span>
+      )}
+      <div className="flex flex-col text-right">
+        <span className="text-sm font-semibold leading-tight text-slate-800">{displayName}</span>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
+          disabled={profileLoading}
+        >
+          Cerrar sesion
+        </button>
       </div>
     </div>
   );
@@ -259,40 +323,8 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
               <h1 className="text-2xl font-semibold">{title}</h1>
             </div>
             <div className="flex items-center gap-4">
-              {headerToolbar ?? (
-                <div className="flex items-center gap-4">
-                  <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notificaciones">
-                    <span className="material-icons-outlined text-slate-500">notifications</span>
-                  </button>
-                  <div className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-1">
-                    {avatarUrl ? (
-                      <Img
-                        src={avatarUrl}
-                        alt={displayName}
-                        width={36}
-                        height={36}
-                        className="h-9 w-9 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
-                        {initials || "U"}
-                      </span>
-                    )}
-                    <div className="flex flex-col text-right">
-                      <span className="text-sm font-semibold leading-tight text-slate-800">
-                        {displayName}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={handleSignOut}
-                        className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
-                      >
-                        Cerrar sesion
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+              {headerToolbar}
+              <UserBadge />
             </div>
           </header>
 
@@ -302,10 +334,3 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     </div>
   );
 }
-
-
-
-
-
-
-

@@ -12,6 +12,15 @@ type ClientRow = Tables<"clients"> & {
   client_profiles?: Pick<Tables<"client_profiles">, "avatar_url" | "status"> | null;
 };
 
+type StaffRow = {
+  role_id: string | null;
+  staff_roles: { slug: string | null } | null;
+};
+
+type PermissionRow = {
+  admin_permissions: { code: string | null } | null;
+};
+
 type MeResponse = {
   profile: {
     authUserId: string;
@@ -23,6 +32,7 @@ type MeResponse = {
     status: string | null;
     role: string | null;
     isAdmin: boolean;
+    permissions: string[];
   };
 };
 
@@ -88,6 +98,50 @@ export default async function handler(
 
   const { fullName, avatarUrl, phone, role, isAdmin } = extractMetadata(session.user);
 
+  let resolvedRole = role;
+  let resolvedIsAdmin = isAdmin;
+  let permissions: string[] = [];
+
+  const { data: staffRow, error: staffError } = await supabaseAdmin
+    .from("staff")
+    .select("role_id, staff_roles ( slug )")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle<StaffRow>();
+
+  if (staffError) {
+    return res.status(500).json({ error: staffError.message });
+  }
+
+  if (staffRow) {
+    const roleSlug =
+      ((staffRow.staff_roles as { slug: string | null } | null)?.slug ?? null) ||
+      null;
+    if (roleSlug) {
+      resolvedRole = roleSlug;
+      if (roleSlug.toUpperCase() === "MASTER") {
+        resolvedIsAdmin = true;
+      }
+    }
+
+    if (staffRow.role_id) {
+      const { data: permissionRows, error: permissionsError } = await supabaseAdmin
+        .from("staff_role_permissions")
+        .select("admin_permissions ( code )")
+        .eq("role_id", staffRow.role_id)
+        .returns<PermissionRow[]>();
+
+      if (permissionsError) {
+        return res.status(500).json({ error: permissionsError.message });
+      }
+
+      permissions =
+        permissionRows?.map((entry) => {
+          const record = entry.admin_permissions as { code: string | null } | null;
+          return record?.code ?? null;
+        }).filter((code): code is string => typeof code === "string") ?? [];
+    }
+  }
+
   const { data: client, error } = await supabaseAdmin
     .from("clients")
     .select("id, full_name, email, phone, client_profiles ( avatar_url, status )")
@@ -150,8 +204,9 @@ export default async function handler(
         profile?.client_profiles?.avatar_url ??
         avatarUrl,
       status: profile?.client_profiles?.status ?? null,
-      role,
-      isAdmin,
+      role: resolvedRole,
+      isAdmin: resolvedIsAdmin,
+      permissions,
     },
   });
 }
