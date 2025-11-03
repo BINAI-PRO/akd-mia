@@ -330,13 +330,15 @@ async function attachPlanPurchase({
   try {
     await supabaseAdmin.from("bookings").update({ plan_purchase_id: allocated.id }).eq("id", bookingId);
 
-    await supabaseAdmin.from("plan_usages").insert({
-      plan_purchase_id: allocated.id,
-      booking_id: bookingId,
-      session_id: sessionId,
-      credit_delta: allocated.unlimited ? 0 : 1,
-      notes: "Reserva auto-asignada",
-    });
+    if (!allocated.unlimited) {
+      await supabaseAdmin.from("plan_usages").insert({
+        plan_purchase_id: allocated.id,
+        booking_id: bookingId,
+        session_id: sessionId,
+        credit_delta: 1,
+        notes: "Reserva auto-asignada",
+      });
+    }
   } catch (error) {
     if (!allocated.unlimited && typeof allocated.previousRemaining === "number") {
       await supabaseAdmin
@@ -370,15 +372,15 @@ async function refundPlanUsage(
       .from("plan_purchases")
       .update({ remaining_classes: currentRemaining + 1 })
       .eq("id", planPurchaseId);
-  }
 
-  await supabaseAdmin.from("plan_usages").insert({
-    plan_purchase_id: planPurchaseId,
-    booking_id: bookingId,
-    session_id: sessionId,
-    credit_delta: isUnlimited ? 0 : -1,
-    notes: "Cancelacion de reserva",
-  });
+    await supabaseAdmin.from("plan_usages").insert({
+      plan_purchase_id: planPurchaseId,
+      booking_id: bookingId,
+      session_id: sessionId,
+      credit_delta: -1,
+      notes: "Cancelacion de reserva",
+    });
+  }
 }
 
 async function createBooking({
