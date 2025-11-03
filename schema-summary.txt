@@ -268,13 +268,15 @@ CREATE TABLE public.plan_types (
   name text NOT NULL,
   description text,
   privileges text,
-  class_count integer NOT NULL CHECK (class_count > 0),
+  class_count integer CHECK (class_count > 0),
   price numeric NOT NULL CHECK (price >= 0::numeric),
   currency text NOT NULL DEFAULT 'MXN'::text,
   validity_days integer,
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  category USER-DEFINED,
+  app_only boolean DEFAULT false,
   CONSTRAINT plan_types_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.plan_usages (

@@ -351,7 +351,7 @@ export type Database = {
           currency: string
           duration_label: string | null
           level: string | null
-          category: string | null
+          category: string
           session_count: number
           session_duration_minutes: number
           lead_instructor_id: string | null
@@ -374,7 +374,7 @@ export type Database = {
           currency?: string
           duration_label?: string | null
           level?: string | null
-          category?: string | null
+          category: string
           session_count?: number
           session_duration_minutes?: number
           lead_instructor_id?: string | null
@@ -397,7 +397,7 @@ export type Database = {
           currency?: string
           duration_label?: string | null
           level?: string | null
-          category?: string | null
+          category?: string
           session_count?: number
           session_duration_minutes?: number
           lead_instructor_id?: string | null
@@ -868,39 +868,45 @@ export type Database = {
           name: string
           description: string | null
           privileges: string | null
-          class_count: number
+          class_count: number | null
           price: number
           currency: string
           validity_days: number | null
           is_active: boolean
           created_at: string | null
           updated_at: string | null
+          category: string
+          app_only: boolean
         }
         Insert: {
           id?: string
           name?: string
           description?: string | null
           privileges?: string | null
-          class_count: number
+          class_count?: number | null
           price: number
           currency?: string
           validity_days?: number | null
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null
+          category: string
+          app_only?: boolean
         }
         Update: {
           id?: string
           name?: string
           description?: string | null
           privileges?: string | null
-          class_count?: number
+          class_count?: number | null
           price?: number
           currency?: string
           validity_days?: number | null
           is_active?: boolean
           created_at?: string | null
           updated_at?: string | null
+          category?: string
+          app_only?: boolean
         }
         Relationships: []
       }
@@ -974,8 +980,8 @@ export type Database = {
           purchased_at: string
           start_date: string
           expires_at: string | null
-          initial_classes: number
-          remaining_classes: number
+          initial_classes: number | null
+          remaining_classes: number | null
           modality: string
           notes: string | null
         }
@@ -987,8 +993,8 @@ export type Database = {
           purchased_at?: string
           start_date?: string
           expires_at?: string | null
-          initial_classes: number
-          remaining_classes: number
+          initial_classes?: number | null
+          remaining_classes?: number | null
           modality?: string
           notes?: string | null
         }
@@ -1000,8 +1006,8 @@ export type Database = {
           purchased_at?: string
           start_date?: string
           expires_at?: string | null
-          initial_classes?: number
-          remaining_classes?: number
+          initial_classes?: number | null
+          remaining_classes?: number | null
           modality?: string
           notes?: string | null
         }

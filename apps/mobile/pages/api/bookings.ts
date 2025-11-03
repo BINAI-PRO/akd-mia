@@ -2,6 +2,7 @@
 import crypto from "crypto";
 import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { Tables } from "@/types/database";
 import { resequenceWaitlist } from "@/lib/waitlist";
 
 type ActorInput = {
@@ -15,8 +16,16 @@ type BookingEventType = "CREATED" | "CANCELLED" | "REBOOKED" | "CHECKED_IN" | "C
 type AllocatedPlan = {
   id: string;
   name: string | null;
-  previousRemaining: number;
-  remaining: number;
+  previousRemaining: number | null;
+  remaining: number | null;
+  unlimited: boolean;
+};
+type SessionRecord = Tables<"sessions"> & { courses?: { category?: string | null } | null };
+type LoadedSession = SessionRecord & { category: string | null };
+type PlanOptionRecord = {
+  id: string;
+  remaining_classes: number | null;
+  plan_types?: { category?: string | null; app_only?: boolean | null; class_count?: number | null } | null;
 };
 
 const TODAY = () => dayjs().format("YYYY-MM-DD");
@@ -39,13 +48,24 @@ async function logBookingEvent(
   });
 }
 
-async function ensureSession(sessionId: string) {
-  const { data: session, error } = await supabaseAdmin
+async function ensureSession(sessionId: string): Promise<{ session: LoadedSession | null; error: unknown | null }> {
+  const { data, error } = await supabaseAdmin
     .from("sessions")
-    .select("id, capacity, start_time, end_time, course_id")
+    .select("id, capacity, start_time, end_time, course_id, courses:course_id(category)")
     .eq("id", sessionId)
-    .single();
-  return { session, error };
+    .single<SessionRecord>();
+
+  if (error || !data) {
+    return { session: null, error };
+  }
+
+  const { courses, ...rest } = data;
+  const session: LoadedSession = {
+    ...rest,
+    category: courses?.category ?? null,
+  };
+
+  return { session, error: null };
 }
 
 async function ensureBookingWindow(session: { start_time: string; course_id: string | null }) {
@@ -110,73 +130,161 @@ function parseActors(body: Record<string, unknown>): ActorInput {
   };
 }
 
-async function tryAllocateSpecificPlan(planId: string, clientId: string, today: string): Promise<AllocatedPlan | null> {
+async function tryAllocateSpecificPlan(
+  planId: string,
+  clientId: string,
+  today: string,
+  sessionCategory: string,
+  isStaffActor: boolean,
+  strict: boolean
+): Promise<AllocatedPlan | null> {
+  const fail = (message?: string, status = 409) => {
+    if (strict && message) {
+      throw Object.assign(new Error(message), { status });
+    }
+    return null;
+  };
+
   const { data: plan, error } = await supabaseAdmin
     .from("plan_purchases")
-    .select("id, modality, remaining_classes, plan_types(name)")
+    .select(
+      "id, modality, remaining_classes, start_date, expires_at, plan_types:plan_type_id ( name, category, class_count, app_only )"
+    )
     .eq("id", planId)
     .eq("client_id", clientId)
     .eq("status", "ACTIVE")
     .lte("start_date", today)
     .or(`expires_at.is.null,expires_at.gte.${today}`)
-    .maybeSingle();
+    .maybeSingle<{
+      id: string;
+      modality: string | null;
+      remaining_classes: number | null;
+      plan_types: {
+        name: string | null;
+        category: string | null;
+        class_count: number | null;
+        app_only: boolean | null;
+      } | null;
+    }>();
 
-  if (error || !plan) return null;
-  if (plan.modality !== "FLEXIBLE") return null;
-  if ((plan.remaining_classes ?? 0) <= 0) return null;
+  if (error || !plan) {
+    return fail("No se encontro el plan seleccionado", 404);
+  }
+  if (plan.modality !== "FLEXIBLE") {
+    return fail("El plan seleccionado no es flexible");
+  }
+
+  const planType = plan.plan_types;
+  if (!planType) {
+    return fail("No se pudo leer la configuracion del plan");
+  }
+
+  if (!planType.category || planType.category !== sessionCategory) {
+    return fail("El plan no aplica para esta categoria");
+  }
+
+  if (planType.app_only && isStaffActor) {
+    return fail("Este plan solo puede usarse desde la app del cliente");
+  }
+
+  const isUnlimited = planType.class_count === null;
+  if (isUnlimited) {
+    return {
+      id: plan.id,
+      name: planType.name ?? null,
+      previousRemaining: plan.remaining_classes ?? null,
+      remaining: plan.remaining_classes ?? null,
+      unlimited: true,
+    };
+  }
 
   const previousRemaining = plan.remaining_classes ?? 0;
+  if (previousRemaining <= 0) {
+    return fail("El plan ya no tiene clases disponibles");
+  }
+
   const { data: updated } = await supabaseAdmin
     .from("plan_purchases")
     .update({ remaining_classes: previousRemaining - 1 })
     .eq("id", plan.id)
     .eq("remaining_classes", previousRemaining)
     .select("id, remaining_classes")
-    .maybeSingle();
+    .maybeSingle<{ id: string; remaining_classes: number | null }>();
 
-  if (!updated) return null;
+  if (!updated) {
+    return fail("No se pudo descontar el plan seleccionado");
+  }
 
   return {
     id: plan.id,
-    name: plan.plan_types?.name ?? null,
+    name: planType.name ?? null,
     previousRemaining,
     remaining: updated.remaining_classes ?? previousRemaining - 1,
+    unlimited: false,
   };
 }
 
 async function allocatePlanPurchaseForBooking(
   clientId: string,
   sessionId: string,
-  preferredPlanId?: string | null
+  preferredPlanId: string | null | undefined,
+  sessionCategory: string,
+  isStaffActor: boolean
 ): Promise<AllocatedPlan | null> {
   const today = TODAY();
   const tried = new Set<string>();
 
   if (preferredPlanId) {
-    const preferred = await tryAllocateSpecificPlan(preferredPlanId, clientId, today);
+    const preferred = await tryAllocateSpecificPlan(preferredPlanId, clientId, today, sessionCategory, isStaffActor, true);
     if (preferred) return preferred;
     tried.add(preferredPlanId);
   }
 
   const { data: planOptions } = await supabaseAdmin
     .from("plan_purchases")
-    .select("id")
+    .select("id, remaining_classes, plan_types:plan_type_id ( category, app_only, class_count )")
     .eq("client_id", clientId)
     .eq("status", "ACTIVE")
+    .eq("modality", "FLEXIBLE")
     .lte("start_date", today)
     .or(`expires_at.is.null,expires_at.gte.${today}`)
-    .gt("remaining_classes", 0)
-    .eq("modality", "FLEXIBLE")
     .order("expires_at", { ascending: true, nullsFirst: true })
     .order("purchased_at", { ascending: true })
-    .limit(10);
+    .limit(10)
+    .returns<PlanOptionRecord[]>();
 
   for (const option of planOptions ?? []) {
-    if (!option?.id) continue;
-    if (tried.has(option.id)) continue;
-    const allocated = await tryAllocateSpecificPlan(option.id, clientId, today);
+    const optionId = option?.id;
+    if (!optionId || tried.has(optionId)) continue;
+
+    const optionCategory = option.plan_types?.category ?? null;
+    const optionAppOnly = Boolean(option.plan_types?.app_only);
+    const optionUnlimited = option.plan_types?.class_count === null;
+    const optionRemaining = option.remaining_classes ?? 0;
+
+    if (!optionCategory || optionCategory !== sessionCategory) {
+      tried.add(optionId);
+      continue;
+    }
+    if (optionAppOnly && isStaffActor) {
+      tried.add(optionId);
+      continue;
+    }
+    if (!optionUnlimited && optionRemaining <= 0) {
+      tried.add(optionId);
+      continue;
+    }
+
+    const allocated = await tryAllocateSpecificPlan(
+      optionId,
+      clientId,
+      today,
+      sessionCategory,
+      isStaffActor,
+      false
+    );
     if (allocated) return allocated;
-    tried.add(option.id);
+    tried.add(optionId);
   }
 
   return null;
@@ -187,13 +295,23 @@ async function attachPlanPurchase({
   clientId,
   sessionId,
   preferredPlanId,
+  sessionCategory,
+  isStaffActor,
 }: {
   bookingId: string;
   clientId: string;
   sessionId: string;
   preferredPlanId?: string | null;
+  sessionCategory: string;
+  isStaffActor: boolean;
 }) {
-  const allocated = await allocatePlanPurchaseForBooking(clientId, sessionId, preferredPlanId);
+  const allocated = await allocatePlanPurchaseForBooking(
+    clientId,
+    sessionId,
+    preferredPlanId ?? null,
+    sessionCategory,
+    isStaffActor
+  );
   if (!allocated) return null;
 
   try {
@@ -203,14 +321,16 @@ async function attachPlanPurchase({
       plan_purchase_id: allocated.id,
       booking_id: bookingId,
       session_id: sessionId,
-      credit_delta: 1,
+      credit_delta: allocated.unlimited ? 0 : 1,
       notes: "Reserva auto-asignada",
     });
   } catch (error) {
-    await supabaseAdmin
-      .from("plan_purchases")
-      .update({ remaining_classes: allocated.previousRemaining })
-      .eq("id", allocated.id);
+    if (!allocated.unlimited && typeof allocated.previousRemaining === "number") {
+      await supabaseAdmin
+        .from("plan_purchases")
+        .update({ remaining_classes: allocated.previousRemaining })
+        .eq("id", allocated.id);
+    }
     throw error;
   }
 
@@ -225,23 +345,26 @@ async function refundPlanUsage(
   if (!planPurchaseId) return;
   const { data: plan } = await supabaseAdmin
     .from("plan_purchases")
-    .select("remaining_classes")
+    .select("remaining_classes, plan_types:plan_type_id ( class_count )")
     .eq("id", planPurchaseId)
-    .maybeSingle();
+    .maybeSingle<{ remaining_classes: number | null; plan_types?: { class_count?: number | null } | null }>();
   if (!plan) return;
 
-  const currentRemaining = plan.remaining_classes ?? 0;
-  await supabaseAdmin
-    .from("plan_purchases")
-    .update({ remaining_classes: currentRemaining + 1 })
-    .eq("id", planPurchaseId);
+  const isUnlimited = plan.plan_types?.class_count === null;
+  if (!isUnlimited) {
+    const currentRemaining = plan.remaining_classes ?? 0;
+    await supabaseAdmin
+      .from("plan_purchases")
+      .update({ remaining_classes: currentRemaining + 1 })
+      .eq("id", planPurchaseId);
+  }
 
   await supabaseAdmin.from("plan_usages").insert({
     plan_purchase_id: planPurchaseId,
     booking_id: bookingId,
     session_id: sessionId,
-    credit_delta: -1,
-    notes: "Cancelación de reserva",
+    credit_delta: isUnlimited ? 0 : -1,
+    notes: "Cancelacion de reserva",
   });
 }
 
@@ -262,6 +385,13 @@ async function createBooking({
   if (sessionError || !session) {
     throw Object.assign(new Error("Session not found"), { status: 404 });
   }
+
+  if (!session.category) {
+    throw Object.assign(new Error("La sesion no tiene categoria configurada"), { status: 500 });
+  }
+
+  const sessionCategory = session.category;
+  const isStaffActor = Boolean(actors.actorStaffId || actors.actorInstructorId);
 
   const windowCheck = await ensureBookingWindow(session);
   if (windowCheck?.error) {
@@ -325,6 +455,8 @@ async function createBooking({
     clientId: cid,
     sessionId,
     preferredPlanId,
+    sessionCategory,
+    isStaffActor,
   });
 
   if (!plan) {
@@ -604,3 +736,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
+

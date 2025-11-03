@@ -26,6 +26,9 @@ type PlanType = {
   classCount: number | null;
   validityDays: number | null;
   privileges: string | null;
+  category: string;
+  appOnly: boolean;
+  isUnlimited: boolean;
 };
 
 type ActivePlan = {
@@ -34,10 +37,12 @@ type ActivePlan = {
   status: string;
   startDate: string | null;
   expiresAt: string | null;
-  initialClasses: number;
-  remainingClasses: number;
+  initialClasses: number | null;
+  remainingClasses: number | null;
+  isUnlimited: boolean;
   modality: string | null;
   currency: string | null;
+  category: string | null;
 };
 
 type PlansResponse = {
@@ -167,11 +172,15 @@ export default function PlansPage() {
                   </div>
                   <div>
                     <dt className="text-brand-600 font-medium">Clases totales</dt>
-                    <dd>{activePlan.initialClasses}</dd>
+                    <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.initialClasses ?? 0}</dd>
                   </div>
                   <div>
                     <dt className="text-brand-600 font-medium">Por usar</dt>
-                    <dd>{activePlan.remainingClasses}</dd>
+                    <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-brand-600 font-medium">Categoria</dt>
+                    <dd>{activePlan.category ?? "Sin categoria"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
@@ -201,10 +210,10 @@ export default function PlansPage() {
                     </span>
                   </header>
 
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600">
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-4">
                     <div>
                       <dt className="font-medium text-neutral-500">Sesiones</dt>
-                      <dd>{plan.classCount ?? 0}</dd>
+                      <dd>{plan.isUnlimited ? "Ilimitado" : plan.classCount ?? 0}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Vigencia</dt>
@@ -213,6 +222,14 @@ export default function PlansPage() {
                           ? `${plan.validityDays} dias`
                           : "Segun condiciones del plan"}
                       </dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium text-neutral-500">Categoria</dt>
+                      <dd>{plan.category}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium text-neutral-500">Reservas</dt>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepcion"}</dd>
                     </div>
                   </dl>
 
@@ -266,3 +283,4 @@ export default function PlansPage() {
     </>
   );
 }
+

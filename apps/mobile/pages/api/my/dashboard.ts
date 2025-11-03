@@ -30,9 +30,11 @@ type DashboardResponse = {
     status: string;
     startDate: string;
     expiresAt: string | null;
-    initialClasses: number;
-    remainingClasses: number;
+    initialClasses: number | null;
+    remainingClasses: number | null;
     modality: string;
+    isUnlimited: boolean;
+    category: string | null;
   }>;
 };
 
@@ -133,7 +135,7 @@ export default async function handler(
     .from("plan_purchases")
     .select(
       `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
-       plan_types ( name )`
+       plan_types ( name, category )`
     )
     .eq("client_id", clientId)
     .order("purchased_at", { ascending: false });
@@ -197,9 +199,11 @@ export default async function handler(
     status: plan.status,
     startDate: plan.start_date,
     expiresAt: plan.expires_at ?? null,
-    initialClasses: plan.initial_classes ?? 0,
-    remainingClasses: plan.remaining_classes ?? 0,
+    initialClasses: plan.initial_classes,
+    remainingClasses: plan.remaining_classes,
     modality: plan.modality ?? "FLEXIBLE",
+    isUnlimited: plan.initial_classes === null,
+    category: plan.plan_types?.category ?? null,
   }));
 
   return res.status(200).json({ upcomingBookings, plans });

@@ -13,23 +13,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         validityDays,
         privileges,
         isActive,
+        category,
+        appOnly,
       } = req.body as {
         name?: string;
         description?: string | null;
         price?: string | number;
         currency?: string;
-        classCount?: number | string;
+        classCount?: number | string | null;
         validityDays?: number | string | null;
         privileges?: string | null;
         isActive?: boolean;
+        category?: string;
+        appOnly?: boolean;
       };
 
       if (!name) {
         return res.status(400).json({ error: "El nombre es obligatorio" });
-      }
-
-      if (classCount === undefined || classCount === null || classCount === "") {
-        return res.status(400).json({ error: "Las sesiones incluidas son obligatorias" });
       }
 
       const numericPrice = price === undefined || price === null || price === "" ? 0 : Number(price);
@@ -37,9 +37,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "El precio debe ser un numero valido" });
       }
 
-      const numericClassCount = Number(classCount);
-      if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
-        return res.status(400).json({ error: "Las sesiones deben ser un entero positivo" });
+      let numericClassCount: number | null = null;
+      if (classCount !== undefined && classCount !== null && classCount !== "") {
+        numericClassCount = Number(classCount);
+        if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
+          return res.status(400).json({ error: "Las sesiones deben ser un entero positivo o puedes dejarlo vacio para plan ilimitado" });
+        }
       }
 
       let numericValidityDays: number | null = null;
@@ -51,6 +54,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         numericValidityDays = candidate;
       }
 
+      const normalizedCategory = category?.trim();
+      if (!normalizedCategory) {
+        return res.status(400).json({ error: "Debes seleccionar una categoria" });
+      }
+
       const payload = {
         name: name.trim(),
         description: description?.trim() || null,
@@ -60,6 +68,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         validity_days: numericValidityDays,
         privileges: privileges?.trim() || null,
         is_active: isActive ?? true,
+        category: normalizedCategory,
+        app_only: appOnly ?? false,
       };
 
       const { data, error } = await supabaseAdmin.from("plan_types").insert(payload).select("*").single();
@@ -89,16 +99,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         validityDays,
         privileges,
         isActive,
+        category,
+        appOnly,
       } = req.body as {
         id?: string;
         name?: string;
         description?: string | null;
         price?: string | number;
         currency?: string;
-        classCount?: number | string;
+        classCount?: number | string | null;
         validityDays?: number | string | null;
         privileges?: string | null;
         isActive?: boolean;
+        category?: string;
+        appOnly?: boolean;
       };
 
       if (!id) {
@@ -133,13 +147,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (classCount !== undefined) {
         if (classCount === "" || classCount === null) {
-          return res.status(400).json({ error: "Las sesiones no pueden quedar vacias" });
+          updatePayload.class_count = null;
+        } else {
+          const numericClassCount = Number(classCount);
+          if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
+            return res.status(400).json({ error: "Las sesiones deben ser un entero positivo" });
+          }
+          updatePayload.class_count = numericClassCount;
         }
-        const numericClassCount = Number(classCount);
-        if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
-          return res.status(400).json({ error: "Las sesiones deben ser un entero positivo" });
-        }
-        updatePayload.class_count = numericClassCount;
       }
 
       if (validityDays !== undefined) {
@@ -158,8 +173,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updatePayload.privileges = privileges?.trim() || null;
       }
 
+      if (category !== undefined) {
+        const normalizedCategory = category?.trim();
+        if (!normalizedCategory) {
+          return res.status(400).json({ error: "Debes seleccionar una categoria" });
+        }
+        updatePayload.category = normalizedCategory;
+      }
+
       if (typeof isActive === "boolean") {
         updatePayload.is_active = isActive;
+      }
+
+      if (typeof appOnly === "boolean") {
+        updatePayload.app_only = appOnly;
       }
 
       if (Object.keys(updatePayload).length === 0) {

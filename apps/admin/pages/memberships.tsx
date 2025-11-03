@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
 import {
@@ -21,6 +21,27 @@ const AdminLayoutAny = AdminLayout as unknown as ComponentType<
 >;
 
 // ================= Tipos UI =================
+const FALLBACK_PLAN_CATEGORIES = ["Grupal", "Individual", "Promocion", "Evento"];
+
+async function loadEnumOptions(enumName: string, fallback: string[]): Promise<string[]> {
+  try {
+    const { data, error } = await supabaseAdmin.rpc("enum_values", {
+      enum_name: enumName,
+      schema_name: "public",
+    });
+    if (error) throw error;
+    if (!Array.isArray(data)) throw new Error("Respuesta invÃ¡lida");
+    const values = (data as string[])
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter((value) => value.length > 0);
+    if (values.length === 0) throw new Error("Enum sin valores");
+    return values;
+  } catch (error) {
+    console.warn("[memberships] enum_values fallback", enumName, error);
+    return [...fallback];
+  }
+}
+
 // Usamos espanol en la UI, pero alineamos los valores a la DB en SSR
 export type PlanEstatus = "Activo" | "Inactivo";
 
@@ -30,12 +51,14 @@ export type PlanListRow = {
   description: string | null;
   price: number;
   currency: string;
-  classCount: number;
+  classCount: number | null;
   validityDays: number | null;
   privileges: string | null;
   status: PlanEstatus;
   activePurchases: number;
   updatedAt: string | null;
+  category: string;
+  appOnly: boolean;
 };
 
 type PlanTypeRow = Tables<"plan_types">;
@@ -43,6 +66,7 @@ type PlanPurchaseRow = Pick<Tables<"plan_purchases">, "plan_type_id" | "status">
 
 export type PageProps = {
   initialPlanes: PlanListRow[];
+  categoryOptions: string[];
 };
 
 // ================= Helpers =================
@@ -66,22 +90,24 @@ function mapPlan(row: PlanTypeRow, activeCount: number): PlanListRow {
     description: row.description ?? null,
     price: Number(row.price ?? 0),
     currency: row.currency ?? "MXN",
-    classCount: Number(row.class_count ?? 0),
+    classCount: row.class_count === null ? null : Number(row.class_count ?? 0),
     validityDays: row.validity_days ?? null,
     privileges: row.privileges ?? null,
     status: row.is_active ? "Activo" : "Inactivo",
     activePurchases: activeCount,
     updatedAt: row.updated_at ?? row.created_at ?? null,
+    category: row.category,
+    appOnly: Boolean(row.app_only),
   };
 }
 
 // ================= SSR =================
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const [planTypesResp, planPurchasesResp] = await Promise.all([
+  const [planTypesResp, planPurchasesResp, categoryOptions] = await Promise.all([
     supabaseAdmin
       .from("plan_types")
       .select(
-        `id, name, description, price, currency, class_count, validity_days, privileges, is_active, updated_at, created_at`
+        `id, name, description, price, currency, class_count, validity_days, privileges, is_active, updated_at, created_at, category, app_only`
       )
       .order("created_at", { ascending: false })
       .returns<PlanTypeRow[]>(),
@@ -89,6 +115,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       .from("plan_purchases")
       .select("plan_type_id, status")
       .returns<PlanPurchaseRow[]>(),
+    loadEnumOptions("category", FALLBACK_PLAN_CATEGORIES),
   ]);
 
   if (planTypesResp.error) throw planTypesResp.error;
@@ -106,12 +133,12 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     mapPlan(row, activeCounts.get(row.id) ?? 0)
   );
 
-  return { props: { initialPlanes } };
+  return { props: { initialPlanes, categoryOptions } };
 };
 
 // ================= Page =================
 export default function AdminMembershipsPage(
-  { initialPlanes }: InferGetServerSidePropsType<typeof getServerSideProps>
+  { initialPlanes, categoryOptions }: InferGetServerSidePropsType<typeof getServerSideProps>
 ) {
   const [plans, setPlans] = useState<PlanListRow[]>(initialPlanes);
   const [statusFilter, setStatusFilter] = useState<"all" | PlanEstatus>("all");
@@ -128,6 +155,8 @@ export default function AdminMembershipsPage(
     validityDays: string;
     privileges: string;
     isActive: boolean;
+    category: string;
+    appOnly: boolean;
   };
 
   const DEFAULT_FORM: FormState = {
@@ -139,6 +168,8 @@ export default function AdminMembershipsPage(
     validityDays: "",
     privileges: "",
     isActive: true,
+    category: categoryOptions[0] ?? "",
+    appOnly: false,
   };
 
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
@@ -190,9 +221,14 @@ export default function AdminMembershipsPage(
       if (!Number.isFinite(numericPrice) || numericPrice < 0)
         throw new Error("El precio debe ser un numero positivo");
 
-      const classCountValue = Number(formState.classCount);
-      if (!Number.isInteger(classCountValue) || classCountValue <= 0)
-        throw new Error("El numero de sesiones debe ser un entero positivo");
+      let classCountValue: number | null = null;
+      if (formState.classCount.trim()) {
+        const parsed = Number(formState.classCount);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          throw new Error("El numero de sesiones debe ser un entero positivo o deja el campo vacio para plan ilimitado");
+        }
+        classCountValue = parsed;
+      }
 
       let validityDaysValue: number | null = null;
       if (formState.validityDays.trim()) {
@@ -201,6 +237,11 @@ export default function AdminMembershipsPage(
           throw new Error("La vigencia debe ser un entero positivo");
         }
         validityDaysValue = candidate;
+      }
+
+      const trimmedCategory = formState.category.trim();
+      if (!trimmedCategory) {
+        throw new Error("Debes seleccionar una categoria");
       }
 
       const payload = {
@@ -212,6 +253,8 @@ export default function AdminMembershipsPage(
         validityDays: validityDaysValue,
         privileges: formState.privileges.trim() || null,
         isActive: formState.isActive,
+        category: trimmedCategory,
+        appOnly: formState.appOnly,
       };
 
       const res = await fetch("/api/plan-types", {
@@ -297,7 +340,7 @@ export default function AdminMembershipsPage(
             <div>
               <h2 className="text-xl font-semibold text-slate-800">Planes</h2>
               <p className="text-sm text-slate-500">
-                Controla precio, sesiones incluidas, vigencia y estado de cada plan.
+                Controla precio, categoria, vigencia y restricciones de cada plan.
               </p>
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-500">
@@ -327,9 +370,11 @@ export default function AdminMembershipsPage(
                 ) : (
                   filteredPlanes.map((plan) => {
                     const detailTokens = [
-                      plan.classCount ? `${plan.classCount} sesiones` : null,
-                      plan.validityDays ? `${plan.validityDays} días de vigencia` : null,
-                    ].filter(Boolean) as string[];
+                      plan.classCount === null ? "Ilimitado" : `${plan.classCount} sesiones`,
+                      plan.validityDays ? `${plan.validityDays} dias de vigencia` : null,
+                      `Categoria: ${plan.category}`,
+                      plan.appOnly ? "Solo app" : null,
+                    ].filter((token): token is string => Boolean(token));
 
                     return (
                       <tr key={plan.id} className="border-t border-slate-200 hover:bg-slate-50">
@@ -344,7 +389,7 @@ export default function AdminMembershipsPage(
                           {plan.price ? formatCurrency(plan.price, plan.currency) : "Gratis"}
                         </td>
                         <td className="px-6 py-4 text-slate-700">
-                          {detailTokens.length > 0 ? detailTokens.join(" · ") : "Sin sesiones definidas"}
+                          {detailTokens.length > 0 ? detailTokens.join(" | ") : "Configuracion pendiente"}
                         </td>
                         <td className="px-6 py-4 text-slate-700">{plan.activePurchases}</td>
                         <td className="px-6 py-4">
@@ -371,7 +416,7 @@ export default function AdminMembershipsPage(
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
-                          {plan.updatedAt ? dayjs(plan.updatedAt).format("DD MMM YYYY") : "—"}
+                          {plan.updatedAt ? dayjs(plan.updatedAt).format("DD MMM YYYY") : "â€”"}
                         </td>
                       </tr>
                     );
@@ -385,7 +430,7 @@ export default function AdminMembershipsPage(
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-semibold">Crear plan</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Define precio, sesiones incluidas, vigencia y privilegios para un nuevo plan.
+            Define precio, vigencia, categoria y si el plan es ilimitado o exclusivo para reservas desde la app.
           </p>
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <div>
@@ -438,6 +483,39 @@ export default function AdminMembershipsPage(
                   placeholder="Ej. 10"
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                 />
+                <p className="mt-1 text-xs text-slate-400">Deja el campo vacio para un plan ilimitado.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium text-slate-600">Categoria</label>
+                <select
+                  value={formState.category}
+                  onChange={handleChange("category")}
+                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                >
+                  {categoryOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <div>
+                  <span className="font-medium text-slate-600">Solo desde la app</span>
+                  <p className="text-xs text-slate-500">La recepcion no podra reservar con este plan.</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={formState.appOnly}
+                    onChange={handleChange("appOnly")}
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
+                  <span className="absolute left-0 top-0 ml-1 mt-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />
+                </label>
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthContext";
@@ -22,9 +22,11 @@ type DashboardPlan = {
   status: string;
   startDate: string;
   expiresAt: string | null;
-  initialClasses: number;
-  remainingClasses: number;
+  initialClasses: number | null;
+  remainingClasses: number | null;
   modality: string;
+  isUnlimited: boolean;
+  category: string | null;
 };
 
 type DashboardResponse = {
@@ -77,7 +79,7 @@ export default function MyReservationsPage() {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "Ocurrió un error inesperado";
+        const message = error instanceof Error ? error.message : "OcurriÃ³ un error inesperado";
         setState({ status: "error", message });
       });
 
@@ -86,14 +88,21 @@ export default function MyReservationsPage() {
 
   const metrics = useMemo(() => {
     if (state.status !== "loaded") {
-      return { activePlanCount: 0, remainingClasses: 0 };
+      return { activePlanCount: 0, remainingClasses: 0, hasUnlimited: false };
     }
 
     const activePlans = state.data.plans.filter((plan) => plan.status === "ACTIVE");
-    const remainingClasses = activePlans
-      .filter((plan) => plan.modality !== "FIXED")
-      .reduce((acc, plan) => acc + Math.max(0, plan.remainingClasses ?? 0), 0);
-    return { activePlanCount: activePlans.length, remainingClasses };
+    const nonFixed = activePlans.filter((plan) => plan.modality !== "FIXED");
+    const hasUnlimited = nonFixed.some((plan) => plan.isUnlimited);
+    const remainingClasses = hasUnlimited
+      ? null
+      : nonFixed.reduce((acc, plan) => acc + Math.max(0, plan.remainingClasses ?? 0), 0);
+
+    return {
+      activePlanCount: activePlans.length,
+      remainingClasses: hasUnlimited ? null : remainingClasses ?? 0,
+      hasUnlimited,
+    };
   }, [state]);
 
   const todayLabel = useMemo(
@@ -113,13 +122,13 @@ export default function MyReservationsPage() {
   if (state.status === "unauthenticated") {
     content = (
       <p className="text-sm text-neutral-600">
-        Inicia sesión para consultar tus reservas y tus planes activos.
+        Inicia sesiÃ³n para consultar tus reservas y tus planes activos.
       </p>
     );
   } else if (state.status === "loading" || state.status === "idle") {
     content = (
       <p className="text-sm text-neutral-500 animate-pulse">
-        Cargando tu información...
+        Cargando tu informaciÃ³n...
       </p>
     );
   } else if (state.status === "error") {
@@ -153,7 +162,7 @@ export default function MyReservationsPage() {
             <div>
               <p className="text-xs uppercase tracking-wide text-neutral-400">Clases disponibles</p>
               <p className="text-lg font-semibold text-neutral-900">
-                {metrics.remainingClasses}
+                {metrics.hasUnlimited ? "Ilimitado" : metrics.remainingClasses ?? 0}
               </p>
             </div>
           </div>
@@ -161,7 +170,7 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Próximas clases</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">PrÃ³ximas clases</h2>
             <span className="text-xs text-neutral-500">
               {upcomingBookings.length} {upcomingBookings.length === 1 ? "reserva" : "reservas"}
             </span>
@@ -169,7 +178,7 @@ export default function MyReservationsPage() {
 
           {upcomingBookings.length === 0 ? (
             <p className="text-sm text-neutral-500">
-              Aún no tienes clases agendadas. Explora el horario para reservar.
+              AÃºn no tienes clases agendadas. Explora el horario para reservar.
             </p>
           ) : (
             <div className="space-y-3">
@@ -182,7 +191,7 @@ export default function MyReservationsPage() {
                   <p className="text-sm font-semibold text-neutral-900">{booking.classType}</p>
                   <p className="text-xs text-neutral-500">
                     {booking.startLabel}
-                    {booking.room ? ` · ${booking.room}` : ""}
+                    {booking.room ? ` Â· ${booking.room}` : ""}
                   </p>
                   <p className="text-xs text-neutral-500">
                     {booking.instructor}
@@ -212,17 +221,23 @@ export default function MyReservationsPage() {
 
           {plans.length === 0 ? (
             <p className="text-sm text-neutral-500">
-              No encontramos planes asociados a tu cuenta. Ponte en contacto con recepción si esperabas ver uno.
+              No encontramos planes asociados a tu cuenta. Ponte en contacto con recepciÃ³n si esperabas ver uno.
             </p>
           ) : (
             <div className="space-y-3">
               {plans.map((plan) => {
                 const isFixed = plan.modality === "FIXED";
-                const used = Math.max(0, plan.initialClasses - plan.remainingClasses);
-                const ratio =
-                  !isFixed && plan.initialClasses > 0
-                    ? Math.min(100, Math.round((plan.remainingClasses / plan.initialClasses) * 100))
-                    : 100;
+                const isUnlimited = !isFixed && plan.isUnlimited;
+                const totalClasses = plan.initialClasses ?? 0;
+                const remaining = plan.remainingClasses ?? 0;
+                const used = isUnlimited ? 0 : Math.max(0, totalClasses - remaining);
+                const ratio = isFixed
+                  ? 100
+                  : isUnlimited
+                    ? 100
+                    : totalClasses > 0
+                      ? Math.min(100, Math.round((remaining / totalClasses) * 100))
+                      : 100;
                 const expiresLabel = plan.expiresAt
                   ? `Vence el ${new Intl.DateTimeFormat("es-MX", {
                       day: "2-digit",
@@ -243,7 +258,7 @@ export default function MyReservationsPage() {
                         <p className="text-xs text-neutral-500">{expiresLabel}</p>
                         {isFixed && (
                           <p className="text-xs text-neutral-500">
-                            Modalidad fija: {plan.initialClasses} sesiones asignadas
+                            Modalidad fija: {(plan.initialClasses ?? 0)} sesiones asignadas
                           </p>
                         )}
                       </div>
@@ -260,8 +275,8 @@ export default function MyReservationsPage() {
                     ) : (
                       <div className="mt-3 space-y-1.5">
                         <div className="flex items-center justify-between text-xs text-neutral-600">
-                          <span>Usadas: {used}</span>
-                          <span>Restantes: {plan.remainingClasses}</span>
+                          <span>Usadas: {isUnlimited ? "Ilimitado" : used}</span>
+                          <span>Disponibles: {isUnlimited ? "Ilimitado" : remaining}</span>
                         </div>
                         <div className="h-2 w-full rounded-full bg-neutral-100">
                           <div
@@ -290,7 +305,7 @@ export default function MyReservationsPage() {
         <div className="space-y-1">
           <h1 className="text-2xl font-bold text-neutral-900">Mis reservas</h1>
           <p className="text-sm text-neutral-500">
-            Consulta tus clases agendadas y los créditos disponibles en tus planes.
+            Consulta tus clases agendadas y los crÃ©ditos disponibles en tus planes.
           </p>
         </div>
         {content}
@@ -299,3 +314,8 @@ export default function MyReservationsPage() {
     </>
   );
 }
+
+
+
+
+

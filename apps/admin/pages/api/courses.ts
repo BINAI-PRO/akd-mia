@@ -38,7 +38,7 @@ type NormalizedPayload = {
   currency: string;
   durationLabel: string | null;
   level: string | null;
-  category: string | null;
+  category: string;
   sessionCount: number;
   sessionDuration: number;
   visibility: string;
@@ -88,6 +88,10 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
     throw new Error("Debes seleccionar un tipo de curso");
   }
 
+  if (!input.category || input.category.trim().length === 0) {
+    throw new Error("Debes seleccionar una categoria");
+  }
+
   return {
     title: input.title.trim(),
     description: input.description ?? null,
@@ -96,7 +100,7 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
     currency: (input.currency ?? "MXN").toUpperCase(),
     durationLabel: input.durationLabel ?? null,
     level: input.level ?? null,
-    category: input.category ?? null,
+    category: input.category.trim(),
     sessionCount: Math.trunc(parsedSessionCount),
     sessionDuration: Math.trunc(parsedSessionDuration),
     visibility: (input.visibility ?? "PUBLIC").toUpperCase(),

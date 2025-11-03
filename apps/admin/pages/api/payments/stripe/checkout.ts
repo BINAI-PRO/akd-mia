@@ -41,11 +41,12 @@ function buildMetadata(prepared: PlanPurchasePrepared) {
     modality: prepared.modality,
     startIso: prepared.startIso,
     expiresAt: prepared.expiresAt ?? "",
-    initialClasses: prepared.initialClasses.toString(),
+    initialClasses: prepared.initialClasses === null ? "ILIMITADO" : prepared.initialClasses.toString(),
     courseId: prepared.courseId ?? "",
     notes: truncate(prepared.notes),
     expectedAmount: prepared.planType.price !== null ? String(prepared.planType.price) : "",
     currency: prepared.planType.currency ?? "MXN",
+    planCategory: prepared.planType.category,
   };
 }
 

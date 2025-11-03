@@ -3,7 +3,10 @@ import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
-type PlanTypeRow = Pick<Tables<"plan_types">, "id" | "name" | "class_count" | "price" | "currency" | "validity_days"> & {
+type PlanTypeRow = Pick<
+  Tables<"plan_types">,
+  "id" | "name" | "class_count" | "price" | "currency" | "validity_days" | "category" | "app_only"
+> & {
   privileges?: string | null;
 };
 
@@ -33,7 +36,7 @@ export type PlanPurchasePrepared = {
   notes?: string | null;
   startIso: string;
   expiresAt: string | null;
-  initialClasses: number;
+  initialClasses: number | null;
 };
 
 export type PlanPaymentPayload = {
@@ -201,7 +204,7 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
 
   const { data: planType, error: planTypeError } = await supabaseAdmin
     .from("plan_types")
-    .select("id, name, class_count, price, currency, validity_days, privileges")
+    .select("id, name, class_count, price, currency, validity_days, privileges, category, app_only")
     .eq("id", planTypeId)
     .single<PlanTypeRow>();
 
@@ -224,9 +227,14 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
     expiresAt = startReference.startOf("day").add(planType.validity_days, "day").format("YYYY-MM-DD");
   }
 
-  const initialClasses = Number(planType.class_count ?? 0);
-  if (!Number.isFinite(initialClasses) || initialClasses <= 0) {
-    throw Object.assign(new Error("El plan seleccionado no tiene clases configuradas"), { status: 400 });
+  const initialClasses =
+    planType.class_count === null ? null : Number(planType.class_count ?? 0);
+  if (initialClasses !== null) {
+    if (!Number.isFinite(initialClasses) || initialClasses <= 0) {
+      throw Object.assign(new Error("El plan seleccionado no tiene clases configuradas"), { status: 400 });
+    }
+  } else if (modality === "FIXED") {
+    throw Object.assign(new Error("Los planes fijos requieren una cantidad de clases"), { status: 400 });
   }
 
   return {
@@ -289,7 +297,7 @@ export async function commitPlanPurchase(
     throw Object.assign(new Error("No se pudo registrar la compra del plan"), { status: 500 });
   }
 
-  if (modality === "FIXED" && courseId) {
+  if (modality === "FIXED" && courseId && initialClasses !== null) {
     try {
       await generateFixedPlanBookings({
         planPurchaseId: purchase.id,

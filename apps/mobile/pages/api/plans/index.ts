@@ -16,6 +16,8 @@ type PlanTypeRow = {
   class_count: number | null;
   validity_days: number | null;
   privileges: string | null;
+  category: string;
+  app_only: boolean | null;
 };
 
 type PlanPurchaseRow = {
@@ -26,7 +28,7 @@ type PlanPurchaseRow = {
   initial_classes: number | null;
   remaining_classes: number | null;
   modality: string | null;
-  plan_types: { name: string | null; currency: string | null } | null;
+  plan_types: { name: string | null; currency: string | null; category: string | null } | null;
 };
 
 type PlansResponse = {
@@ -39,6 +41,9 @@ type PlansResponse = {
     classCount: number | null;
     validityDays: number | null;
     privileges: string | null;
+    category: string;
+    appOnly: boolean;
+    isUnlimited: boolean;
   }>;
   activePlans: Array<{
     id: string;
@@ -46,10 +51,12 @@ type PlansResponse = {
     status: string;
     startDate: string | null;
     expiresAt: string | null;
-    initialClasses: number;
-    remainingClasses: number;
+    initialClasses: number | null;
+    remainingClasses: number | null;
+    isUnlimited: boolean;
     modality: string | null;
     currency: string | null;
+    category: string | null;
   }>;
 };
 
@@ -128,7 +135,7 @@ export default async function handler(
 
   const { data: planTypesData, error: planTypesError } = await supabaseAdmin
     .from("plan_types")
-    .select("id, name, description, price, currency, class_count, validity_days, privileges")
+    .select("id, name, description, price, currency, class_count, validity_days, privileges, category, app_only")
     .order("price", { ascending: true })
     .returns<PlanTypeRow[]>();
 
@@ -140,7 +147,7 @@ export default async function handler(
     .from("plan_purchases")
     .select(
       `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
-       plan_types ( name, currency )`
+       plan_types ( name, currency, category )`
     )
     .eq("client_id", clientId)
     .order("start_date", { ascending: false })
@@ -159,6 +166,9 @@ export default async function handler(
     classCount: plan.class_count,
     validityDays: plan.validity_days,
     privileges: plan.privileges,
+    category: plan.category,
+    appOnly: Boolean(plan.app_only),
+    isUnlimited: plan.class_count === null,
   }));
 
   const activePlans = (planPurchasesData ?? []).map((plan) => ({
@@ -167,11 +177,16 @@ export default async function handler(
     status: plan.status ?? "UNKNOWN",
     startDate: plan.start_date,
     expiresAt: plan.expires_at,
-    initialClasses: plan.initial_classes ?? 0,
-    remainingClasses: plan.remaining_classes ?? 0,
+    initialClasses: plan.initial_classes,
+    remainingClasses: plan.remaining_classes,
+    isUnlimited: plan.initial_classes === null,
     modality: plan.modality ?? null,
     currency: plan.plan_types?.currency ?? null,
+    category: plan.plan_types?.category ?? null,
   }));
 
   return res.status(200).json({ planTypes, activePlans });
 }
+
+
+

@@ -140,7 +140,16 @@ export default async function handler(
     return res.status(status).json({ error: message });
   }
 
-  const stripe = getStripeClient();
+  let stripe: ReturnType<typeof getStripeClient>;
+  try {
+    stripe = getStripeClient();
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Configuracion de Stripe incompleta";
+    return res.status(500).json({ error: message });
+  }
 
   const successUrl = resolveUrl(
     undefined,
@@ -174,10 +183,11 @@ export default async function handler(
         modality: prepared.modality,
         startIso: prepared.startIso,
         expiresAt: prepared.expiresAt ?? "",
-        initialClasses: String(prepared.initialClasses),
+        initialClasses: prepared.initialClasses === null ? "ILIMITADO" : String(prepared.initialClasses),
         notes: truncate(notes),
         currency: prepared.planType.currency ?? "MXN",
         expectedAmount: prepared.planType.price !== null ? String(prepared.planType.price) : "",
+        planCategory: prepared.planType.category,
       },
       payment_intent_data: {
         metadata: {
