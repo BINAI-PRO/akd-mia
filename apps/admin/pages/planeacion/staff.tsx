@@ -51,6 +51,35 @@ const normalizeRole = (value: unknown): string | null => {
   return trimmed.toUpperCase();
 };
 
+const collectRoleCandidates = (source: unknown): string[] => {
+  if (!source || typeof source !== "object") return [];
+  const roles: string[] = [];
+
+  const pushCandidate = (value: unknown) => {
+    if (typeof value === "string") {
+      const normalized = normalizeRole(value);
+      if (normalized) roles.push(normalized);
+    } else if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (typeof entry === "string") {
+          const normalized = normalizeRole(entry);
+          if (normalized) roles.push(normalized);
+        }
+      });
+    }
+  };
+
+  const record = source as Record<string, unknown>;
+  pushCandidate(record.role);
+  pushCandidate(record.roles);
+  pushCandidate(record.staff_role);
+  pushCandidate(record.staff_roles);
+  pushCandidate(record.admin_role);
+  pushCandidate(record.admin_roles);
+
+  return roles;
+};
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = createSupabaseServerClient(ctx);
   const {
@@ -77,14 +106,20 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   const normalizedSlug = normalizeRole(requesterSlug);
 
   const sessionUser = session.user;
-  const metadataRole = normalizeRole((sessionUser.user_metadata as Record<string, unknown> | undefined)?.role);
-  const appMetadataRole = normalizeRole((sessionUser.app_metadata as Record<string, unknown> | undefined)?.role);
+  const metadataRoles = collectRoleCandidates(sessionUser.user_metadata ?? null);
+  const appMetadataRoles = collectRoleCandidates(sessionUser.app_metadata ?? null);
 
-  const hasMetadataAccess =
-    (metadataRole && MANAGER_ROLE_SLUGS.has(metadataRole)) ||
-    (appMetadataRole && MANAGER_ROLE_SLUGS.has(appMetadataRole));
+  const roleCandidates = new Set<string>([
+    ...metadataRoles,
+    ...appMetadataRoles,
+  ]);
+  if (normalizedSlug) {
+    roleCandidates.add(normalizedSlug);
+  }
 
-  if (!normalizedSlug && !hasMetadataAccess) {
+  const hasManagerRole = Array.from(roleCandidates).some((role) => MANAGER_ROLE_SLUGS.has(role));
+
+  if (!hasManagerRole) {
     return {
       redirect: { destination: "/", permanent: false },
     };
