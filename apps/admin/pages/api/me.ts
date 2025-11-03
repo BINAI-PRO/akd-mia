@@ -14,6 +14,7 @@ type ClientRow = Tables<"clients"> & {
 
 type StaffRow = {
   role_id: string | null;
+  full_name: string | null;
   staff_roles: { slug: string | null } | null;
 };
 
@@ -104,7 +105,7 @@ export default async function handler(
 
   const { data: staffRow, error: staffError } = await supabaseAdmin
     .from("staff")
-    .select("role_id, staff_roles ( slug )")
+    .select("role_id, full_name, staff_roles ( slug )")
     .eq("auth_user_id", session.user.id)
     .maybeSingle<StaffRow>();
 
@@ -112,7 +113,10 @@ export default async function handler(
     return res.status(500).json({ error: staffError.message });
   }
 
+  let staffFullName: string | null = null;
+
   if (staffRow) {
+    staffFullName = staffRow.full_name ?? null;
     const roleSlug =
       ((staffRow.staff_roles as { slug: string | null } | null)?.slug ?? null) ||
       null;
@@ -193,11 +197,16 @@ export default async function handler(
     }
   }
 
+  const displayFullName =
+    staffFullName ??
+    profile?.full_name ??
+    fullName;
+
   return res.status(200).json({
     profile: {
       authUserId: session.user.id,
       clientId: profile?.id ?? null,
-      fullName: profile?.full_name ?? fullName,
+      fullName: displayFullName,
       email: profile?.email ?? session.user.email ?? null,
       phone: profile?.phone ?? phone,
       avatarUrl:
