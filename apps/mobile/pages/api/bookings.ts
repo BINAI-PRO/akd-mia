@@ -315,7 +315,7 @@ async function attachPlanPurchase({
   clientId: string;
   sessionId: string;
   preferredPlanId?: string | null;
-  sessionCategory: string;
+  sessionCategory: string | null;
   isStaffActor: boolean;
 }) {
   const allocated = await allocatePlanPurchaseForBooking(
@@ -349,7 +349,23 @@ async function attachPlanPurchase({
     throw error;
   }
 
+  await syncSessionOccupancy(sessionId);
   return allocated;
+}
+
+async function syncSessionOccupancy(sessionId: string) {
+  const { count, error } = await supabaseAdmin
+    .from("bookings")
+    .select("id", { head: true, count: "exact" })
+    .eq("session_id", sessionId)
+    .neq("status", "CANCELLED");
+
+  if (error) {
+    throw new Error("No se pudo sincronizar la ocupacion de la sesion");
+  }
+
+  const occupancy = count ?? 0;
+  await supabaseAdmin.from("sessions").update({ current_occupancy: occupancy }).eq("id", sessionId);
 }
 
 async function refundPlanUsage(
@@ -381,6 +397,8 @@ async function refundPlanUsage(
       notes: "Cancelacion de reserva",
     });
   }
+
+  await syncSessionOccupancy(sessionId);
 }
 
 async function createBooking({
@@ -747,5 +765,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
-
-
