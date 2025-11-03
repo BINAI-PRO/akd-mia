@@ -2,18 +2,60 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 
 const items = [
-  { href: "/", label: "Inicio", icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-5v-6H10v6H5a2 2 0 0 1-2-2v-9z" fill="currentColor"/></svg>
-  )},
-  { href: "/schedule", label: "Reservas", icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
-  )},
-  { href: "/pricing", label: "Tienda", icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7"><path d="M6 7h12l-1 12H7L6 7z" fill="none" stroke="currentColor" strokeWidth="2"/><path d="M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="2"/></svg>
-  )},
-  { href: "/menu", label: "Men\u00FA", icon: (
-      <svg viewBox="0 0 24 24" className="w-7 h-7"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
-  )},
+  {
+    href: "/",
+    label: "Inicio",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-7 w-7">
+        <path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2h-5v-6h-4v6H5a2 2 0 0 1-2-2v-9z" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    href: "/schedule",
+    label: "Reservas",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-7 w-7">
+        <path
+          d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"
+          stroke="currentColor"
+          strokeWidth="2"
+          fill="none"
+        />
+      </svg>
+    ),
+  },
+  {
+    href: "/my/reservations",
+    label: "Mis reservas",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-7 w-7">
+        <path
+          d="M5 4h14a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path d="M8 12l2.5 2.5L16 9" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    href: "/plans",
+    label: "Planes",
+    icon: (
+      <svg viewBox="0 0 24 24" className="h-7 w-7">
+        <path
+          d="M4 7h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <path d="M4 7l2-3h12l2 3" fill="none" stroke="currentColor" strokeWidth="2" />
+        <path d="M9 12h6M9 15h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 export default function TabBar() {
