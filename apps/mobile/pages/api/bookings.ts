@@ -134,7 +134,7 @@ async function tryAllocateSpecificPlan(
   planId: string,
   clientId: string,
   today: string,
-  sessionCategory: string,
+  sessionCategory: string | null,
   isStaffActor: boolean,
   strict: boolean
 ): Promise<AllocatedPlan | null> {
@@ -179,7 +179,10 @@ async function tryAllocateSpecificPlan(
     return fail("No se pudo leer la configuracion del plan");
   }
 
-  if (!planType.category || planType.category !== sessionCategory) {
+  const matchesCategory =
+    sessionCategory === null || !planType.category || planType.category === sessionCategory;
+
+  if (!matchesCategory) {
     return fail("El plan no aplica para esta categoria");
   }
 
@@ -228,14 +231,21 @@ async function allocatePlanPurchaseForBooking(
   clientId: string,
   sessionId: string,
   preferredPlanId: string | null | undefined,
-  sessionCategory: string,
+  sessionCategory: string | null,
   isStaffActor: boolean
 ): Promise<AllocatedPlan | null> {
   const today = TODAY();
   const tried = new Set<string>();
 
   if (preferredPlanId) {
-    const preferred = await tryAllocateSpecificPlan(preferredPlanId, clientId, today, sessionCategory, isStaffActor, true);
+    const preferred = await tryAllocateSpecificPlan(
+      preferredPlanId,
+      clientId,
+      today,
+      sessionCategory,
+      isStaffActor,
+      true
+    );
     if (preferred) return preferred;
     tried.add(preferredPlanId);
   }
@@ -262,7 +272,10 @@ async function allocatePlanPurchaseForBooking(
     const optionUnlimited = option.plan_types?.class_count === null;
     const optionRemaining = option.remaining_classes ?? 0;
 
-    if (!optionCategory || optionCategory !== sessionCategory) {
+    const optionMatchesCategory =
+      sessionCategory === null || !optionCategory || optionCategory === sessionCategory;
+
+    if (!optionMatchesCategory) {
       tried.add(optionId);
       continue;
     }
@@ -386,11 +399,7 @@ async function createBooking({
     throw Object.assign(new Error("Session not found"), { status: 404 });
   }
 
-  if (!session.category) {
-    throw Object.assign(new Error("La sesion no tiene categoria configurada"), { status: 500 });
-  }
-
-  const sessionCategory = session.category;
+  const sessionCategory = session.category ?? null;
   const isStaffActor = Boolean(actors.actorStaffId || actors.actorInstructorId);
 
   const windowCheck = await ensureBookingWindow(session);
@@ -736,4 +745,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
+
 
