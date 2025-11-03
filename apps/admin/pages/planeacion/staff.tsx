@@ -42,6 +42,8 @@ type StaffSelfRow = {
   staff_roles: { slug: string | null } | null;
 };
 
+const MANAGER_ROLE_SLUGS = new Set(["MASTER", "LOCATION_MANAGER", "SUPPORT"]);
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = createSupabaseServerClient(ctx);
   const {
@@ -65,7 +67,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   }
 
   const requesterSlug = requester?.staff_roles?.slug ?? null;
-  if (!requesterSlug || requesterSlug.toUpperCase() !== "MASTER") {
+  const normalizedSlug = requesterSlug ? requesterSlug.toUpperCase() : null;
+
+  if (!normalizedSlug || !MANAGER_ROLE_SLUGS.has(normalizedSlug)) {
     return {
       redirect: { destination: "/", permanent: false },
     };
