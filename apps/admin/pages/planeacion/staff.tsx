@@ -121,7 +121,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 
   if (!hasManagerRole) {
     return {
-      redirect: { destination: "/", permanent: false },
+      redirect: { destination: "/?accessDenied=staff", permanent: false },
     };
   }
 

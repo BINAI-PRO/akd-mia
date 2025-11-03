@@ -1,5 +1,5 @@
 ﻿
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
@@ -10,6 +10,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
+import { useRouter } from "next/router";
 
 dayjs.extend(utc);
 
@@ -218,6 +219,26 @@ export default function AdminDashboardPage({
   recentPayments,
   referralUrl,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const router = useRouter();
+  const [accessDeniedOpen, setAccessDeniedOpen] = useState(false);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const param = router.query.accessDenied;
+    const hasParam = Array.isArray(param) ? param.length > 0 : Boolean(param);
+    setAccessDeniedOpen(hasParam);
+  }, [router.isReady, router.query.accessDenied]);
+
+  const dismissAccessDenied = useCallback(() => {
+    setAccessDeniedOpen(false);
+    if (!router.isReady || !router.query.accessDenied) {
+      return;
+    }
+    const params = { ...router.query };
+    delete params.accessDenied;
+    void router.replace({ pathname: router.pathname, query: params }, undefined, { shallow: true });
+  }, [router]);
+
   const [detailSessionId, setDetailSessionId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
@@ -464,6 +485,25 @@ export default function AdminDashboardPage({
         </section>
       </div>
       <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
+      {accessDeniedOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50">
+          <div className="w-full max-w-sm rounded-lg bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900">Acceso restringido</h3>
+            <p className="mt-3 text-sm text-slate-600">
+              Función restringida por accesos de tipo de usuario.
+            </p>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={dismissAccessDenied}
+                className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AdminLayout>
   );
 }
