@@ -1,4 +1,4 @@
-import type { Tables } from "@/types/database";
+﻿import type { Tables } from "@/types/database";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
@@ -46,7 +46,7 @@ type CourseQueryRow = Tables<"courses"> & {
   rooms?: { id: string; name: string | null } | null;
 };
 
-// Nombres de propiedades en español para la UI, mapeados desde snake_case de la DB
+// Nombres de propiedades en espaÃ±ol para la UI, mapeados desde snake_case de la DB
 export type CourseRow = {
   id: string;
   title: string;
@@ -1094,3 +1094,4 @@ function CourseEstadoBadge({ Estado }: { Estado: CourseEstado }) {
     </span>
   );
 }
+

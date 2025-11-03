@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -1126,6 +1126,7 @@ export default function CourseSchedulerPage({
     </AdminLayout>
   );
 }
+
 
 
 

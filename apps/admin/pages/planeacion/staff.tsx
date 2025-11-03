@@ -1,4 +1,4 @@
-import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
+﻿import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
 import Head from "next/head";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -112,9 +112,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 };
 
 function formatDate(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "â€”";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "â€”";
   return date.toLocaleString("es-MX", {
     year: "numeric",
     month: "short",
@@ -367,7 +367,7 @@ export default function StaffManagementPage({
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{member.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-700">{member.email ?? "â€”"}</td>
                     <td className="px-4 py-3">
                       <select
                         value={member.roleSlug ?? ""}
@@ -405,3 +405,4 @@ export default function StaffManagementPage({
     </AdminLayout>
   );
 }
+

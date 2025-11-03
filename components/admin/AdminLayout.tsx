@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -334,3 +334,4 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import Head from "next/head";
+ï»¿import Head from "next/head";
 import { useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -28,7 +28,7 @@ type FormState = {
 const INTENSITY_OPTIONS = ["LEVE", "MEDIA", "ALTA", "MEDIA A ALTA", "MULTINIVEL"] as const;
 
 const pretty = (value: string | null | undefined) => {
-  if (!value) return "—";
+  if (!value) return "â€”";
   return value
     .split(" ")
     .map((token) => (token ? token[0].toUpperCase() + token.slice(1).toLowerCase() : token))
@@ -170,7 +170,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   type="search"
                   value={filters.search}
                   onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-                  placeholder="Buscar por nombre o descripción"
+                  placeholder="Buscar por nombre o descripciÃ³n"
                   className="h-10 w-60 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
                 <select
@@ -190,7 +190,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   onChange={(event) => setFilters((prev) => ({ ...prev, target: event.target.value }))}
                   className="h-10 rounded-md border border-slate-200 px-3 py-2 text-sm"
                 >
-                  <option value="all">Todos los públicos</option>
+                  <option value="all">Todos los pÃºblicos</option>
                   {targetOptions.map((option) => (
                     <option key={option} value={option}>
                       {pretty(option)}
@@ -224,7 +224,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                       <div>
                         <h2 className="text-base font-semibold text-slate-800">{item.name}</h2>
                         <p className="text-xs text-slate-500">
-                          Registrada {item.createdAt ? dayjs(item.createdAt).format("DD MMM YYYY") : "—"}
+                          Registrada {item.createdAt ? dayjs(item.createdAt).format("DD MMM YYYY") : "â€”"}
                         </p>
                       </div>
                       {item.intensity && (
@@ -258,7 +258,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   type="text"
                   value={formState.name}
                   onChange={handleFormChange("name")}
-                  placeholder="Ej. Reformer Básico"
+                  placeholder="Ej. Reformer BÃ¡sico"
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   required
                 />
@@ -278,7 +278,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-600">Descripción</span>
+                <span className="text-xs font-medium text-slate-600">DescripciÃ³n</span>
                 <textarea
                   value={formState.description}
                   onChange={handleFormChange("description")}
@@ -317,6 +317,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     </AdminLayout>
   );
 }
+
 
 
 
