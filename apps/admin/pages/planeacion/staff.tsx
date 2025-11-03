@@ -44,6 +44,13 @@ type StaffSelfRow = {
 
 const MANAGER_ROLE_SLUGS = new Set(["MASTER", "LOCATION_MANAGER", "SUPPORT"]);
 
+const normalizeRole = (value: unknown): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.toUpperCase();
+};
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = createSupabaseServerClient(ctx);
   const {
@@ -67,9 +74,17 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
   }
 
   const requesterSlug = requester?.staff_roles?.slug ?? null;
-  const normalizedSlug = requesterSlug ? requesterSlug.toUpperCase() : null;
+  const normalizedSlug = normalizeRole(requesterSlug);
 
-  if (!normalizedSlug || !MANAGER_ROLE_SLUGS.has(normalizedSlug)) {
+  const sessionUser = session.user;
+  const metadataRole = normalizeRole((sessionUser.user_metadata as Record<string, unknown> | undefined)?.role);
+  const appMetadataRole = normalizeRole((sessionUser.app_metadata as Record<string, unknown> | undefined)?.role);
+
+  const hasMetadataAccess =
+    (metadataRole && MANAGER_ROLE_SLUGS.has(metadataRole)) ||
+    (appMetadataRole && MANAGER_ROLE_SLUGS.has(appMetadataRole));
+
+  if (!normalizedSlug && !hasMetadataAccess) {
     return {
       redirect: { destination: "/", permanent: false },
     };
