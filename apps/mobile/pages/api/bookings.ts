@@ -365,7 +365,14 @@ async function syncSessionOccupancy(sessionId: string) {
   }
 
   const occupancy = count ?? 0;
-  await supabaseAdmin.from("sessions").update({ current_occupancy: occupancy }).eq("id", sessionId);
+  const { error: updateError } = await supabaseAdmin
+    .from("sessions")
+    .update({ current_occupancy: occupancy })
+    .eq("id", sessionId);
+
+  if (updateError) {
+    throw new Error("No se pudo actualizar la ocupacion de la sesion");
+  }
 }
 
 async function refundPlanUsage(
@@ -765,3 +772,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
+

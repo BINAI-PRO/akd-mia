@@ -14,8 +14,8 @@ type PlanTypeRow = {
   class_count: number | null;
   validity_days: number | null;
   privileges: string | null;
-  category: string;
-  app_only: boolean | null;
+  category?: string | null;
+  app_only?: boolean | null;
 };
 
 type PlanPurchaseRow = {
@@ -26,7 +26,7 @@ type PlanPurchaseRow = {
   initial_classes: number | null;
   remaining_classes: number | null;
   modality: string | null;
-  plan_types: { name: string | null; currency: string | null; category: string | null } | null;
+  plan_types: { name: string | null; currency: string | null; category?: string | null } | null;
 };
 
 type PlansResponse = {
@@ -58,6 +58,40 @@ type PlansResponse = {
   }>;
   membership: MembershipSummary | null;
 };
+
+function columnMissing(error: unknown, column: string) {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const lower = message.toLowerCase();
+  return lower.includes("column") && lower.includes(column.toLowerCase()) && lower.includes("does not exist");
+}
+
+async function loadPlanTypes(includeExtras: boolean) {
+  const columns = includeExtras
+    ? "id, name, description, price, currency, class_count, validity_days, privileges, category, app_only"
+    : "id, name, description, price, currency, class_count, validity_days, privileges";
+
+  return supabaseAdmin
+    .from("plan_types")
+    .select(columns)
+    .order("price", { ascending: true })
+    .returns<PlanTypeRow[]>();
+}
+
+async function loadPlanPurchases(clientId: string, includeCategory: boolean) {
+  const columns = includeCategory
+    ? `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
+       plan_types ( name, currency, category )`
+    : `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
+       plan_types ( name, currency )`;
+
+  return supabaseAdmin
+    .from("plan_purchases")
+    .select(columns)
+    .eq("client_id", clientId)
+    .order("start_date", { ascending: false })
+    .returns<PlanPurchaseRow[]>();
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -132,25 +166,19 @@ export default async function handler(
     return res.status(404).json({ error: "Client profile not found" });
   }
 
-  const { data: planTypesData, error: planTypesError } = await supabaseAdmin
-    .from("plan_types")
-    .select("id, name, description, price, currency, class_count, validity_days, privileges, category, app_only")
-    .order("price", { ascending: true })
-    .returns<PlanTypeRow[]>();
+  let { data: planTypesData, error: planTypesError } = await loadPlanTypes(true);
+  if (planTypesError && (columnMissing(planTypesError, "category") || columnMissing(planTypesError, "app_only"))) {
+    ({ data: planTypesData, error: planTypesError } = await loadPlanTypes(false));
+  }
 
   if (planTypesError) {
     return res.status(500).json({ error: planTypesError.message });
   }
 
-  const { data: planPurchasesData, error: planPurchasesError } = await supabaseAdmin
-    .from("plan_purchases")
-    .select(
-      `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
-       plan_types ( name, currency, category )`
-    )
-    .eq("client_id", clientId)
-    .order("start_date", { ascending: false })
-    .returns<PlanPurchaseRow[]>();
+  let { data: planPurchasesData, error: planPurchasesError } = await loadPlanPurchases(clientId, true);
+  if (planPurchasesError && columnMissing(planPurchasesError, "category")) {
+    ({ data: planPurchasesData, error: planPurchasesError } = await loadPlanPurchases(clientId, false));
+  }
 
   if (planPurchasesError) {
     return res.status(500).json({ error: planPurchasesError.message });
@@ -194,6 +222,7 @@ export default async function handler(
 
   return res.status(200).json({ planTypes, activePlans, membership });
 }
+
 
 
 

@@ -1,11 +1,12 @@
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
+type MembershipTypeRow = Pick<Tables<"membership_types">, "id" | "name" | "price" | "currency"> & {
+  category?: string | null;
+};
+
 type MembershipRow = Tables<"memberships"> & {
-  membership_types?: Pick<
-    Tables<"membership_types">,
-    "id" | "name" | "price" | "currency" | "category"
-  > | null;
+  membership_types?: MembershipTypeRow | null;
 };
 
 export type MembershipSummary = {
@@ -39,18 +40,36 @@ const statusPriority = (status: string | null | undefined) => {
   }
 };
 
-export async function fetchMembershipSummary(
-  clientId: string
-): Promise<MembershipSummary | null> {
-  const { data, error } = await supabaseAdmin
-    .from("memberships")
-    .select(
-      `id, status, start_date, end_date, next_billing_date, auto_renew,
+function isMissingCategoryColumn(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const lower = message.toLowerCase();
+  return lower.includes("column") && lower.includes("category") && lower.includes("does not exist");
+}
+
+async function loadMembershipRows(clientId: string, includeCategory: boolean) {
+  const columns = includeCategory
+    ? `id, status, start_date, end_date, next_billing_date, auto_renew,
        membership_types:membership_type_id ( id, name, price, currency, category )`
-    )
+    : `id, status, start_date, end_date, next_billing_date, auto_renew,
+       membership_types:membership_type_id ( id, name, price, currency )`;
+
+  return supabaseAdmin
+    .from("memberships")
+    .select(columns)
     .eq("client_id", clientId)
     .order("start_date", { ascending: false })
     .returns<MembershipRow[]>();
+}
+
+export async function fetchMembershipSummary(
+  clientId: string
+): Promise<MembershipSummary | null> {
+  let { data, error } = await loadMembershipRows(clientId, true);
+
+  if (error && isMissingCategoryColumn(error)) {
+    ({ data, error } = await loadMembershipRows(clientId, false));
+  }
 
   if (error) {
     throw new Error(error.message);

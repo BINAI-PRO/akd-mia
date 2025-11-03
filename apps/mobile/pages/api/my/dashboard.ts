@@ -38,6 +38,27 @@ type DashboardResponse = {
   }>;
 };
 
+function columnMissing(error: unknown, column: string) {
+  if (!error || typeof error !== "object") return false;
+  const message = "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+  const lower = message.toLowerCase();
+  return lower.includes("column") && lower.includes(column.toLowerCase()) && lower.includes("does not exist");
+}
+
+async function loadPlanPurchases(clientId: string, includeCategory: boolean) {
+  const columns = includeCategory
+    ? `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
+       plan_types ( name, category )`
+    : `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
+       plan_types ( name )`;
+
+  return supabaseAdmin
+    .from("plan_purchases")
+    .select(columns)
+    .eq("client_id", clientId)
+    .order("purchased_at", { ascending: false });
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<DashboardResponse | { error: string }>
@@ -131,14 +152,10 @@ export default async function handler(
     return res.status(500).json({ error: bookingsError.message });
   }
 
-  const { data: planData, error: plansError } = await supabaseAdmin
-    .from("plan_purchases")
-    .select(
-      `id, status, start_date, expires_at, initial_classes, remaining_classes, modality,
-       plan_types ( name, category )`
-    )
-    .eq("client_id", clientId)
-    .order("purchased_at", { ascending: false });
+  let { data: planData, error: plansError } = await loadPlanPurchases(clientId, true);
+  if (plansError && columnMissing(plansError, "category")) {
+    ({ data: planData, error: plansError } = await loadPlanPurchases(clientId, false));
+  }
 
   if (plansError) {
     return res.status(500).json({ error: plansError.message });

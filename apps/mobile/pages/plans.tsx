@@ -310,7 +310,7 @@ export default function PlansPage() {
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Categoria</dt>
-                      <dd>{plan.category}</dd>
+                      <dd>{plan.category ?? "Sin categoria"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
@@ -371,6 +371,7 @@ export default function PlansPage() {
     </>
   );
 }
+
 
 
 
