@@ -61,7 +61,7 @@ const NAVIGATION: NavItem[] = [
     icon: "edit_calendar",
     children: [
       { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
-      { type: "link", key: "courses", label: "Cursos", icon: "school", href: "/courses" },
+      { type: "link", key: "courses", label: "Horarios", icon: "school", href: "/courses" },
       { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/courses/scheduler" },
       { type: "link", key: "classes", label: "Sesiones", icon: "event", href: "/classes" },
     ],

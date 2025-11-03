@@ -280,7 +280,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
 
   const courseOptions: CourseOption[] = (coursesResp.data ?? []).map((course) => ({
     id: course.id,
-    title: course.title ?? "Curso",
+    title: course.title ?? "Horario",
     cancellationWindowHours: Number(course.cancellation_window_hours ?? 24),
     status: course.status ?? "DRAFT",
   }));
@@ -506,7 +506,7 @@ export default function AdminMiembrosPage(
       return;
     }
     if (planForm.modality === "FIXED" && !planForm.courseId) {
-      setPlanError("Selecciona el curso para el plan fijo");
+      setPlanError("Selecciona el horario para el plan fijo");
       return;
     }
 
@@ -749,7 +749,7 @@ export default function AdminMiembrosPage(
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-600">
-                      {planForm.modality === "FIXED" ? "Fecha de inicio del curso" : "Fecha de inicio"}
+                      {planForm.modality === "FIXED" ? "Fecha de inicio del horario" : "Fecha de inicio"}
                     </label>
                     <input
                       type="date"
@@ -892,19 +892,19 @@ export default function AdminMiembrosPage(
                     </p>
                   ) : (
                     <p className="mt-1 text-xs text-slate-500">
-                      Las reservas se generan automaticamente para el curso seleccionado.
+                      Las reservas se generan automaticamente para el horario seleccionado.
                     </p>
                   )}
                   {!hasFixedCourses && (
                     <p className="mt-1 text-xs text-amber-600">
-                      No hay cursos publicados para asignar en modalidad fija.
+                      No hay horarios publicados para asignar en modalidad fija.
                     </p>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-medium text-slate-600">
-                      {planForm.modality === "FIXED" ? "Fecha de inicio del curso" : "Fecha de inicio"}
+                      {planForm.modality === "FIXED" ? "Fecha de inicio del horario" : "Fecha de inicio"}
                     </label>
                     <input
                       type="date"
@@ -932,7 +932,7 @@ export default function AdminMiembrosPage(
                         <>
                           <p>
                             Se asignaran{" "}
-                            <span className="font-semibold">{selectedPlanOption.classCount}</span> sesiones del curso.
+                            <span className="font-semibold">{selectedPlanOption.classCount}</span> sesiones del horario.
                           </p>
                           <p>El alumno no necesita reservar de forma manual.</p>
                         </>
@@ -944,7 +944,7 @@ export default function AdminMiembrosPage(
                 </div>
                 {planForm.modality === "FIXED" && (
                   <div>
-                    <label className="block text-xs font-medium text-slate-600">Curso asignado</label>
+                    <label className="block text-xs font-medium text-slate-600">Horario asignado</label>
                     <select
                       value={planForm.courseId}
                       onChange={(event) =>
@@ -952,7 +952,7 @@ export default function AdminMiembrosPage(
                       }
                       className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                     >
-                      <option value="">Selecciona un curso</option>
+                      <option value="">Selecciona un horario</option>
                       {courseOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.title}
@@ -965,7 +965,7 @@ export default function AdminMiembrosPage(
                       </p>
                     ) : (
                       <p className="mt-1 text-xs text-slate-500">
-                        El curso define los dias y horarios que se reservaran.
+                        El horario define los dias y horarios que se reservaran.
                       </p>
                     )}
                   </div>

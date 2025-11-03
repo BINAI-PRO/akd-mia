@@ -190,7 +190,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
   }
 }
 
-// === SSR: lectura de cursos e instructores ===
+// === SSR: lectura de horarios e instructores ===
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   const [coursesResp, instructorsResp, classTypesResp, roomsResp] = await Promise.all([
     supabaseAdmin
@@ -458,7 +458,7 @@ export default function CoursesPage(
       if (!trimmedTitle) throw new Error("El t\u00edtulo es obligatorio");
 
       const classTypeId = formState.classTypeId.trim();
-      if (!classTypeId) throw new Error("Selecciona un tipo de curso");
+      if (!classTypeId) throw new Error("Selecciona un tipo de horario");
 
       const defaultRoomId = formState.defaultRoomId.trim();
       if (hasRoomOptions && !defaultRoomId) {
@@ -518,7 +518,7 @@ export default function CoursesPage(
         ? courses.find((course) => course.id === editingCourseId)
         : undefined;
       if (editingCourseId && existingCourse?.hasSessions) {
-        throw new Error("Este curso ya tiene sesiones programadas y no se puede editar");
+        throw new Error("Este horario ya tiene sesiones programadas y no se puede editar");
       }
 
       const response = await fetch("/api/courses", {
@@ -533,7 +533,7 @@ export default function CoursesPage(
         CourseApiResponse & { error?: string }
       >;
       if (!response.ok) {
-        throw new Error(body?.error ?? "No se pudo guardar el curso");
+        throw new Error(body?.error ?? "No se pudo guardar el horario");
       }
       if (!body?.course) {
         throw new Error("Respuesta inesperada del servidor");
@@ -568,7 +568,7 @@ export default function CoursesPage(
       resetForm({ nextLevels, nextCategories });
     } catch (error) {
       setFormError(
-        error instanceof Error ? error.message : "No se pudo guardar el curso"
+        error instanceof Error ? error.message : "No se pudo guardar el horario"
       );
     } finally {
       setSaving(false);
@@ -579,10 +579,10 @@ export default function CoursesPage(
   const hasRoomOptions = roomOptions.length > 0;
 
   return (
-    <AdminLayoutAny title="Cursos" active="courses">
+    <AdminLayoutAny title="Horarios" active="courses">
       <Head>
         <meta charSet="utf-8" />
-        <title>PilatesTime Admin - Cursos</title>
+        <title>PilatesTime Admin - Horarios</title>
       </Head>
       <div className="mx-auto flex max-w-6xl gap-6">
         <div className="flex-1 space-y-6">
@@ -596,7 +596,7 @@ export default function CoursesPage(
                   type="search"
                   value={searchTerm}
                   onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Buscar cursos..."
+                  placeholder="Buscar horarios..."
                   className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
               </div>
@@ -643,7 +643,7 @@ export default function CoursesPage(
                       colSpan={6}
                       className="px-4 py-10 text-center text-sm text-slate-500"
                     >
-                      No hay cursos que coincidan con los filtros.
+                      No hay horarios que coincidan con los filtros.
                     </td>
                   </tr>
                 ) : (
@@ -720,7 +720,7 @@ export default function CoursesPage(
                             title={
                               course.hasSessions
                                 ? "No disponible: ya tiene sesiones programadas"
-                                : "Editar curso"
+                                : "Editar horario"
                             }
                           >
                             <span className="material-icons-outlined text-base">
@@ -740,7 +740,7 @@ export default function CoursesPage(
         <div ref={formRef} className="w-full max-w-[360px] shrink-0">
           <div className="rounded-lg border border-slate-200 bg-white p-4">
             <h2 className="mb-1 text-base font-semibold text-slate-800">
-              {isEditing ? "Editar curso" : "Crear curso"}
+              {isEditing ? "Editar horario" : "Crear horario"}
             </h2>
             {isEditing && courseBeingEdited && (
               <p className="mb-3 text-xs text-slate-500">
@@ -752,12 +752,12 @@ export default function CoursesPage(
             )}
             {!hasClassTypeOptions && (
               <p className="mb-3 text-sm text-amber-600">
-                Registra al menos un tipo de clase antes de crear un curso.
+                Registra al menos un tipo de clase antes de crear un horario.
               </p>
             )}
             {!hasRoomOptions && (
               <p className="mb-3 text-sm text-amber-600">
-                Registra al menos una sala antes de crear un curso.
+                Registra al menos una sala antes de crear un horario.
               </p>
             )}
             <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
@@ -768,7 +768,7 @@ export default function CoursesPage(
                 <input
                   value={formState.title}
                   onChange={handleFormChange("title")}
-                  placeholder="Nombre del curso"
+                  placeholder="Nombre del horario"
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                 />
               </div>
@@ -799,7 +799,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Tipo de curso
+                  Tipo de horario
                 </label>
                 <select
                   value={formState.classTypeId}
@@ -1061,8 +1061,8 @@ export default function CoursesPage(
                   {saving
                     ? "Guardando..."
                     : isEditing
-                    ? "Actualizar curso"
-                    : "Guardar curso"}
+                    ? "Actualizar horario"
+                    : "Guardar horario"}
                 </button>
               </div>
             </form>

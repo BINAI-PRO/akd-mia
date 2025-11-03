@@ -1,4 +1,4 @@
-﻿import Head from "next/head";
+import Head from "next/head";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -542,12 +542,12 @@ export default function CourseSchedulerPage({
     setPlanStatus("idle");
 
     if (!selectedCourse.defaultRoomId) {
-      setPlanError("Asigna una sala predeterminada al curso antes de programar.");
+      setPlanError("Asigna una sala predeterminada al horario antes de programar.");
       return;
     }
 
     if (pendingSessionsForSelectedCourse === 0) {
-      setPlanError("Este curso ya tiene todas las sesiones programadas.");
+      setPlanError("Este horario ya tiene todas las sesiones programadas.");
       return;
     }
 
@@ -583,7 +583,7 @@ export default function CourseSchedulerPage({
     }
 
     if (preparedSessions.length > pendingSessionsForSelectedCourse) {
-      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesiones pendientes para este curso.`);
+      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesiones pendientes para este horario.`);
       return;
     }
 
@@ -654,14 +654,14 @@ export default function CourseSchedulerPage({
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div className="flex flex-col gap-3">
               <div>
-                <h1 className="text-lg font-semibold text-slate-900">Resumen de cursos</h1>
-                <p className="text-sm text-slate-500">Identifica que cursos necesitan programacion adicional.</p>
+                <h1 className="text-lg font-semibold text-slate-900">Resumen de horarios</h1>
+                <p className="text-sm text-slate-500">Identifica que horarios necesitan programacion adicional.</p>
               </div>
               {coursesState.length > 0 && (
                 pendingCourses.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-                      {pendingCourses.length} cursos con pendientes
+                      {pendingCourses.length} horarios con pendientes
                     </span>
                     <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
                       {totalPendingSessions} sesiones sin programar
@@ -669,7 +669,7 @@ export default function CourseSchedulerPage({
                   </div>
                 ) : (
                   <span className="inline-flex items-center rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700">
-                    Todos los cursos estan al dia
+                    Todos los horarios estan al dia
                   </span>
                 )
               )}
@@ -679,14 +679,14 @@ export default function CourseSchedulerPage({
               className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
             >
               <span className="material-icons-outlined text-base">arrow_back</span>
-              Volver a Cursos
+              Volver a Horarios
             </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 text-left">Curso</th>
+                  <th className="px-4 py-3 text-left">Horario</th>
                   <th className="px-4 py-3 text-left">Tipo</th>
                   <th className="px-4 py-3 text-center">Programadas</th>
                   <th className="px-4 py-3 text-center">Pendientes</th>
@@ -731,8 +731,8 @@ export default function CourseSchedulerPage({
                             handleSelectCourse(course.id, { scroll: true });
                           }}
                           className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white p-2 text-brand-600 shadow-sm transition-colors hover:border-brand-500 hover:text-brand-700"
-                          aria-label="Abrir programador para este curso"
-                          title="Abrir programador para este curso"
+                          aria-label="Abrir programador para este horario"
+                          title="Abrir programador para este horario"
                         >
                           <span className="material-icons-outlined text-base">event_note</span>
                         </button>
@@ -743,7 +743,7 @@ export default function CourseSchedulerPage({
                 {coursesState.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-4 py-6 text-center text-sm text-slate-500">
-                      No se encontraron cursos.
+                      No se encontraron horarios.
                     </td>
                   </tr>
                 )}
@@ -766,7 +766,7 @@ export default function CourseSchedulerPage({
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 >
                   <option value="" disabled>
-                    Selecciona un curso
+                    Selecciona un horario
                   </option>
                   {coursesState.map((course) => (
                     <option key={course.id} value={course.id}>
@@ -814,12 +814,12 @@ export default function CourseSchedulerPage({
                     </div>
                   ) : (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      Asigna una sala predeterminada al curso para programar sesiones automaticamente.
+                      Asigna una sala predeterminada al horario para programar sesiones automaticamente.
                     </div>
                   )}
                   {pendingSessionsForSelectedCourse === 0 && (
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                      Este curso no tiene sesiones pendientes, pero puedes ajustar la programacion si es necesario.
+                      Este horario no tiene sesiones pendientes, pero puedes ajustar la programacion si es necesario.
                     </div>
                   )}
                 </div>
@@ -944,10 +944,10 @@ export default function CourseSchedulerPage({
                   {selectedCourse
                     ? selectedCourse.defaultRoomId
                       ? pendingSessionsForSelectedCourse === 0
-                        ? "Este curso no tiene sesiones pendientes."
+                        ? "Este horario no tiene sesiones pendientes."
                         : "Configura los parametros para generar sesiones."
-                      : "Asigna una sala predeterminada al curso para activar el programador."
-                    : "Selecciona un curso para comenzar."}
+                      : "Asigna una sala predeterminada al horario para activar el programador."
+                    : "Selecciona un horario para comenzar."}
                 </div>
               )}
 
@@ -1053,7 +1053,7 @@ export default function CourseSchedulerPage({
                 <span className="text-xs text-slate-500">{selectedCourse.sessions.length} en total</span>
               </div>
               {selectedCourse.sessions.length === 0 ? (
-                <p className="text-xs text-slate-500">Todavia no hay sesiones programadas para este curso.</p>
+                <p className="text-xs text-slate-500">Todavia no hay sesiones programadas para Este horario.</p>
               ) : (
                 <ul className="space-y-2">
                   {upcomingSessions.map((session) => {
