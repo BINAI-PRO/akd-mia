@@ -1,11 +1,9 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import {
-  ClientLinkConflictError,
-  ensureClientForAuthUser,
-} from "@/lib/resolve-client";
+import { ClientLinkConflictError, ensureClientForAuthUser } from "@/lib/resolve-client";
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
+import { fetchMembershipSummary, type MembershipSummary } from "@/lib/membership";
 
 type PlanTypeRow = {
   id: string;
@@ -58,6 +56,7 @@ type PlansResponse = {
     currency: string | null;
     category: string | null;
   }>;
+  membership: MembershipSummary | null;
 };
 
 export default async function handler(
@@ -185,7 +184,15 @@ export default async function handler(
     category: plan.plan_types?.category ?? null,
   }));
 
-  return res.status(200).json({ planTypes, activePlans });
+  let membership: MembershipSummary | null = null;
+  try {
+    membership = await fetchMembershipSummary(clientId);
+  } catch (membershipError) {
+    console.error("/api/plans membership", membershipError);
+    membership = null;
+  }
+
+  return res.status(200).json({ planTypes, activePlans, membership });
 }
 
 

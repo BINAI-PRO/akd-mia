@@ -17,6 +17,22 @@ function formatCurrency(amount: number | null, currency: string | null) {
   return CURRENCY_FORMATTERS[code].format(amount);
 }
 
+const RECEPTION_EMAIL =
+  process.env.NEXT_PUBLIC_RECEPTION_EMAIL ?? "contacto@atpilatestime.com";
+
+function formatDate(value: string | null): string {
+  if (!value) return "Sin fecha";
+  try {
+    return new Intl.DateTimeFormat("es-MX", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
 type PlanType = {
   id: string;
   name: string;
@@ -45,9 +61,24 @@ type ActivePlan = {
   category: string | null;
 };
 
+type MembershipSummary = {
+  id: string;
+  name: string | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  nextBillingDate: string | null;
+  autoRenew: boolean;
+  isActive: boolean;
+  price: number | null;
+  currency: string | null;
+  category: string | null;
+};
+
 type PlansResponse = {
   planTypes: PlanType[];
   activePlans: ActivePlan[];
+  membership: MembershipSummary | null;
 };
 
 type ScreenState =
@@ -116,8 +147,60 @@ export default function PlansPage() {
   };
 
   const handleContactReception = () => {
-    router.push("mailto:contacto@atpilatestime.com?subject=Compra de plan");
+    router.push(`mailto:${RECEPTION_EMAIL}?subject=Compra de plan flexible`);
   };
+
+  let membershipBanner: JSX.Element | null = null;
+  if (state.status === "loading") {
+    membershipBanner = (
+      <div className="animate-pulse rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 shadow-sm">
+        <div className="h-4 w-1/3 rounded bg-neutral-200" />
+        <div className="mt-2 h-3 w-2/3 rounded bg-neutral-200" />
+        <div className="mt-4 h-9 w-32 rounded bg-neutral-200" />
+      </div>
+    );
+  } else if (state.status === "ready") {
+    const membership = state.data.membership;
+    const isActive = membership?.isActive ?? false;
+    const statusLabel = membership
+      ? isActive
+        ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
+        : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
+      : "Membresia inactiva";
+
+    membershipBanner = (
+      <div
+        className={`rounded-2xl border px-4 py-4 shadow-sm ${
+          isActive ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
+        }`}
+      >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-neutral-900">
+              {membership?.name ?? "Membresia"}
+            </p>
+            <p className="text-xs text-neutral-600">{statusLabel}</p>
+            {membership?.category && (
+              <p className="text-[11px] text-neutral-500">Categoria: {membership.category}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push("/membership")}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          >
+            Gestionar membresia
+          </button>
+        </div>
+      </div>
+    );
+  } else if (state.status === "error") {
+    membershipBanner = (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
+        No se pudo cargar la informacion de la membresia. {state.message}
+      </div>
+    );
+  }
 
   return (
     <>
@@ -132,6 +215,8 @@ export default function PlansPage() {
             Consulta tus planes vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
           </p>
         </header>
+
+        {membershipBanner}
 
         {checkoutError && (
           <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -164,11 +249,11 @@ export default function PlansPage() {
                 <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
                   <div>
                     <dt className="text-brand-600 font-medium">Inicio</dt>
-                    <dd>{activePlan.startDate ? new Date(activePlan.startDate).toLocaleDateString() : "-"}</dd>
+                    <dd>{formatDate(activePlan.startDate)}</dd>
                   </div>
                   <div>
                     <dt className="text-brand-600 font-medium">Vence</dt>
-                    <dd>{activePlan.expiresAt ? new Date(activePlan.expiresAt).toLocaleDateString() : "Sin fecha"}</dd>
+                    <dd>{formatDate(activePlan.expiresAt)}</dd>
                   </div>
                   <div>
                     <dt className="text-brand-600 font-medium">Clases totales</dt>
@@ -261,6 +346,9 @@ export default function PlansPage() {
                       </span>
                       Pagar en recepcion
                     </button>
+                    <p className="text-[11px] text-neutral-500">
+                      Nota: Realiza el pago en recepcion y solicita la activacion del plan.
+                    </p>
                   </div>
                 </article>
               ))}
@@ -283,4 +371,8 @@ export default function PlansPage() {
     </>
   );
 }
+
+
+
+
 
