@@ -21,6 +21,7 @@ type AuthProfile = {
   status: string | null;
   role: string | null;
   isAdmin: boolean;
+  staffId: string | null;
   permissions: string[];
 };
 
@@ -77,6 +78,7 @@ const deriveBaseProfile = (source: User): AuthProfile => {
     status: null,
     role,
     isAdmin,
+    staffId: null,
     permissions: [],
   };
 };
@@ -182,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               remoteProfile.isAdmin !== undefined
                 ? remoteProfile.isAdmin
                 : base.isAdmin,
+            staffId: remoteProfile.staffId ?? base.staffId,
             permissions: Array.isArray(remoteProfile.permissions)
               ? remoteProfile.permissions
               : base.permissions,

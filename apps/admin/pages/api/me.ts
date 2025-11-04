@@ -13,6 +13,7 @@ type ClientRow = Tables<"clients"> & {
 };
 
 type StaffRow = {
+  id: string;
   role_id: string | null;
   full_name: string | null;
   staff_roles: { slug: string | null } | null;
@@ -33,6 +34,7 @@ type MeResponse = {
     status: string | null;
     role: string | null;
     isAdmin: boolean;
+    staffId: string | null;
     permissions: string[];
   };
 };
@@ -105,7 +107,7 @@ export default async function handler(
 
   const { data: staffRow, error: staffError } = await supabaseAdmin
     .from("staff")
-    .select("role_id, full_name, staff_roles ( slug )")
+    .select("id, role_id, full_name, staff_roles ( slug )")
     .eq("auth_user_id", session.user.id)
     .maybeSingle<StaffRow>();
 
@@ -215,6 +217,7 @@ export default async function handler(
       status: profile?.client_profiles?.status ?? null,
       role: resolvedRole,
       isAdmin: resolvedIsAdmin,
+      staffId: staffRow?.id ?? null,
       permissions,
     },
   });

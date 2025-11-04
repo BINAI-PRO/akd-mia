@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
+import { useAuth } from "@/components/auth/AuthContext";
 
 type SessionDetailsResponse = {
   session: {
@@ -62,7 +63,9 @@ type FetchState = {
   data: SessionDetailsResponse | null;
 };
 
-const statusLabels: Record<string, string> = {
+type AttendanceFeedback = { type: "success" | "error"; text: string };
+
+const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmada",
   CHECKED_IN: "Check-in",
   CHECKED_OUT: "Check-out",
@@ -70,24 +73,40 @@ const statusLabels: Record<string, string> = {
   WAITING: "En espera",
 };
 
+const EMPTY_TEXT = "\u2014";
+
 function formatStatus(status: string) {
   const key = status.toUpperCase();
-  return statusLabels[key] ?? status;
+  return STATUS_LABELS[key] ?? status;
 }
 
 function formatDateTime(iso: string | null) {
-  if (!iso) return "—";
+  if (!iso) return EMPTY_TEXT;
   const instance = dayjs(iso);
-  if (!instance.isValid()) return "—";
+  if (!instance.isValid()) return EMPTY_TEXT;
   return instance.format("DD MMM YYYY HH:mm");
 }
 
+function formatSchedule(startISO: string | null, endISO: string | null) {
+  const start = startISO ? dayjs(startISO) : null;
+  const end = endISO ? dayjs(endISO) : null;
+  if (!start || !start.isValid()) return EMPTY_TEXT;
+  if (!end || !end.isValid()) return start.format("DD MMM YYYY HH:mm");
+  return `${start.format("DD MMM YYYY HH:mm")} – ${end.format("HH:mm")}`;
+}
+
 export default function SessionDetailsModal({ sessionId, open, onClose }: Props) {
+  const { profile } = useAuth();
+  const staffId = profile?.staffId ?? null;
+
   const [{ status, error, data }, setState] = useState<FetchState>({
     status: "idle",
     error: null,
     data: null,
   });
+
+  const [attendanceBusy, setAttendanceBusy] = useState<Record<string, boolean>>({});
+  const [attendanceFeedback, setAttendanceFeedback] = useState<AttendanceFeedback | null>(null);
 
   useEffect(() => {
     if (!open || !sessionId) {
@@ -101,6 +120,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
 
     const controller = new AbortController();
     setState({ status: "loading", error: null, data: null });
+    setAttendanceFeedback(null);
 
     const fetchDetails = async () => {
       try {
@@ -124,31 +144,103 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     return () => controller.abort();
   }, [open, sessionId]);
 
+  useEffect(() => {
+    if (!open) {
+      setAttendanceBusy({});
+      setAttendanceFeedback(null);
+    }
+  }, [open, sessionId]);
+
   const showModal = open && sessionId;
 
   const summary = useMemo(() => {
     if (!data) return null;
     const { session } = data;
-    const start = formatDateTime(session.startISO);
-    const end = formatDateTime(session.endISO);
+    const schedule = formatSchedule(session.startISO, session.endISO);
+    const duration =
+      typeof session.durationMinutes === "number" && session.durationMinutes > 0
+        ? `${session.durationMinutes} min`
+        : EMPTY_TEXT;
+    const capacity =
+      typeof session.capacity === "number"
+        ? `${session.occupancy}/${session.capacity}`
+        : `${session.occupancy}`;
+    const available =
+      session.availableSpots !== null ? Math.max(session.availableSpots, 0) : null;
+
     return {
       headline: session.title ?? "Sesión",
-      schedule: start !== "—" && end !== "—" ? `${start}  ${end}` : start,
+      schedule,
       instructor: session.instructorName ?? "Sin instructor asignado",
       room: session.roomName ?? "Sin salón",
       classType: session.classTypeName ?? "Clase general",
       course: session.courseTitle ?? null,
-      capacity:
-        typeof session.capacity === "number"
-          ? `${session.occupancy}/${session.capacity}`
-          : `${session.occupancy}`,
-      available: session.availableSpots ?? null,
-      duration:
-        typeof session.durationMinutes === "number" && session.durationMinutes > 0
-          ? `${session.durationMinutes} min`
-          : null,
+      capacity,
+      available,
+      duration,
     };
   }, [data]);
+
+  const handleToggleAttendance = async (bookingId: string, shouldMarkPresent: boolean) => {
+    setAttendanceFeedback(null);
+    setAttendanceBusy((prev) => ({ ...prev, [bookingId]: true }));
+
+    try {
+      const response = await fetch("/api/bookings/attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId,
+          present: shouldMarkPresent,
+          actorStaffId: staffId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as
+        | { status?: string; message?: string }
+        | { error?: string };
+
+      if (!response.ok) {
+        const message = (payload as { error?: string }).error ?? "No se pudo actualizar la asistencia.";
+        throw new Error(message);
+      }
+
+      const nextStatus =
+        (payload as { status?: string }).status ??
+        (shouldMarkPresent ? "CHECKED_IN" : "CONFIRMED");
+
+      setState((prev) => {
+        if (!prev.data) return prev;
+        return {
+          ...prev,
+          data: {
+            ...prev.data,
+            participants: prev.data.participants.map((participant) =>
+              participant.bookingId === bookingId
+                ? { ...participant, status: nextStatus }
+                : participant
+            ),
+          },
+        };
+      });
+
+      const successMessage =
+        (payload as { message?: string }).message ??
+        (shouldMarkPresent ? "Asistencia registrada correctamente." : "Asistencia revertida.");
+
+      setAttendanceFeedback({ type: "success", text: successMessage });
+    } catch (updateError) {
+      const message =
+        updateError instanceof Error ? updateError.message : "No se pudo actualizar la asistencia.";
+      setAttendanceFeedback({ type: "error", text: message });
+    } finally {
+      setAttendanceBusy((prev) => {
+        const next = { ...prev };
+        delete next[bookingId];
+        return next;
+      });
+    }
+  };
 
   const closeOnOverlay = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -208,7 +300,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Duración</dt>
-                    <dd className="mt-1 text-sm text-slate-800">{summary.duration ?? "—"}</dd>
+                    <dd className="mt-1 text-sm text-slate-800">{summary.duration}</dd>
                   </div>
                   <div>
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Instructor</dt>
@@ -243,8 +335,21 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                   <h3 className="text-sm font-semibold text-slate-900">Participantes con reserva</h3>
                   <span className="text-xs text-slate-500">{data.participants.length} registros</span>
                 </div>
+                {attendanceFeedback ? (
+                  <p
+                    className={`mt-3 rounded-md px-3 py-2 text-xs ${
+                      attendanceFeedback.type === "success"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-rose-50 text-rose-600"
+                    }`}
+                  >
+                    {attendanceFeedback.text}
+                  </p>
+                ) : null}
                 {data.participants.length === 0 ? (
-                  <p className="mt-3 text-sm text-slate-500">Aún no hay reservaciones registradas.</p>
+                  <p className="mt-3 text-sm text-slate-500">
+                    A\u00fan no hay reservaciones registradas.
+                  </p>
                 ) : (
                   <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
@@ -253,51 +358,66 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                           <th className="px-4 py-3">Cliente</th>
                           <th className="px-4 py-3">Contacto</th>
                           <th className="px-4 py-3">Plan</th>
+                          <th className="px-4 py-3 text-center">Asistencia</th>
                           <th className="px-4 py-3">Estado</th>
                           <th className="px-4 py-3">Reservado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {data.participants.map((participant) => (
-                          <tr key={participant.bookingId}>
-                            <td className="px-4 py-3 font-medium text-slate-700">
-                              {participant.client.fullName}
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              <div className="space-y-0.5">
-                                {participant.client.email && (
-                                  <span className="block text-xs">{participant.client.email}</span>
-                                )}
-                                {participant.client.phone && (
-                                  <span className="block text-xs">{participant.client.phone}</span>
-                                )}
-                                {!participant.client.email && !participant.client.phone && (
-                                  <span className="block text-xs text-slate-400">Sin contacto</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {participant.plan ? (
+                        {data.participants.map((participant) => {
+                          const checked = participant.status.toUpperCase() === "CHECKED_IN";
+                          return (
+                            <tr key={participant.bookingId}>
+                              <td className="px-4 py-3 font-medium text-slate-700">
+                                {participant.client.fullName}
+                              </td>
+                              <td className="px-4 py-3 text-slate-500">
                                 <div className="space-y-0.5">
-                                  <span className="block text-xs font-medium text-slate-700">
-                                    {participant.plan.name ?? "Plan"}
-                                  </span>
-                                  {participant.plan.modality && (
-                                    <span className="block text-[11px] uppercase tracking-wide text-slate-400">
-                                      {participant.plan.modality === "FIXED" ? "Fijo" : "Flexible"}
-                                    </span>
+                                  {participant.client.email && (
+                                    <span className="block text-xs">{participant.client.email}</span>
+                                  )}
+                                  {participant.client.phone && (
+                                    <span className="block text-xs">{participant.client.phone}</span>
+                                  )}
+                                  {!participant.client.email && !participant.client.phone && (
+                                    <span className="block text-xs text-slate-400">Sin contacto</span>
                                   )}
                                 </div>
-                              ) : (
-                                <span className="text-xs text-slate-400">Sin plan</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-slate-500">{formatStatus(participant.status)}</td>
-                            <td className="px-4 py-3 text-slate-500">
-                              {participant.reservedAt ? formatDateTime(participant.reservedAt) : "—"}
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                              <td className="px-4 py-3 text-slate-500">
+                                {participant.plan ? (
+                                  <div className="space-y-0.5">
+                                    <span className="block text-xs font-medium text-slate-700">
+                                      {participant.plan.name ?? "Plan"}
+                                    </span>
+                                    {participant.plan.modality && (
+                                      <span className="block text-[11px] uppercase tracking-wide text-slate-400">
+                                        {participant.plan.modality === "FIXED" ? "Fijo" : "Flexible"}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-slate-400">Sin plan</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                                  checked={checked}
+                                  onChange={(event) =>
+                                    void handleToggleAttendance(participant.bookingId, event.target.checked)
+                                  }
+                                  disabled={attendanceBusy[participant.bookingId]}
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-slate-500">{formatStatus(participant.status)}</td>
+                              <td className="px-4 py-3 text-slate-500">
+                                {participant.reservedAt ? formatDateTime(participant.reservedAt) : EMPTY_TEXT}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -327,7 +447,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                         {data.waitlist.map((entry) => (
                           <tr key={entry.id}>
                             <td className="px-4 py-3 font-medium text-slate-700">
-                              {entry.position ?? "—"}
+                              {entry.position ?? EMPTY_TEXT}
                             </td>
                             <td className="px-4 py-3 text-slate-600">{entry.client.fullName}</td>
                             <td className="px-4 py-3 text-slate-500">
@@ -347,7 +467,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                               {entry.status ? formatStatus(entry.status) : "Pendiente"}
                             </td>
                             <td className="px-4 py-3 text-slate-500">
-                              {entry.createdAt ? formatDateTime(entry.createdAt) : "—"}
+                              {entry.createdAt ? formatDateTime(entry.createdAt) : EMPTY_TEXT}
                             </td>
                           </tr>
                         ))}
