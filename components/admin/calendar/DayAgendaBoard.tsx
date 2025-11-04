@@ -2,12 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
+import { madridDayjs } from "@/lib/timezone";
 import type { CalendarFilterOption, CalendarSession, MiniCalendarDay } from "./types";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
-
-dayjs.extend(utc);
 
 const HEADER_LABELS = ["D", "L", "M", "M", "J", "V", "S"];
 
@@ -44,9 +41,20 @@ type ActiveFilterChip = {
 };
 
 function formatTimeRange(startISO: string, endISO: string) {
-  const start = dayjs.utc(startISO).format("h:mm A");
-  const end = dayjs.utc(endISO).format("h:mm A");
+  const start = madridDayjs(startISO, true).format("h:mm A");
+  const end = madridDayjs(endISO, true).format("h:mm A");
   return `${start}  ${end}`;
+}
+
+function formatGmtOffsetLabel(utcOffsetMinutes: number): string {
+  const sign = utcOffsetMinutes >= 0 ? "+" : "-";
+  const absoluteMinutes = Math.abs(utcOffsetMinutes);
+  const hours = Math.floor(absoluteMinutes / 60);
+  const minutes = absoluteMinutes % 60;
+  if (minutes === 0) {
+    return `GMT${sign}${hours}`;
+  }
+  return `GMT${sign}${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
 function getOptionLabel(options: CalendarFilterOption[], id: string) {
@@ -169,31 +177,38 @@ export default function DayAgendaBoard({
     return chips;
   }, [filterOptions.classTypes, filterOptions.instructors, filterOptions.rooms, filters.classTypeId, filters.instructorId, filters.roomId, filters.search]);
 
-  const agendaLabel = useMemo(() => dayjs(selectedDateISO).format("D [de] MMMM, YYYY"), [selectedDateISO]);
+  const agendaLabel = useMemo(
+    () => madridDayjs(selectedDateISO).format("D [de] MMMM, YYYY"),
+    [selectedDateISO]
+  );
+  const timezoneLabel = useMemo(() => {
+    const offsetMinutes = madridDayjs(selectedDateISO).utcOffset();
+    return formatGmtOffsetLabel(offsetMinutes);
+  }, [selectedDateISO]);
   const totalSessions = sessions.length;
 
-return (
+  return (
     <>
       <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[20rem,1fr]">
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
-          <span className="text-sm font-semibold text-slate-700">{miniCalendarMonthLabel}</span>
-          <Link href={{ pathname: "/calendar/day", query: { date: todayISO } }} className="hidden">
-            Hoy
-          </Link>
-        </div>
-        <div className="px-4 py-3">
-          <div className="grid grid-cols-7 text-center text-xs font-medium text-slate-500">
-            {HEADER_LABELS.map((label) => (
-              <div key={label}>{label}</div>
-            ))}
+        <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <span className="text-sm font-semibold text-slate-700">{miniCalendarMonthLabel}</span>
+            <Link href={{ pathname: "/calendar/day", query: { date: todayISO } }} className="hidden">
+              Hoy
+            </Link>
           </div>
-          <div className="mt-1 grid grid-cols-7 gap-y-1 text-sm">
-            {miniCalendarDays.map((day) => (
-              <Link
-                key={day.isoDate}
-                href={{ pathname: "/calendar/day", query: { date: day.isoDate } }}
-                className={`flex h-9 items-center justify-center rounded-full transition ${
+          <div className="px-4 py-3">
+            <div className="grid grid-cols-7 text-center text-xs font-medium text-slate-500">
+              {HEADER_LABELS.map((label) => (
+                <div key={label}>{label}</div>
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-7 gap-y-1 text-sm">
+              {miniCalendarDays.map((day) => (
+                <Link
+                  key={day.isoDate}
+                  href={{ pathname: "/calendar/day", query: { date: day.isoDate } }}
+                  className={`flex h-9 items-center justify-center rounded-full transition ${
                   day.isSelected
                     ? "bg-brand-600 text-white"
                     : day.isCurrentMonth
@@ -310,7 +325,7 @@ return (
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-4">
             <h3 className="text-lg font-semibold text-slate-800">
-              {dayjs(selectedDateISO).format("D [de] MMMM, YYYY")} (GMT-6)
+              {agendaLabel} ({timezoneLabel})
             </h3>
           </div>
           <div className="overflow-x-auto px-4 py-4">
