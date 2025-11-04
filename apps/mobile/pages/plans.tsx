@@ -45,6 +45,7 @@ type PlanType = {
   category: string;
   appOnly: boolean;
   isUnlimited: boolean;
+  requiresMembership: boolean;
 };
 
 type ActivePlan = {
@@ -121,9 +122,37 @@ export default function PlansPage() {
     return state.data.activePlans.find((plan) => plan.status === "ACTIVE") ?? state.data.activePlans[0] ?? null;
   }, [state]);
 
+  const availablePlanTypes = useMemo(() => {
+    if (state.status !== "ready") return [];
+    const hasActiveMembership = state.data.membership?.isActive ?? false;
+    return state.data.planTypes.filter((plan) => hasActiveMembership || !plan.requiresMembership);
+  }, [state]);
+
+  const lockedPlanCount =
+    state.status === "ready"
+      ? state.data.planTypes.length - availablePlanTypes.length
+      : 0;
+
   const handleCheckout = async (planTypeId: string) => {
     setCheckoutError(null);
     setCheckoutLoading(planTypeId);
+    if (state.status !== "ready") {
+      setCheckoutError("No se pudo validar el plan seleccionado");
+      setCheckoutLoading(null);
+      return;
+    }
+    const selectedPlan = state.data.planTypes.find((plan) => plan.id === planTypeId);
+    const hasActiveMembership = state.data.membership?.isActive ?? false;
+    if (!selectedPlan) {
+      setCheckoutError("El plan seleccionado no esta disponible");
+      setCheckoutLoading(null);
+      return;
+    }
+    if (selectedPlan.requiresMembership && !hasActiveMembership) {
+      setCheckoutError("Debes tener una membresia activa para adquirir este plan");
+      setCheckoutLoading(null);
+      return;
+    }
     try {
       const response = await fetch("/api/plans/checkout", {
         method: "POST",
@@ -244,7 +273,7 @@ export default function PlansPage() {
               <section className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4 text-sm text-brand-900 shadow-sm">
                 <h2 className="text-base font-semibold text-brand-800">Tu plan vigente</h2>
                 <p className="mt-1 text-sm text-brand-700">
-                  {activePlan.name} · {activePlan.status}
+                  {activePlan.name} - {activePlan.status}
                 </p>
                 <dl className="mt-3 grid grid-cols-2 gap-3 text-xs">
                   <div>
@@ -283,7 +312,7 @@ export default function PlansPage() {
 
             <section className="space-y-4">
               <h2 className="text-base font-semibold text-neutral-800">Planes disponibles</h2>
-              {state.data.planTypes.map((plan) => (
+              {availablePlanTypes.map((plan) => (
                 <article key={plan.id} className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
                   <header className="flex items-start justify-between gap-3">
                     <div>
@@ -295,10 +324,10 @@ export default function PlansPage() {
                     </span>
                   </header>
 
-                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-4">
+                  <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-5">
                     <div>
                       <dt className="font-medium text-neutral-500">Sesiones</dt>
-                      <dd>{plan.isUnlimited ? "Ilimitado" : plan.classCount ?? 0}</dd>
+                      <dd>{plan.isUnlimited ? "Ilimitado" : (plan.classCount ?? 0)}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Vigencia</dt>
@@ -315,6 +344,10 @@ export default function PlansPage() {
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
                       <dd>{plan.appOnly ? "Solo app" : "App y recepcion"}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-medium text-neutral-500">Membresia</dt>
+                      <dd>{plan.requiresMembership ? "Requerida" : "No requerida"}</dd>
                     </div>
                   </dl>
 
@@ -353,9 +386,17 @@ export default function PlansPage() {
                 </article>
               ))}
 
-              {state.data.planTypes.length === 0 && (
+              {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
-                  No hay planes disponibles en este momento. Consulta mas tarde o contacta a recepcion.
+                  {lockedPlanCount > 0
+                    ? "Activa tu membresia anual para acceder a los planes disponibles."
+                    : "No hay planes disponibles en este momento. Consulta mas tarde o contacta a recepcion."}
+                </p>
+              )}
+
+              {lockedPlanCount > 0 && availablePlanTypes.length > 0 && (
+                <p className="text-xs text-neutral-500">
+                  Activa tu membresia anual para desbloquear {lockedPlanCount === 1 ? "un plan adicional" : `${lockedPlanCount} planes adicionales`}.
                 </p>
               )}
             </section>
@@ -371,6 +412,7 @@ export default function PlansPage() {
     </>
   );
 }
+
 
 
 

@@ -1,7 +1,10 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import { madridDayjs } from "@/lib/timezone";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
@@ -11,6 +14,8 @@ import {
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { fetchMembershipSummary } from "@/lib/membership";
 
+dayjs.extend(utc);
+dayjs.extend(timezone);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
@@ -184,7 +189,7 @@ export default async function handler(
     }
   });
 
-  const now = dayjs();
+  const now = madridDayjs();
   const membership = await fetchMembershipSummary(clientId);
 
   const upcomingBookings = (bookingsData ?? [])
@@ -209,7 +214,8 @@ export default async function handler(
         return null;
       }
 
-      if (!dayjs(startTime).isSameOrAfter(now, "minute")) {
+      const startMoment = madridDayjs(startTime, true);
+      if (!startMoment.isSameOrAfter(now, "minute")) {
         return null;
       }
 
@@ -221,13 +227,15 @@ export default async function handler(
         room: sessionRow.rooms?.name ?? "",
         startTime,
         endTime: sessionRow.end_time,
-        startLabel: dayjs(startTime).format("DD MMM YYYY HH:mm"),
+        startLabel: startMoment.format("DD MMM YYYY HH:mm"),
         planPurchaseId: row.plan_purchase_id ?? null,
         planName: row.plan_purchase_id ? planNameMap.get(row.plan_purchase_id) ?? null : null,
       };
     })
     .filter(Boolean) as DashboardResponse["upcomingBookings"];
-  upcomingBookings.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
+  upcomingBookings.sort(
+    (a, b) => madridDayjs(a.startTime, true).valueOf() - madridDayjs(b.startTime, true).valueOf()
+  );
 
   const reservedCountMap = upcomingBookings.reduce<Map<string, number>>((acc, booking) => {
     if (!booking.planPurchaseId) return acc;
@@ -237,12 +245,12 @@ export default async function handler(
 
   const computeDisplayExpiry = (startDate?: string | null, expiresAt?: string | null) => {
     if (!startDate || !expiresAt) return expiresAt ?? null;
-    const start = dayjs(startDate);
-    const expiry = dayjs(expiresAt);
+    const start = madridDayjs(startDate, true);
+    const expiry = madridDayjs(expiresAt, true);
     if (!start.isValid() || !expiry.isValid()) return expiresAt;
     if (expiry.isBefore(start)) return expiresAt;
 
-    let cursor = start.endOf("month");
+    let cursor = start.clone().endOf("month");
     let candidate: dayjs.Dayjs | null = null;
 
     while (cursor.isSameOrBefore(expiry)) {
@@ -287,7 +295,7 @@ export default async function handler(
 
       if (!sessionRow?.start_time) return null;
 
-      const startTime = dayjs(sessionRow.start_time);
+      const startTime = madridDayjs(sessionRow.start_time, true);
       if (!startTime.isValid()) return null;
       if (startTime.isAfter(now)) return null;
       if (startTime.isBefore(fifteenDaysAgo)) return null;
@@ -309,7 +317,11 @@ export default async function handler(
       };
     })
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
-    .sort((a, b) => dayjs(b.startTime).valueOf() - dayjs(a.startTime).valueOf()) as DashboardResponse["recentBookings"];
+    .sort(
+      (a, b) => madridDayjs(b.startTime, true).valueOf() - madridDayjs(a.startTime, true).valueOf()
+    ) as DashboardResponse["recentBookings"];
 
   return res.status(200).json({ membership, upcomingBookings, plans, recentBookings });
 }
+
+

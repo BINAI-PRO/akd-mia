@@ -16,6 +16,7 @@ type PlanTypeRow = {
   privileges: string | null;
   category?: string | null;
   app_only?: boolean | null;
+  mem_req?: boolean | null;
 };
 
 type PlanPurchaseRow = {
@@ -42,6 +43,7 @@ type PlansResponse = {
     category: string;
     appOnly: boolean;
     isUnlimited: boolean;
+    requiresMembership: boolean;
   }>;
   activePlans: Array<{
     id: string;
@@ -68,7 +70,7 @@ function columnMissing(error: unknown, column: string) {
 
 async function loadPlanTypes(includeExtras: boolean) {
   const columns = includeExtras
-    ? "id, name, description, price, currency, class_count, validity_days, privileges, category, app_only"
+    ? "id, name, description, price, currency, class_count, validity_days, privileges, category, app_only, mem_req"
     : "id, name, description, price, currency, class_count, validity_days, privileges";
 
   return supabaseAdmin
@@ -167,7 +169,12 @@ export default async function handler(
   }
 
   let { data: planTypesData, error: planTypesError } = await loadPlanTypes(true);
-  if (planTypesError && (columnMissing(planTypesError, "category") || columnMissing(planTypesError, "app_only"))) {
+  if (
+    planTypesError &&
+    (columnMissing(planTypesError, "category") ||
+      columnMissing(planTypesError, "app_only") ||
+      columnMissing(planTypesError, "mem_req"))
+  ) {
     ({ data: planTypesData, error: planTypesError } = await loadPlanTypes(false));
   }
 
@@ -196,6 +203,7 @@ export default async function handler(
     category: plan.category,
     appOnly: Boolean(plan.app_only),
     isUnlimited: plan.class_count === null,
+    requiresMembership: plan.mem_req !== false,
   }));
 
   const activePlans = (planPurchasesData ?? []).map((plan) => ({

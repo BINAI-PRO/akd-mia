@@ -1,5 +1,5 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert } from "@/types/database";
 
@@ -125,7 +125,7 @@ export default async function handler(
       return res.status(400).json({ error: `La duracion debe ser mayor a cero (sesion ${index + 1})` });
     }
 
-    const start = dayjs(`${session.date}T${session.startTime}`);
+    const start = madridDayjs(`${session.date}T${session.startTime}`, true);
     if (!start.isValid()) {
       return res.status(400).json({ error: `Fecha u hora invalidas (sesion ${index + 1})` });
     }

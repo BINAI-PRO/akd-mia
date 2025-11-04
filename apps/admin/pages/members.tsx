@@ -63,10 +63,11 @@ type PlanOption = {
   description: string | null;
   price: number;
   currency: string;
-  classCount: number;
+  classCount: number | null;
   validityDays: number | null;
   privileges: string | null;
   isActive: boolean;
+  requiresMembership: boolean;
 };
 
 type CourseOption = {
@@ -239,7 +240,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
       .returns<MembershipTypeRow[]>(),
     supabaseAdmin
       .from("plan_types")
-      .select("id, name, description, price, currency, class_count, validity_days, privileges, is_active")
+      .select("id, name, description, price, currency, class_count, validity_days, privileges, is_active, mem_req")
       .order("name")
       .returns<PlanTypeRow[]>(),
     supabaseAdmin
@@ -272,10 +273,11 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     description: plan.description ?? null,
     price: Number(plan.price ?? 0),
     currency: plan.currency ?? "MXN",
-    classCount: Number(plan.class_count ?? 0),
+    classCount: plan.class_count === null ? null : Number(plan.class_count ?? 0),
     validityDays: plan.validity_days ?? null,
     privileges: plan.privileges ?? null,
     isActive: !!plan.is_active,
+    requiresMembership: plan.mem_req ?? true,
   }));
 
   const courseOptions: CourseOption[] = (coursesResp.data ?? []).map((course) => ({
@@ -385,6 +387,22 @@ type PlanFormState = {
 
   const getMembershipOption = (id: string) => membershipOptions.find((option) => option.id === id) ?? null;
   const getPlanOption = (id: string) => planOptions.find((option) => option.id === id) ?? null;
+  const getEligiblePlanOptions = useMemo(
+    () =>
+      (member: MemberRow | null) =>
+        planOptions.filter((option) => {
+          if (!option.isActive) return false;
+          if (!member) return true;
+          if (member.hasActiveMembership) return true;
+          return !option.requiresMembership;
+        }),
+    [planOptions]
+  );
+
+  const availablePlanOptions = useMemo(
+    () => getEligiblePlanOptions(planModalMember),
+    [planModalMember, getEligiblePlanOptions]
+  );
 
   const upsertMemberRow = (memberData: MemberQueryRow) => {
     const mapped = mapMember(memberData);
@@ -429,8 +447,14 @@ type PlanFormState = {
   };
 
   const openPlanModalFor = (member: MemberRow) => {
+    const eligible = getEligiblePlanOptions(member);
+    const defaultPlan =
+      eligible[0] ??
+      planOptions.find((option) => option.isActive) ??
+      planOptions[0] ??
+      null;
     setPlanForm({
-      planTypeId: planDefaultType?.id ?? "",
+      planTypeId: defaultPlan?.id ?? "",
       startDate: dayjs().format("YYYY-MM-DD"),
       notes: "",
       modality: "FLEXIBLE",
@@ -547,6 +571,16 @@ type PlanFormState = {
       return;
     }
 
+    const selectedPlan = getPlanOption(planForm.planTypeId);
+    if (!selectedPlan || !selectedPlan.isActive) {
+      setPlanError("El plan seleccionado no es valido");
+      return;
+    }
+    if (selectedPlan.requiresMembership && !planModalMember.hasActiveMembership) {
+      setPlanError("Este plan requiere una membresia activa");
+      return;
+    }
+
     setPlanLoading(true);
     setPlanError(null);
 
@@ -583,6 +617,11 @@ type PlanFormState = {
   const membershipCurrency = selectedMembershipOption?.currency ?? "MXN";
   const membershipMaxYears = selectedMembershipOption?.maxPrepaidYears ?? null;
   const selectedPlanOption = getPlanOption(planForm.planTypeId);
+  const selectedPlanClassCount = selectedPlanOption
+    ? selectedPlanOption.classCount === null
+      ? "Ilimitado"
+      : selectedPlanOption.classCount
+    : null;
   const selectedCourseOption =
     planForm.courseId ? courseOptions.find((option) => option.id === planForm.courseId) ?? null : null;
   const defaultFixedCourseId = useMemo(() => {
@@ -705,7 +744,7 @@ type PlanFormState = {
                             <button
                               type="button"
                               onClick={() => openPlanModalFor(row)}
-                              disabled={!row.hasActiveMembership || planOptions.length === 0}
+                              disabled={getEligiblePlanOptions(row).length === 0}
                               className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                             >
                               <span className="material-icons-outlined text-sm">shopping_cart</span>
@@ -801,7 +840,7 @@ type PlanFormState = {
                   </div>
                   <p className="mt-2 text-[11px] text-slate-500">
                     {membershipPaymentMode === "CARD"
-                      ? "Generaremos un checkout de Stripe en una nueva pestaña para que el cliente pague con tarjeta."
+                      ? "Generaremos un checkout de Stripe en una nueva pestana para que el cliente pague con tarjeta."
                       : "Registra aqui los pagos confirmados en recepcion o efectivo. La membresia se activara al guardar."}
                   </p>
                 </div>
@@ -947,15 +986,22 @@ type PlanFormState = {
                       setPlanForm((prev) => ({ ...prev, planTypeId: event.target.value }))
                     }
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                    disabled={availablePlanOptions.length === 0}
                   >
-                    <option value="">Selecciona un plan</option>
-                    {planOptions.map((option) => (
-                      <option key={option.id} value={option.id} disabled={!option.isActive}>
-                        {option.name}  {getCurrencyFormatter(option.currency).format(option.price)}
-                        {!option.isActive ? "  (inactivo)" : ""}
+                    <option value="">{availablePlanOptions.length === 0 ? "Sin planes disponibles" : "Selecciona un plan"}</option>
+                    {availablePlanOptions.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.name}{" "}
+                        {getCurrencyFormatter(option.currency).format(option.price)}
+                        {!option.requiresMembership ? " - sin membresia" : ""}
                       </option>
                     ))}
                   </select>
+                  {availablePlanOptions.length === 0 && (
+                    <p className="mt-1 text-xs text-amber-600">
+                      No hay planes disponibles. Activa una membresia o habilita planes sin requisito de membresia.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-600">Modalidad</label>
@@ -1010,7 +1056,7 @@ type PlanFormState = {
                       planForm.modality === "FLEXIBLE" ? (
                         <>
                           <p>
-                            Clases: <span className="font-semibold">{selectedPlanOption.classCount}</span>
+                            Clases: <span className="font-semibold">{selectedPlanClassCount}</span>
                           </p>
                           {selectedPlanOption.validityDays ? (
                             <p>Validez: {selectedPlanOption.validityDays} dias</p>
@@ -1022,13 +1068,20 @@ type PlanFormState = {
                         <>
                           <p>
                             Se asignaran{" "}
-                            <span className="font-semibold">{selectedPlanOption.classCount}</span> sesiones del horario.
+                            <span className="font-semibold">{selectedPlanClassCount}</span> sesiones del horario.
                           </p>
                           <p>El alumno no necesita reservar de forma manual.</p>
                         </>
                       )
                     ) : (
                       <p>Selecciona un plan para ver detalles.</p>
+                    )}
+                    {selectedPlanOption && (
+                      <p className="mt-2">
+                        {selectedPlanOption.requiresMembership
+                          ? "Requiere membresia activa para asignarse."
+                          : "Disponible para clientes sin membresia activa."}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1084,7 +1137,7 @@ type PlanFormState = {
                 </button>
                 <button
                   type="submit"
-                  disabled={planLoading}
+                  disabled={planLoading || availablePlanOptions.length === 0}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   {planLoading ? "Registrando..." : "Registrar"}
@@ -1097,6 +1150,7 @@ type PlanFormState = {
     </AdminLayoutAny>
   );
 }
+
 
 
 

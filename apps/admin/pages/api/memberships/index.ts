@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import {
   commitMembershipPurchase,
   prepareMembershipPurchase,
@@ -30,7 +30,7 @@ export default async function handler(
         status: "SUCCESS",
         providerRef: null,
         notes: payload.notes ?? null,
-        paidAt: dayjs().toISOString(),
+        paidAt: madridDayjs().toISOString(),
       },
       { includeSnapshot: true }
     );

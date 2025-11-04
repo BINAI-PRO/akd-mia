@@ -1,12 +1,24 @@
-﻿// pages/bookings/[id].tsx
-
-import { useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Head from "next/head";
 import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { madridDayjs } from "@/lib/timezone";
+
+const TIME_ZONE = "Europe/Madrid";
+const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  timeZone: TIME_ZONE,
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+const TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  timeZone: TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 // --- Tipos auxiliares para evitar avisos "untracked" en los joins ---
 type SessionJoin = {
@@ -37,31 +49,28 @@ type QrTokenRow = { token: string };
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const id = ctx.params?.id as string;
 
-  // 1) Booking -> session_id
-  const { data: booking, error: eBk } = await supabaseAdmin
+  const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
     .select("id, session_id")
     .eq("id", id)
     .single();
-  if (eBk || !booking) {
+  if (bookingError || !booking) {
     return { notFound: true };
   }
 
-  // 2) Sesión con joins
-  const { data: sessionJoin, error: eSess } = await supabaseAdmin
+  const { data: sessionJoin, error: sessionError } = await supabaseAdmin
     .from("sessions")
     .select(
       "id, start_time, end_time, capacity, class_types(name), instructors(full_name), rooms(name)"
     )
     .eq("id", booking.session_id)
     .single();
-  if (eSess || !sessionJoin) {
+  if (sessionError || !sessionJoin) {
     return { notFound: true };
   }
 
   const sj = sessionJoin as SessionJoin;
 
-  // 3) Token QR
   const { data: qr } = await supabaseAdmin
     .from("qr_tokens")
     .select("token")
@@ -69,25 +78,14 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .maybeSingle();
   const tokenValue = (qr as QrTokenRow | null)?.token ?? null;
 
-  // 4) Formato de fecha/hora (es-MX, mayúsculas)
-  const start = new Date(sj.start_time);
-  const dateLabel = new Intl.DateTimeFormat("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
-    .format(start)
-    .toUpperCase();
-
-  const timeLabel = new Intl.DateTimeFormat("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(start);
+  const startDate = madridDayjs(sj.start_time, true);
+  const dateLabel = DATE_FORMATTER.format(startDate.toDate()).toLocaleUpperCase("es-ES");
+  const timeLabel = TIME_FORMATTER.format(startDate.toDate());
 
   const data: PageData = {
     id,
     session: {
-      classType: sj.class_types?.name ?? "CLASE",
+      classType: sj.class_types?.name ?? "Clase",
       instructor: sj.instructors?.full_name ?? "",
       room: sj.rooms?.name ?? "",
       dateLabel,
@@ -140,7 +138,6 @@ export default function BookingDetail({
     router.push(`/schedule?rebookFrom=${data.id}`);
   };
 
-  // Guardas: si por alguna razón no llegó data, mostramos mensaje amable
   if (!data?.session) {
     return (
       <>
@@ -170,7 +167,7 @@ export default function BookingDetail({
 
         <section className="card p-4">
           <h2 className="text-lg font-semibold">{s.classType}</h2>
-          <p className="text-sm text-neutral-600 mt-1">
+          <p className="mt-1 text-sm text-neutral-600">
             {s.dateLabel} · {s.timeLabel}
           </p>
           <p className="text-sm text-neutral-600">
@@ -187,7 +184,7 @@ export default function BookingDetail({
                 alt="QR de acceso"
                 width={256}
                 height={256}
-                className="w-64 h-64 object-contain text-center"
+                className="h-64 w-64 object-contain"
                 unoptimized
               />
               <a
@@ -197,7 +194,7 @@ export default function BookingDetail({
               >
                 Descargar QR
               </a>
-              <p className="text-xs text-neutral-500 text-center">
+              <p className="text-center text-xs text-neutral-500">
                 Muestra este código al llegar para registrar tu asistencia.
               </p>
             </>

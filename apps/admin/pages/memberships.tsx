@@ -1,4 +1,4 @@
-﻿import Head from "next/head";
+import Head from "next/head";
 import Link from "next/link";
 import dayjs from "dayjs";
 import {
@@ -30,7 +30,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
       schema_name: "public",
     });
     if (error) throw error;
-    if (!Array.isArray(data)) throw new Error("Respuesta invÃ¡lida");
+    if (!Array.isArray(data)) throw new Error("Respuesta invalida");
     const values = (data as string[])
       .map((value) => (typeof value === "string" ? value.trim() : ""))
       .filter((value) => value.length > 0);
@@ -59,6 +59,7 @@ export type PlanListRow = {
   updatedAt: string | null;
   category: string;
   appOnly: boolean;
+  requiresMembership: boolean;
 };
 
 type PlanTypeRow = Tables<"plan_types">;
@@ -98,6 +99,7 @@ function mapPlan(row: PlanTypeRow, activeCount: number): PlanListRow {
     updatedAt: row.updated_at ?? row.created_at ?? null,
     category: row.category,
     appOnly: Boolean(row.app_only),
+    requiresMembership: row.mem_req ?? true,
   };
 }
 
@@ -107,7 +109,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     supabaseAdmin
       .from("plan_types")
       .select(
-        `id, name, description, price, currency, class_count, validity_days, privileges, is_active, updated_at, created_at, category, app_only`
+        `id, name, description, price, currency, class_count, validity_days, privileges, is_active, updated_at, created_at, category, app_only, mem_req`
       )
       .order("created_at", { ascending: false })
       .returns<PlanTypeRow[]>(),
@@ -157,6 +159,7 @@ export default function AdminMembershipsPage(
     isActive: boolean;
     category: string;
     appOnly: boolean;
+    requiresMembership: boolean;
   };
 
   const DEFAULT_FORM: FormState = {
@@ -170,6 +173,7 @@ export default function AdminMembershipsPage(
     isActive: true,
     category: categoryOptions[0] ?? "",
     appOnly: false,
+    requiresMembership: true,
   };
 
   const [formState, setFormState] = useState<FormState>(DEFAULT_FORM);
@@ -255,6 +259,7 @@ export default function AdminMembershipsPage(
         isActive: formState.isActive,
         category: trimmedCategory,
         appOnly: formState.appOnly,
+        memReq: formState.requiresMembership,
       };
 
       const res = await fetch("/api/plan-types", {
@@ -374,6 +379,7 @@ export default function AdminMembershipsPage(
                       plan.validityDays ? `${plan.validityDays} dias de vigencia` : null,
                       `Categoria: ${plan.category}`,
                       plan.appOnly ? "Solo app" : null,
+                      plan.requiresMembership ? "Requiere membresia" : "Compra sin membresia",
                     ].filter((token): token is string => Boolean(token));
 
                     return (
@@ -416,7 +422,7 @@ export default function AdminMembershipsPage(
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
-                          {plan.updatedAt ? dayjs(plan.updatedAt).format("DD MMM YYYY") : "â€”"}
+                          {plan.updatedAt ? dayjs(plan.updatedAt).format("DD MMM YYYY") : "N/A"}
                         </td>
                       </tr>
                     );
@@ -512,6 +518,22 @@ export default function AdminMembershipsPage(
                     className="peer sr-only"
                     checked={formState.appOnly}
                     onChange={handleChange("appOnly")}
+                  />
+                  <div className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
+                  <span className="absolute left-0 top-0 ml-1 mt-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />
+                </label>
+              </div>
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <div>
+                  <span className="font-medium text-slate-600">Requiere membresia activa</span>
+                  <p className="text-xs text-slate-500">Desactivalo para permitir la compra sin membresia anual.</p>
+                </div>
+                <label className="relative inline-flex cursor-pointer items-center">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={formState.requiresMembership}
+                    onChange={handleChange("requiresMembership")}
                   />
                   <div className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
                   <span className="absolute left-0 top-0 ml-1 mt-1 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />

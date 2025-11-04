@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -112,18 +112,18 @@ export async function prepareMembershipPurchase(
 
   if (membershipType.max_prepaid_years && termYears > membershipType.max_prepaid_years) {
     throw Object.assign(
-      new Error(`Esta membresia admite hasta ${membershipType.max_prepaid_years} años por pago`),
+      new Error(`Esta membresia admite hasta ${membershipType.max_prepaid_years} anos por pago`),
       { status: 400 }
     );
   }
 
   if (!membershipType.allow_multi_year && termYears > 1) {
-    throw Object.assign(new Error("Esta membresia solo permite pagar un año a la vez"), {
+    throw Object.assign(new Error("Esta membresia solo permite pagar un ano a la vez"), {
       status: 400,
     });
   }
 
-  const start = startDate ? dayjs(startDate) : dayjs();
+  const start = startDate ? madridDayjs(startDate, true) : madridDayjs();
   if (!start.isValid()) {
     throw Object.assign(new Error("Fecha de inicio invalida"), { status: 400 });
   }
@@ -168,7 +168,7 @@ async function fetchMemberSnapshot(clientId: string): Promise<MemberSnapshot> {
     .maybeSingle<MemberSnapshot>();
 
   if (error || !data) {
-    throw Object.assign(new Error("La membresia se registró, pero no pudimos refrescar la información"), {
+    throw Object.assign(new Error("La membresia se registro, pero no pudimos refrescar la informacion"), {
       status: 500,
     });
   }
@@ -236,7 +236,7 @@ export async function commitMembershipPurchase(
     membership_id: membershipInsert.id,
     amount: prepared.amount,
     currency: prepared.currency,
-    paid_at: payment.paidAt ?? dayjs().toISOString(),
+    paid_at: payment.paidAt ?? madridDayjs().toISOString(),
     period_start: prepared.startIso,
     period_end: prepared.endIso,
     period_years: prepared.termYears,
@@ -246,7 +246,7 @@ export async function commitMembershipPurchase(
   });
 
   if (paymentError) {
-    throw Object.assign(new Error("La membresia se registró, pero el pago no se guardó correctamente"), {
+    throw Object.assign(new Error("La membresia se registro, pero el pago no se guardo correctamente"), {
       status: 500,
     });
   }

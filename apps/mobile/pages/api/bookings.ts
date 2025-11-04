@@ -1,6 +1,6 @@
-﻿import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest, NextApiResponse } from "next";
 import crypto from "crypto";
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { resequenceWaitlist } from "@/lib/waitlist";
@@ -28,7 +28,7 @@ type PlanOptionRecord = {
   plan_types?: { category?: string | null; app_only?: boolean | null; class_count?: number | null } | null;
 };
 
-const TODAY = () => dayjs().format("YYYY-MM-DD");
+const TODAY = () => madridDayjs().format("YYYY-MM-DD");
 
 async function logBookingEvent(
   bookingId: string,
@@ -79,8 +79,8 @@ async function ensureBookingWindow(session: { start_time: string; course_id: str
 
   if (course?.booking_window_days !== null && course?.booking_window_days !== undefined) {
     const windowDays = Math.max(0, Number(course.booking_window_days));
-    const unlock = dayjs(session.start_time).subtract(windowDays, "day").startOf("day");
-    if (unlock.isAfter(dayjs())) {
+    const unlock = madridDayjs(session.start_time).subtract(windowDays, "day").startOf("day");
+    if (unlock.isAfter(madridDayjs())) {
       return { error: `Esta reserva se habilita a partir del ${unlock.format("YYYY-MM-DD")}` as const };
     }
   }
@@ -114,7 +114,7 @@ async function ensureAvailability(sessionId: string) {
 
 async function generateQrToken(bookingId: string, sessionStart: string) {
   const token = crypto.randomBytes(6).toString("base64url").slice(0, 10).toUpperCase();
-  const expires = dayjs(sessionStart).add(6, "hour").toISOString();
+  const expires = madridDayjs(sessionStart).add(6, "hour").toISOString();
   const { error } = await supabaseAdmin
     .from("qr_tokens")
     .upsert({ booking_id: bookingId, token, expires_at: expires }, { onConflict: "booking_id" });
@@ -655,13 +655,13 @@ async function cancelBooking({
   const planInfo = (booking.plan_purchases ?? null) as { modality?: string } | null;
 
   const windowHours = Number(sessionInfo?.courses?.cancellation_window_hours ?? 24);
-  const sessionStart = sessionInfo?.start_time ? dayjs(sessionInfo.start_time) : null;
+  const sessionStart = sessionInfo?.start_time ? madridDayjs(sessionInfo.start_time, true) : null;
   const allowRefund =
     !!booking.plan_purchase_id &&
     (forceRefund ||
       (planInfo?.modality === "FLEXIBLE" &&
         sessionStart !== null &&
-        sessionStart.diff(dayjs(now), "hour", true) >= windowHours));
+        sessionStart.diff(madridDayjs(now), "hour", true) >= windowHours));
 
   if (allowRefund) {
     await refundPlanUsage(bookingId, booking.plan_purchase_id ?? null, booking.session_id);
@@ -696,7 +696,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if ((result as { duplicated?: boolean }).duplicated) {
         const duplicate = result as { bookingId?: string };
         return res.status(409).json({
-          error: "Ya tienes una reserva activa para esta sesión.",
+          error: "Ya tienes una reserva activa para esta sesion.",
           bookingId: duplicate.bookingId,
         });
       }

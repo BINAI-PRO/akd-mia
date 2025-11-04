@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import dayjs from "dayjs";
+import { madridDayjs, madridStartOfDay, madridEndOfDay } from "@/lib/timezone";
 
 type WaitlistRow = {
   id: string;
@@ -11,7 +11,6 @@ type WaitlistRow = {
   created_at: string;
 };
 
-/** Fila que devuelve el SELECT con relaciones anidadas */
 type SessionRow = {
   id: string;
   start_time: string;
@@ -25,12 +24,11 @@ type SessionRow = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const date = (req.query.date as string) || dayjs().format("YYYY-MM-DD");
+    const date = (req.query.date as string) || madridDayjs().format("YYYY-MM-DD");
     const clientId = typeof req.query.clientId === "string" ? req.query.clientId : null;
-    const start = dayjs(date).startOf("day").toISOString();
-    const end   = dayjs(date).endOf("day").toISOString();
+    const start = madridStartOfDay(date).toISOString();
+    const end = madridEndOfDay(date).toISOString();
 
-    // 1) Sesiones del día con relaciones
     const { data, error } = await supabaseAdmin
       .from("sessions")
       .select(`
@@ -46,48 +44,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) throw error;
 
-    // Forzamos el tipo de las filas para que TS conozca la forma
     const sessions: SessionRow[] = (data ?? []) as unknown as SessionRow[];
 
-    // 2) Ocupación por sesión (CONFIRMED + CHECKED_IN)
-    const ids = sessions.map(s => s.id);
+    const ids = sessions.map((session) => session.id);
     const occ: Record<string, number> = {};
     let waitlist: WaitlistRow[] = [];
 
     if (ids.length) {
-      const { data: rows, error: e2 } = await supabaseAdmin
+      const { data: rows, error: bookingsError } = await supabaseAdmin
         .from("bookings")
         .select("session_id, status")
         .in("session_id", ids)
         .in("status", ["CONFIRMED", "CHECKED_IN"]);
-      if (e2) throw e2;
-      rows?.forEach(r => { occ[r.session_id] = (occ[r.session_id] ?? 0) + 1; });
+
+      if (bookingsError) throw bookingsError;
+      rows?.forEach((row) => {
+        occ[row.session_id] = (occ[row.session_id] ?? 0) + 1;
+      });
 
       const { data: waitRows, error: waitError } = await supabaseAdmin
         .from("session_waitlist")
         .select("id, session_id, client_id, position, status, created_at")
         .in("session_id", ids);
+
       if (waitError) throw waitError;
       waitlist = (waitRows ?? []) as WaitlistRow[];
     }
 
-    // 3) Dar forma para el front
-    const now = dayjs();
+    const now = madridDayjs();
 
-    const out = sessions.map(s => {
-      const bookingWindow = s.courses?.booking_window_days;
+    const out = sessions.map((session) => {
+      const bookingWindow = session.courses?.booking_window_days;
       let canBook = true;
       let availableFrom: string | null = null;
 
       if (typeof bookingWindow === "number" && Number.isFinite(bookingWindow) && bookingWindow >= 0) {
-        const unlock = dayjs(s.start_time).subtract(bookingWindow, "day").startOf("day");
+        const unlock = madridDayjs(session.start_time, true).subtract(bookingWindow, "day").startOf("day");
         availableFrom = unlock.toISOString();
         if (unlock.isAfter(now)) {
           canBook = false;
         }
       }
 
-      const sessionWaitlist = waitlist.filter((entry) => entry.session_id === s.id);
+      const sessionWaitlist = waitlist.filter((entry) => entry.session_id === session.id);
       const pendingWaitlist = sessionWaitlist
         .filter((entry) => entry.status === "PENDING")
         .sort((a, b) => {
@@ -105,20 +104,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           (entry) => entry.client_id === clientId && entry.status !== "CANCELLED"
         );
         if (userWaitlistEntry?.status === "PENDING") {
-          const index = pendingWaitlist.findIndex((entry) => entry.id === userWaitlistEntry?.id);
+          const index = pendingWaitlist.findIndex((entry) => entry.id === userWaitlistEntry.id);
           userWaitlistPosition = index >= 0 ? index + 1 : null;
         }
       }
 
       return {
-        id: s.id,
-        classType: s.class_types?.name ?? "Clase",
-        room: s.rooms?.name ?? "",
-        instructor: s.instructors?.full_name ?? "",
-        start: s.start_time,
-        end: s.end_time,
-        capacity: s.capacity,
-        current_occupancy: occ[s.id] ?? 0,
+        id: session.id,
+        classType: session.class_types?.name ?? "Clase",
+        room: session.rooms?.name ?? "",
+        instructor: session.instructors?.full_name ?? "",
+        start: session.start_time,
+        end: session.end_time,
+        capacity: session.capacity,
+        current_occupancy: occ[session.id] ?? 0,
         canBook,
         availableFrom,
         waitlistCount: pendingWaitlist.length,

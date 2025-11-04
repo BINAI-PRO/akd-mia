@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { madridDayjs } from "@/lib/timezone";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { CalendarSession } from "@/components/admin/calendar/types";
 
@@ -27,8 +27,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { date, instructorId, roomId, classTypeId } = req.query;
 
-    const anchor = typeof date === "string" ? dayjs(date) : dayjs();
-    const normalized = anchor.isValid() ? anchor.startOf("day") : dayjs().startOf("day");
+    const anchor = typeof date === "string" ? madridDayjs(date) : madridDayjs();
+    const normalized = anchor.isValid() ? anchor.startOf("day") : madridDayjs().startOf("day");
     const dayStart = normalized.startOf("day");
     const dayEnd = normalized.endOf("day");
 

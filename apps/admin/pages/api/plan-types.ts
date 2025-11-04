@@ -15,6 +15,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive,
         category,
         appOnly,
+        memReq,
       } = req.body as {
         name?: string;
         description?: string | null;
@@ -26,6 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive?: boolean;
         category?: string;
         appOnly?: boolean;
+        memReq?: boolean;
       };
 
       if (!name) {
@@ -70,6 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         is_active: isActive ?? true,
         category: normalizedCategory,
         app_only: appOnly ?? false,
+        mem_req: memReq ?? true,
       };
 
       const { data, error } = await supabaseAdmin.from("plan_types").insert(payload).select("*").single();
@@ -101,6 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive,
         category,
         appOnly,
+        memReq,
       } = req.body as {
         id?: string;
         name?: string;
@@ -113,6 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isActive?: boolean;
         category?: string;
         appOnly?: boolean;
+        memReq?: boolean;
       };
 
       if (!id) {
@@ -187,6 +192,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (typeof appOnly === "boolean") {
         updatePayload.app_only = appOnly;
+      }
+
+      if (typeof memReq === "boolean") {
+        updatePayload.mem_req = memReq;
       }
 
       if (Object.keys(updatePayload).length === 0) {

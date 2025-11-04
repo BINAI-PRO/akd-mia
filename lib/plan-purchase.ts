@@ -1,11 +1,11 @@
 import crypto from "crypto";
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
 type PlanTypeRow = Pick<
   Tables<"plan_types">,
-  "id" | "name" | "class_count" | "price" | "currency" | "validity_days" | "category" | "app_only"
+  "id" | "name" | "class_count" | "price" | "currency" | "validity_days" | "category" | "app_only" | "mem_req"
 > & {
   privileges?: string | null;
 };
@@ -30,7 +30,7 @@ export type PlanPurchasePayload = {
 export type PlanPurchasePrepared = {
   client: ClientRow;
   planType: PlanTypeRow;
-  membership: MembershipRow;
+  membership: MembershipRow | null;
   modality: "FLEXIBLE" | "FIXED";
   courseId?: string | null;
   notes?: string | null;
@@ -80,7 +80,7 @@ async function countSessionOccupancy(sessionId: string): Promise<number> {
 
 async function generateQrToken(bookingId: string, sessionStart: string) {
   const token = crypto.randomBytes(6).toString("base64url").slice(0, 10).toUpperCase();
-  const expires = dayjs(sessionStart).add(6, "hour").toISOString();
+  const expires = madridDayjs(sessionStart).add(6, "hour").toISOString();
 
   const { error } = await supabaseAdmin
     .from("qr_tokens")
@@ -181,30 +181,9 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
     throw Object.assign(new Error("Cliente no encontrado"), { status: 400 });
   }
 
-  const { data: membership, error: membershipError } = await supabaseAdmin
-    .from("memberships")
-    .select("id, end_date, status")
-    .eq("client_id", clientId)
-    .eq("status", "ACTIVE")
-    .order("end_date", { ascending: false })
-    .limit(1)
-    .maybeSingle<MembershipRow>();
-
-  if (membershipError) {
-    throw Object.assign(new Error("No se pudo verificar la membresia del cliente"), { status: 500 });
-  }
-
-  if (!membership) {
-    throw Object.assign(new Error("El cliente no tiene una membresia activa"), { status: 400 });
-  }
-
-  if (membership.end_date && dayjs(membership.end_date).isBefore(dayjs(), "day")) {
-    throw Object.assign(new Error("La membresia del cliente esta vencida"), { status: 400 });
-  }
-
   const { data: planType, error: planTypeError } = await supabaseAdmin
     .from("plan_types")
-    .select("id, name, class_count, price, currency, validity_days, privileges, category, app_only")
+    .select("id, name, class_count, price, currency, validity_days, privileges, category, app_only, mem_req")
     .eq("id", planTypeId)
     .single<PlanTypeRow>();
 
@@ -212,11 +191,40 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
     throw Object.assign(new Error("El plan seleccionado no existe"), { status: 400 });
   }
 
+  const requiresMembership = planType.mem_req !== false;
+
+  let membership: MembershipRow | null = null;
+
+  if (requiresMembership) {
+    const { data: membershipRow, error: membershipError } = await supabaseAdmin
+      .from("memberships")
+      .select("id, end_date, status")
+      .eq("client_id", clientId)
+      .eq("status", "ACTIVE")
+      .order("end_date", { ascending: false })
+      .limit(1)
+      .maybeSingle<MembershipRow>();
+
+    if (membershipError) {
+      throw Object.assign(new Error("No se pudo verificar la membresia del cliente"), { status: 500 });
+    }
+
+    if (!membershipRow) {
+      throw Object.assign(new Error("El cliente no tiene una membresia activa"), { status: 400 });
+    }
+
+    if (membershipRow.end_date && madridDayjs(membershipRow.end_date).isBefore(madridDayjs(), "day")) {
+      throw Object.assign(new Error("La membresia del cliente esta vencida"), { status: 400 });
+    }
+
+    membership = membershipRow;
+  }
+
   if (modality === "FIXED" && !courseId) {
     throw Object.assign(new Error("Selecciona el curso que se asignara al plan fijo"), { status: 400 });
   }
 
-  const startReference = startDate ? dayjs(startDate) : dayjs();
+  const startReference = startDate ? madridDayjs(startDate, true) : madridDayjs();
   if (!startReference.isValid()) {
     throw Object.assign(new Error("Fecha de inicio invalida"), { status: 400 });
   }
@@ -282,7 +290,7 @@ export async function commitPlanPurchase(
       client_id: client.id,
       plan_type_id: planType.id,
       status: "ACTIVE",
-      purchased_at: dayjs().toISOString(),
+      purchased_at: madridDayjs().toISOString(),
       start_date: startIso,
       expires_at: expiresAt,
       initial_classes: initialClasses,
@@ -304,7 +312,7 @@ export async function commitPlanPurchase(
         clientId: client.id,
         classCount: initialClasses,
         courseId,
-        startDateIso: dayjs(startIso).startOf("day").toISOString(),
+        startDateIso: madridDayjs(startIso).startOf("day").toISOString(),
       });
     } catch (fixedError) {
       await supabaseAdmin.from("plan_purchases").delete().eq("id", purchase.id);
@@ -320,7 +328,7 @@ export async function commitPlanPurchase(
       plan_purchase_id: purchase.id,
       amount,
       currency,
-      paid_at: payment.paidAt ?? dayjs().toISOString(),
+      paid_at: payment.paidAt ?? madridDayjs().toISOString(),
       status: payment.status,
       provider_ref: payment.providerRef ?? null,
       notes: payment.notes ?? null,

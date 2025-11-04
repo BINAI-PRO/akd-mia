@@ -1,15 +1,15 @@
-import dayjs from "dayjs";
+﻿import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import tz from "dayjs/plugin/timezone";
 
 dayjs.extend(utc);
 dayjs.extend(tz);
-dayjs.tz.setDefault("America/Mexico_City");
+dayjs.tz.setDefault("Europe/Madrid");
 
 export const MONTH_ABBR_ES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
-export const DOW_ABBR_ES   = ["DOM","LUN","MAR","MIÉ","JUE","VIE","SÁB"];
+export const DOW_ABBR_ES   = ["DOM","LUN","MAR","MIE","JUE","VIE","SAB"];
 export const MONTH_LONG_ES  = ["ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO","JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE"];
-export const DOW_LONG_ES    = ["DOMINGO","LUNES","MARTES","MIÉRCOLES","JUEVES","VIERNES","SÁBADO"];
+export const DOW_LONG_ES    = ["DOMINGO","LUNES","MARTES","MIERCOLES","JUEVES","VIERNES","SABADO"];
 
 export function startOfWeekMX(iso: string) {
   return dayjs.tz(iso).startOf("week"); // DOM
@@ -42,7 +42,7 @@ export function earliestAnchor(): string {
 }
 
 export function latestAnchor(): string {
-  // último día del mes (mes actual + 11), y su domingo de semana
+  // ultimo dia del mes (mes actual + 11), y su domingo de semana
   const lastIso = dayjs.tz().add(11, "month").endOf("month").format("YYYY-MM-DD");
   return startOfWeekMX(lastIso).format("YYYY-MM-DD");
 }
@@ -57,5 +57,4 @@ export function clampAnchor(iso: string): string {
   if (d.isAfter(l))  return l.format("YYYY-MM-DD");
   return d.format("YYYY-MM-DD");
 }
-
 

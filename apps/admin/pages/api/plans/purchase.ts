@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
+import { madridDayjs } from "@/lib/timezone";
 import {
   commitPlanPurchase,
   preparePlanPurchase,
@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: "SUCCESS",
       providerRef: "MANUAL_ADMIN",
       notes: notes ?? null,
-      paidAt: dayjs().toISOString(),
+      paidAt: madridDayjs().toISOString(),
     };
 
     const result = await commitPlanPurchase(prepared, payment);

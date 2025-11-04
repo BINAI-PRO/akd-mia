@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { madridDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
 
 type MembershipSummary = {
@@ -84,6 +85,21 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_ORDER = ["GRUPAL", "PARTICULAR", "SEMI_PARTICULAR"];
+const TIME_ZONE = "Europe/Madrid";
+const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  timeZone: TIME_ZONE,
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
+  timeZone: TIME_ZONE,
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
 
 function statusLabel(raw: string) {
   return STATUS_LABEL[raw] ?? raw;
@@ -91,26 +107,16 @@ function statusLabel(raw: string) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "Sin fecha";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(parsed);
+  const parsed = madridDayjs(value, true);
+  if (!parsed.isValid()) return value;
+  return DATE_FORMATTER.format(parsed.toDate());
 }
 
 function formatDateTime(value: string | null | undefined) {
   if (!value) return "Sin fecha";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(parsed);
+  const parsed = madridDayjs(value, true);
+  if (!parsed.isValid()) return value;
+  return DATE_TIME_FORMATTER.format(parsed.toDate());
 }
 
 export default function MyReservationsPage() {
@@ -141,7 +147,7 @@ export default function MyReservationsPage() {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "Ocurrió un error inesperado";
+        const message = error instanceof Error ? error.message : "Ocurrio un error inesperado";
         setState({ status: "error", message });
       });
 
@@ -186,12 +192,16 @@ export default function MyReservationsPage() {
   }, [state]);
 
   const handleEvaluateSession = (bookingId: string) => {
-    alert(`Evaluar sesión ${bookingId}`);
+    alert(`Evaluar sesion ${bookingId}`);
   };
 
   let content: JSX.Element;
   if (state.status === "unauthenticated") {
-    content = <p className="text-sm text-neutral-600">Inicia sesión para consultar tus reservas y tus planes activos.</p>;
+    content = (
+      <p className="text-sm text-neutral-600">
+        Inicia sesion para consultar tus reservas y tus planes activos.
+      </p>
+    );
   } else if (state.status === "loading" || state.status === "idle") {
     content = (
       <div className="space-y-4">
@@ -225,15 +235,21 @@ export default function MyReservationsPage() {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-neutral-900">{state.data.membership?.name ?? "Membresía"}</p>
-            <p className="text-xs text-neutral-600">Activa hasta {formatDate(state.data.membership?.endDate ?? state.data.membership?.nextBillingDate)}.</p>
+            <p className="text-sm font-semibold text-neutral-900">
+              {state.data.membership?.name ?? "Membresia"}
+            </p>
+            <p className="text-xs text-neutral-600">
+              Activa hasta {formatDate(state.data.membership?.endDate ?? state.data.membership?.nextBillingDate)}.
+            </p>
           </div>
-          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Activa</span>
+          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
+            Activa
+          </span>
         </div>
       </div>
     ) : (
       <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
-        <p className="text-sm text-neutral-600">No tienes una membresía activa actualmente.</p>
+        <p className="text-sm text-neutral-600">No tienes una membresia activa actualmente.</p>
       </div>
     );
 
@@ -245,7 +261,9 @@ export default function MyReservationsPage() {
       planSections.push(
         <section key={categoryKey} className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">{CATEGORY_LABELS[categoryKey] ?? CATEGORY_LABELS.OTHER}</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">
+              {CATEGORY_LABELS[categoryKey] ?? CATEGORY_LABELS.OTHER}
+            </h2>
             <span className="text-xs text-neutral-500">{plans.length} activos</span>
           </div>
           <div className="space-y-3">
@@ -253,16 +271,24 @@ export default function MyReservationsPage() {
               const expiresLabel = plan.displayExpiresAt ?? plan.expiresAt;
               const totalClasses = plan.initialClasses ?? 0;
               const reservedClasses = plan.reservedCount;
-              const availableClasses = plan.isUnlimited ? null : Math.max(0, plan.remainingClasses ?? 0);
-              const usedClasses = plan.isUnlimited ? null : Math.max(0, totalClasses - (availableClasses ?? 0) - reservedClasses);
+              const availableClasses = plan.isUnlimited
+                ? null
+                : Math.max(0, plan.remainingClasses ?? 0);
+              const usedClasses = plan.isUnlimited
+                ? null
+                : Math.max(0, totalClasses - (availableClasses ?? 0) - reservedClasses);
 
               return (
                 <div key={plan.id} className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-neutral-900">{plan.name}</p>
-                      <p className="text-xs text-neutral-600">Vence {expiresLabel ? formatDate(expiresLabel) : "sin fecha"}</p>
-                      {plan.modality === "FIXED" && <p className="text-[11px] text-neutral-500">Modalidad fija</p>}
+                      <p className="text-xs text-neutral-600">
+                        Vence {expiresLabel ? formatDate(expiresLabel) : "sin fecha"}
+                      </p>
+                      {plan.modality === "FIXED" && (
+                        <p className="text-[11px] text-neutral-500">Modalidad fija</p>
+                      )}
                     </div>
                     <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
                       {statusLabel(plan.status)}
@@ -270,7 +296,9 @@ export default function MyReservationsPage() {
                   </div>
                   <div className="mt-3 grid grid-cols-3 gap-3 text-center text-xs text-neutral-600">
                     <div>
-                      <p className="font-semibold text-neutral-900">{plan.isUnlimited ? "Ilimitado" : usedClasses}</p>
+                      <p className="font-semibold text-neutral-900">
+                        {plan.isUnlimited ? "Ilimitado" : usedClasses}
+                      </p>
                       <p>Usadas</p>
                     </div>
                     <div>
@@ -278,7 +306,9 @@ export default function MyReservationsPage() {
                       <p>Reservadas</p>
                     </div>
                     <div>
-                      <p className="font-semibold text-neutral-900">{plan.isUnlimited ? "Ilimitado" : availableClasses}</p>
+                      <p className="font-semibold text-neutral-900">
+                        {plan.isUnlimited ? "Ilimitado" : availableClasses}
+                      </p>
                       <p>Disponibles</p>
                     </div>
                   </div>
@@ -292,8 +322,11 @@ export default function MyReservationsPage() {
 
     if (planSections.length === 0) {
       planSections.push(
-        <section key="empty-plans" className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-          Ningún plan activo en este momento.
+        <section
+          key="empty-plans"
+          className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm"
+        >
+          Ningun plan activo en este momento.
         </section>
       );
     }
@@ -301,7 +334,7 @@ export default function MyReservationsPage() {
     content = (
       <div className="space-y-6">
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Membresía</h2>
+          <h2 className="text-lg font-semibold text-neutral-900">Membresia</h2>
           {membershipCard}
         </section>
 
@@ -309,13 +342,15 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Próximas sesiones</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">Proximas sesiones</h2>
             <span className="text-xs text-neutral-500">
               {upcomingBookings.length} {upcomingBookings.length === 1 ? "reserva" : "reservas"}
             </span>
           </div>
           {upcomingBookings.length === 0 ? (
-            <p className="text-sm text-neutral-600">No tienes clases por tomar. Agenda una desde el menú principal.</p>
+            <p className="text-sm text-neutral-600">
+              No tienes clases por tomar. Agenda una desde el menu principal.
+            </p>
           ) : (
             <div className="space-y-3">
               {upcomingBookings.map((booking) => (
@@ -328,7 +363,7 @@ export default function MyReservationsPage() {
                   <p className="text-xs text-neutral-500">{formatDateTime(booking.startTime)}</p>
                   <p className="text-xs text-neutral-500">
                     {booking.instructor}
-                    {booking.room ? ` · ${booking.room}` : ""}
+                    {booking.room ? ` - ${booking.room}` : ""}
                   </p>
                   {booking.planName ? (
                     <span className="mt-2 inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-medium text-brand-700">
@@ -348,10 +383,10 @@ export default function MyReservationsPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-neutral-900">Sesiones recientes</h2>
-            <span className="text-xs text-neutral-500">Últimos 15 días</span>
+            <span className="text-xs text-neutral-500">Ultimos 15 dias</span>
           </div>
           {recentBookings.length === 0 ? (
-            <p className="text-sm text-neutral-600">Aún no has tomado clases recientemente.</p>
+            <p className="text-sm text-neutral-600">Aun no has tomado clases recientemente.</p>
           ) : (
             <div className="space-y-3">
               {recentBookings.map((booking) => (
@@ -362,7 +397,7 @@ export default function MyReservationsPage() {
                       <p className="text-xs text-neutral-500">{formatDateTime(booking.startTime)}</p>
                       <p className="text-xs text-neutral-500">
                         {booking.instructor}
-                        {booking.room ? ` · ${booking.room}` : ""}
+                        {booking.room ? ` - ${booking.room}` : ""}
                       </p>
                       {booking.planName && (
                         <span className="mt-2 inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
@@ -375,7 +410,7 @@ export default function MyReservationsPage() {
                       onClick={() => handleEvaluateSession(booking.id)}
                       className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
                     >
-                      Evaluar sesión
+                      Evaluar sesion
                     </button>
                   </div>
                 </div>

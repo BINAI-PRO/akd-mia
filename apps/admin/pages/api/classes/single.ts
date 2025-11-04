@@ -1,10 +1,7 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
+﻿import type { NextApiRequest, NextApiResponse } from "next";
+import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert } from "@/types/database";
-
-dayjs.extend(utc);
 
 type SessionPayload = Tables<"sessions"> & {
   class_types: Pick<Tables<"class_types">, "id" | "name" | "description"> | null;
@@ -71,7 +68,7 @@ export default async function handler(
     const sessionCapacity =
       typeof capacity === "number" && capacity > 0 ? Math.floor(capacity) : 1;
 
-    const start = dayjs(`${date}T${startTime}`);
+    const start = madridDayjs(`${date}T${startTime}`);
     if (!start.isValid()) {
       return res.status(400).json({ error: "Fecha u hora invalidas" });
     }
@@ -98,11 +95,11 @@ export default async function handler(
       console.error("/api/classes/single insert", error);
       return res
         .status(500)
-        .json({ error: "No se pudo crear la sesión 1:1, intenta nuevamente." });
+        .json({ error: "No se pudo crear la sesion 1:1, intenta nuevamente." });
     }
 
     return res.status(200).json({
-      message: "Sesión 1:1 creada",
+      message: "Sesion 1:1 creada",
       session: data,
     });
   } catch (error) {

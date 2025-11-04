@@ -75,12 +75,21 @@ export default function SchedulePage() {
       params.set("clientId", profile.clientId);
     }
     const res = await fetch(`/api/calendar?${params.toString()}`);
-    const data: ApiSession[] = await res.json();
+    if (!res.ok) {
+      throw new Error("No se pudo consultar el calendario");
+    }
+    const data = await res.json();
+    if (!Array.isArray(data)) {
+      throw new Error("Formato inesperado de calendario");
+    }
     setSessions(data.map(toSummary));
   }, [profile?.clientId]);
 
   useEffect(() => {
-    fetchDay(selected);
+    fetchDay(selected).catch((error) => {
+      console.error("schedule fetchDay", error);
+      setSessions([]);
+    });
   }, [selected, fetchDay]);
 
   useEffect(() => {

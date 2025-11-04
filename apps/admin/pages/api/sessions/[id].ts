@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
+import { madridDayjs } from "@/lib/timezone";
 
 type SessionRow = Tables<"sessions"> & {
   class_types: Pick<Tables<"class_types">, "id" | "name"> | null;
@@ -209,8 +209,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
     });
 
-  const start = sessionRow.start_time ? dayjs(sessionRow.start_time) : null;
-  const end = sessionRow.end_time ? dayjs(sessionRow.end_time) : null;
+  const start = sessionRow.start_time ? madridDayjs(sessionRow.start_time) : null;
+  const end = sessionRow.end_time ? madridDayjs(sessionRow.end_time) : null;
   const durationMinutes =
     start && end && start.isValid() && end.isValid() ? Math.max(end.diff(start, "minute"), 0) : null;
 
