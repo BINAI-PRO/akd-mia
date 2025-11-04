@@ -1,6 +1,7 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
@@ -11,6 +12,7 @@ import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { fetchMembershipSummary } from "@/lib/membership";
 
 dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 type DashboardResponse = {
   membership: Awaited<ReturnType<typeof fetchMembershipSummary>> | null;

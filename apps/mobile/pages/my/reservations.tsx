@@ -141,44 +141,12 @@ export default function MyReservationsPage() {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "Ocurrio un error inesperado";
+        const message = error instanceof Error ? error.message : "Ocurrió un error inesperado";
         setState({ status: "error", message });
       });
 
     return () => controller.abort();
   }, [loading, user, reloadKey]);
-
-  const todayLabel = useMemo(() => {
-    const formatted = new Intl.DateTimeFormat("es-MX", {
-      weekday: "long",
-      day: "numeric",
-      month: "long",
-    }).format(new Date());
-    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  }, []);
-
-  const summary = useMemo(() => {
-    if (state.status !== "loaded") {
-      return { reservedCount: 0, availableCount: 0, hasUnlimited: false };
-    }
-
-    const reservedCount = state.data.upcomingBookings.length;
-    const activePlans = state.data.plans.filter((plan) => plan.status === "ACTIVE");
-    const hasUnlimited = activePlans.some((plan) => plan.isUnlimited);
-
-    const availableCount = activePlans.reduce((acc, plan) => {
-      if (plan.isUnlimited) return null;
-      if (acc === null) return null;
-      const remaining = Math.max(0, plan.remainingClasses ?? 0);
-      return acc + remaining;
-    }, 0 as number | null);
-
-    return {
-      reservedCount,
-      availableCount,
-      hasUnlimited,
-    };
-  }, [state]);
 
   const groupedPlans = useMemo(() => {
     if (state.status !== "loaded") return new Map<string, DashboardPlan[]>();
@@ -194,40 +162,36 @@ export default function MyReservationsPage() {
 
     CATEGORY_ORDER.forEach((category) => {
       if (map.has(category)) {
-        map.set(
-          category,
-          map
-            .get(category)!
-            .slice()
-            .sort((a, b) => {
-              const aDate = a.displayExpiresAt ?? a.expiresAt ?? "";
-              const bDate = b.displayExpiresAt ?? b.expiresAt ?? "";
-              return aDate.localeCompare(bDate);
-            })
-        );
+        const sorted = map
+          .get(category)!
+          .slice()
+          .sort((a, b) => {
+            const aDate = a.displayExpiresAt ?? a.expiresAt ?? "";
+            const bDate = b.displayExpiresAt ?? b.expiresAt ?? "";
+            return aDate.localeCompare(bDate);
+          });
+        map.set(category, sorted);
       }
     });
 
     if (map.has("OTHER")) {
-      map.set(
-        "OTHER",
-        map
-          .get("OTHER")!
-          .slice()
-          .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
-      );
+      const sortedOther = map
+        .get("OTHER")!
+        .slice()
+        .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
+      map.set("OTHER", sortedOther);
     }
 
     return map;
   }, [state]);
 
   const handleEvaluateSession = (bookingId: string) => {
-    alert(`Evaluar sesion ${bookingId}`);
+    alert(`Evaluar sesión ${bookingId}`);
   };
 
   let content: JSX.Element;
   if (state.status === "unauthenticated") {
-    content = <p className="text-sm text-neutral-600">Inicia sesion para consultar tus reservas y tus planes activos.</p>;
+    content = <p className="text-sm text-neutral-600">Inicia sesión para consultar tus reservas y tus planes activos.</p>;
   } else if (state.status === "loading" || state.status === "idle") {
     content = (
       <div className="space-y-4">
@@ -261,7 +225,7 @@ export default function MyReservationsPage() {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-neutral-900">{state.data.membership?.name ?? "Membresia"}</p>
+            <p className="text-sm font-semibold text-neutral-900">{state.data.membership?.name ?? "Membresía"}</p>
             <p className="text-xs text-neutral-600">Activa hasta {formatDate(state.data.membership?.endDate ?? state.data.membership?.nextBillingDate)}.</p>
           </div>
           <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">Activa</span>
@@ -269,7 +233,7 @@ export default function MyReservationsPage() {
       </div>
     ) : (
       <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
-        <p className="text-sm text-neutral-600">No tienes una membresia activa actualmente.</p>
+        <p className="text-sm text-neutral-600">No tienes una membresía activa actualmente.</p>
       </div>
     );
 
@@ -329,41 +293,15 @@ export default function MyReservationsPage() {
     if (planSections.length === 0) {
       planSections.push(
         <section key="empty-plans" className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-          Ningun plan activo en este momento.
+          Ningún plan activo en este momento.
         </section>
       );
     }
 
     content = (
       <div className="space-y-6">
-        <section className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-neutral-500">Tu resumen</p>
-              <p className="text-lg font-semibold text-neutral-900">{todayLabel}</p>
-            </div>
-            <button
-              type="button"
-              className="text-xs font-medium text-brand-600"
-              onClick={() => setReloadKey((value) => value + 1)}
-            >
-              Actualizar
-            </button>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-3 text-center text-sm text-neutral-600">
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3">
-              <p className="text-xs uppercase tracking-wide text-neutral-500">Clases reservadas</p>
-              <p className="text-2xl font-bold text-neutral-900">{summary.reservedCount}</p>
-            </div>
-            <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3">
-              <p className="text-xs uppercase tracking-wide text-neutral-500">Clases disponibles</p>
-              <p className="text-2xl font-bold text-neutral-900">{summary.hasUnlimited ? "Ilimitado" : summary.availableCount ?? 0}</p>
-            </div>
-          </div>
-        </section>
-
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Membresia</h2>
+          <h2 className="text-lg font-semibold text-neutral-900">Membresía</h2>
           {membershipCard}
         </section>
 
@@ -371,13 +309,13 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Proximas clases</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">Próximas sesiones</h2>
             <span className="text-xs text-neutral-500">
               {upcomingBookings.length} {upcomingBookings.length === 1 ? "reserva" : "reservas"}
             </span>
           </div>
           {upcomingBookings.length === 0 ? (
-            <p className="text-sm text-neutral-600">No tienes clases por tomar. Agenda una desde el menu principal.</p>
+            <p className="text-sm text-neutral-600">No tienes clases por tomar. Agenda una desde el menú principal.</p>
           ) : (
             <div className="space-y-3">
               {upcomingBookings.map((booking) => (
@@ -410,10 +348,10 @@ export default function MyReservationsPage() {
         <section className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-neutral-900">Sesiones recientes</h2>
-            <span className="text-xs text-neutral-500">Ultimos 15 dias</span>
+            <span className="text-xs text-neutral-500">Últimos 15 días</span>
           </div>
           {recentBookings.length === 0 ? (
-            <p className="text-sm text-neutral-600">Aun no has tomado clases recientemente.</p>
+            <p className="text-sm text-neutral-600">Aún no has tomado clases recientemente.</p>
           ) : (
             <div className="space-y-3">
               {recentBookings.map((booking) => (
@@ -437,7 +375,7 @@ export default function MyReservationsPage() {
                       onClick={() => handleEvaluateSession(booking.id)}
                       className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
                     >
-                      Evaluar sesion
+                      Evaluar sesión
                     </button>
                   </div>
                 </div>
@@ -455,11 +393,15 @@ export default function MyReservationsPage() {
         <title>Mis reservas | AT Pilates Time</title>
       </Head>
       <main className="container-mobile space-y-6 py-6">
-        <div className="space-y-1">
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-neutral-900">Mis reservas</h1>
-          <p className="text-sm text-neutral-500">
-            Consulta tus clases agendadas y los creditos disponibles en tus planes.
-          </p>
+          <button
+            type="button"
+            className="text-xs font-medium text-brand-600"
+            onClick={() => setReloadKey((value) => value + 1)}
+          >
+            Actualizar
+          </button>
         </div>
         {content}
         <div className="pb-24" />
