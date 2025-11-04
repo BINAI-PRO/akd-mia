@@ -9,6 +9,7 @@ export default function AdminLoginPage() {
   const { user, loading, refreshSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -133,18 +134,30 @@ export default function AdminLoginPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                Contraseña
+                Contrase�a
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-11 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  placeholder="********"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
+                  aria-label={showPassword ? "Ocultar contrase�a" : "Mostrar contrase�a"}
+                >
+                  <span className="material-icons-outlined text-base">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
             </div>
 
             {formError && (
@@ -168,3 +181,7 @@ export default function AdminLoginPage() {
 }
 
 AdminLoginPage.publicPage = true;
+
+
+
+

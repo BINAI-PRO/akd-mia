@@ -11,6 +11,7 @@ export default function MobileLoginPage() {
   const { user, loading, refreshSession } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -160,17 +161,29 @@ export default function MobileLoginPage() {
               >
                 Contrasena
               </label>
-              <input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                onBlur={() => setPasswordTouched(true)}
-                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
-                placeholder="********"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  onBlur={() => setPasswordTouched(true)}
+                  className="w-full rounded-xl border border-neutral-200 px-3 py-2 pr-11 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  placeholder="********"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-400 transition hover:text-neutral-600"
+                  aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
+                >
+                  <span className="material-icons-outlined text-base">
+                    {showPassword ? "visibility_off" : "visibility"}
+                  </span>
+                </button>
+              </div>
               <p className="text-xs text-neutral-500">
                 Usa entre 8 y 64 caracteres con letras, numeros y al menos un simbolo.
               </p>
@@ -202,3 +215,5 @@ export default function MobileLoginPage() {
 }
 
 MobileLoginPage.publicPage = true;
+
+
