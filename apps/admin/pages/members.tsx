@@ -318,18 +318,20 @@ export default function AdminMiembrosPage(
     [planOptions]
   );
 
-  type MembershipFormState = {
-    membershipTypeId: string;
-    startDate: string;
-    termYears: number;
-    notes: string;
-  };
+type MembershipFormState = {
+  membershipTypeId: string;
+  startDate: string;
+  termYears: number;
+  notes: string;
+};
 
-  type PlanFormState = {
-    planTypeId: string;
-    startDate: string;
-    notes: string;
-    modality: "FLEXIBLE" | "FIXED";
+type MembershipPaymentMode = "CARD" | "CASH";
+
+type PlanFormState = {
+  planTypeId: string;
+  startDate: string;
+  notes: string;
+  modality: "FLEXIBLE" | "FIXED";
     courseId: string;
   };
 
@@ -339,6 +341,8 @@ export default function AdminMiembrosPage(
     termYears: 1,
     notes: "",
   }));
+  const [membershipPaymentMode, setMembershipPaymentMode] = useState<MembershipPaymentMode>("CASH");
+  const [membershipSuccess, setMembershipSuccess] = useState<string | null>(null);
 
   const [planForm, setPlanForm] = useState<PlanFormState>(() => ({
     planTypeId: planDefaultType?.id ?? "",
@@ -410,6 +414,8 @@ export default function AdminMiembrosPage(
     });
     setMembershipModalMember(member);
     setMembershipError(null);
+    setMembershipSuccess(null);
+    setMembershipPaymentMode("CASH");
     setMembershipModalOpen(true);
   };
 
@@ -418,6 +424,8 @@ export default function AdminMiembrosPage(
     setMembershipModalMember(null);
     setMembershipError(null);
     setMembershipLoading(false);
+    setMembershipSuccess(null);
+    setMembershipPaymentMode("CASH");
   };
 
   const openPlanModalFor = (member: MemberRow) => {
@@ -470,18 +478,43 @@ export default function AdminMiembrosPage(
 
     setMembershipLoading(true);
     setMembershipError(null);
+    setMembershipSuccess(null);
+
+    const payload = {
+      clientId: membershipModalMember.id,
+      membershipTypeId: membershipForm.membershipTypeId,
+      startDate: membershipForm.startDate,
+      termYears: membershipForm.termYears,
+      notes: membershipForm.notes || null,
+    };
 
     try {
+      if (membershipPaymentMode === "CARD" && membershipTotal <= 0) {
+        setMembershipError("Configura un monto mayor a 0 para poder cobrar con tarjeta");
+        setMembershipLoading(false);
+        return;
+      }
+
+      if (membershipPaymentMode === "CARD") {
+        const response = await fetch("/api/memberships/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || typeof body?.url !== "string") {
+          throw new Error(body?.error ?? "No se pudo iniciar el pago con tarjeta");
+        }
+        window.open(body.url, "_blank", "noopener");
+        setMembershipSuccess("Abrimos Stripe en una nueva pestana. La membresia se activara cuando el pago sea confirmado.");
+        setMembershipLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/memberships", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId: membershipModalMember.id,
-          membershipTypeId: membershipForm.membershipTypeId,
-          startDate: membershipForm.startDate,
-          termYears: membershipForm.termYears,
-          notes: membershipForm.notes || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const body = await response.json().catch(() => ({}));
@@ -495,6 +528,10 @@ export default function AdminMiembrosPage(
       const message = error instanceof Error ? error.message : "No se pudo registrar la membresia";
       setMembershipError(message);
       setMembershipLoading(false);
+    } finally {
+      if (membershipPaymentMode !== "CARD") {
+        setMembershipLoading(false);
+      }
     }
   }
 
@@ -729,6 +766,53 @@ export default function AdminMiembrosPage(
               </div>
               <div className="space-y-4 px-6 py-6 text-sm">
                 <div>
+                  <span className="block text-xs font-medium text-slate-600">Metodo de pago</span>
+                  <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMembershipPaymentMode("CARD");
+                        setMembershipError(null);
+                        setMembershipSuccess(null);
+                      }}
+                      className={`rounded-md px-3 py-2 transition ${
+                        membershipPaymentMode === "CARD"
+                          ? "bg-white text-brand-600 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      Cobrar con tarjeta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMembershipPaymentMode("CASH");
+                        setMembershipError(null);
+                        setMembershipSuccess(null);
+                      }}
+                      className={`ml-1 rounded-md px-3 py-2 transition ${
+                        membershipPaymentMode === "CASH"
+                          ? "bg-white text-brand-600 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                    >
+                      Registrar pago en efectivo
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    {membershipPaymentMode === "CARD"
+                      ? "Generaremos un checkout de Stripe en una nueva pestaña para que el cliente pague con tarjeta."
+                      : "Registra aqui los pagos confirmados en recepcion o efectivo. La membresia se activara al guardar."}
+                  </p>
+                </div>
+
+                {membershipSuccess ? (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    {membershipSuccess}
+                  </div>
+                ) : null}
+
+                <div>
                   <label className="block text-xs font-medium text-slate-600">Tipo de membresia</label>
                   <select
                     value={membershipForm.membershipTypeId}
@@ -740,8 +824,8 @@ export default function AdminMiembrosPage(
                     <option value="">Selecciona un tipo</option>
                     {membershipOptions.map((option) => (
                       <option key={option.id} value={option.id} disabled={!option.isActive}>
-                        {option.name}  {getCurrencyFormatter(option.currency).format(option.price)}
-                        {!option.isActive ? "  (inactiva)" : ""}
+                        {option.name} {getCurrencyFormatter(option.currency).format(option.price)}
+                        {!option.isActive ? " (inactiva)" : ""}
                       </option>
                     ))}
                   </select>
@@ -822,7 +906,13 @@ export default function AdminMiembrosPage(
                   disabled={membershipLoading}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {membershipLoading ? "Registrando..." : "Registrar"}
+                  {membershipLoading
+                    ? membershipPaymentMode === "CARD"
+                      ? "Generando pago..."
+                      : "Registrando..."
+                    : membershipPaymentMode === "CARD"
+                    ? "Generar link de pago"
+                    : "Registrar"}
                 </button>
               </div>
             </form>
@@ -1007,6 +1097,7 @@ export default function AdminMiembrosPage(
     </AdminLayoutAny>
   );
 }
+
 
 
 

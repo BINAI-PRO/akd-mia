@@ -143,11 +143,15 @@ export default function NewMemberPage({
         throw new Error(body?.error ?? "No se pudo crear el miembro");
       }
 
-      if (body?.member?.id) {
-        await router.push(`/members/${body.member.id}?created=1`);
-      } else {
-        await router.push("/members");
-      }
+      const targetQuery =
+        body?.member?.id != null
+          ? { created: "1", memberId: body.member.id as string }
+          : { created: "1" };
+
+      await router.push({
+        pathname: "/members",
+        query: targetQuery,
+      });
     } catch (submitError) {
       const message =
         submitError instanceof Error ? submitError.message : "No se pudo crear el miembro";

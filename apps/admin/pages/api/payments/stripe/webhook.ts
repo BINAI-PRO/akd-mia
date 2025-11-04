@@ -2,6 +2,10 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import dayjs from "dayjs";
 import { getStripeClient, getStripeWebhookSecret } from "@/lib/stripe";
 import { commitPlanPurchase, preparePlanPurchase } from "@/lib/plan-purchase";
+import {
+  commitMembershipPurchase,
+  prepareMembershipPurchase,
+} from "@/lib/membership-purchase";
 
 export const config = {
   api: {
@@ -83,16 +87,18 @@ async function processCheckoutSession(session: StripeCheckoutSession) {
   const metadata = session.metadata ?? {};
   const clientId = getString(metadata, "clientId");
   const planTypeId = getString(metadata, "planTypeId");
+  const membershipTypeId = getString(metadata, "membershipTypeId");
   const modality = normalizeModality(getString(metadata, "modality"));
   const startIso = getString(metadata, "startIso");
   const notes = getString(metadata, "notes");
   const courseId = getString(metadata, "courseId");
 
-  if (!clientId || !planTypeId || !startIso) {
+  if (!clientId || (!planTypeId && !membershipTypeId) || !startIso) {
     console.warn("Stripe checkout session sin metadata suficiente", {
       sessionId: session.id,
       clientId,
       planTypeId,
+      membershipTypeId,
       startIso,
     });
     return;
@@ -127,19 +133,36 @@ async function processCheckoutSession(session: StripeCheckoutSession) {
   };
 
   try {
-    const prepared = await preparePlanPurchase(payload);
-
     const paymentIntent =
       typeof session.payment_intent === "string"
         ? session.payment_intent
         : session.payment_intent?.id ?? null;
 
-    await commitPlanPurchase(prepared, {
-      status: "SUCCESS",
-      providerRef: session.id,
-      notes: `Stripe checkout ${session.id}${paymentIntent ? ` / PI ${paymentIntent}` : ""}`,
-      paidAt: session.created ? dayjs.unix(session.created).toISOString() : dayjs().toISOString(),
-    });
+    if (planTypeId) {
+      const preparedPlan = await preparePlanPurchase(payload);
+      await commitPlanPurchase(preparedPlan, {
+        status: "SUCCESS",
+        providerRef: session.id,
+        notes: `Stripe checkout ${session.id}${paymentIntent ? ` / PI ${paymentIntent}` : ""}`,
+        paidAt: session.created ? dayjs.unix(session.created).toISOString() : dayjs().toISOString(),
+      });
+    } else if (membershipTypeId) {
+      const termYears = Number(getString(metadata, "termYears") ?? "1");
+      const membershipPayload = {
+        clientId,
+        membershipTypeId,
+        startDate: startIso,
+        termYears,
+        notes,
+      };
+      const preparedMembership = await prepareMembershipPurchase(membershipPayload);
+      await commitMembershipPurchase(preparedMembership, {
+        status: "SUCCESS",
+        providerRef: session.id,
+        notes: `Stripe checkout ${session.id}${paymentIntent ? ` / PI ${paymentIntent}` : ""}`,
+        paidAt: session.created ? dayjs.unix(session.created).toISOString() : dayjs().toISOString(),
+      });
+    }
   } catch (error) {
     const status = (error as { status?: number }).status ?? 500;
     if (status >= 500) {
