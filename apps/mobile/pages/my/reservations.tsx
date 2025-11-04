@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+ï»¿import { useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthContext";
@@ -290,9 +290,7 @@ export default function MyReservationsPage() {
               const totalClasses = plan.initialClasses ?? 0;
               const reservedClasses = plan.reservedCount;
               const availableClasses = plan.isUnlimited ? null : Math.max(0, plan.remainingClasses ?? 0);
-              const usedClasses = plan.isUnlimited
-                ? null
-                : Math.max(0, totalClasses - (availableClasses ?? 0) - (reservedClasses ?? 0));
+              const usedClasses = plan.isUnlimited ? null : Math.max(0, totalClasses - (availableClasses ?? 0) - reservedClasses);
 
               return (
                 <div key={plan.id} className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
@@ -300,9 +298,7 @@ export default function MyReservationsPage() {
                     <div>
                       <p className="text-sm font-semibold text-neutral-900">{plan.name}</p>
                       <p className="text-xs text-neutral-600">Vence {expiresLabel ? formatDate(expiresLabel) : "sin fecha"}</p>
-                      {plan.modality === "FIXED" && (
-                        <p className="text-[11px] text-neutral-500">Modalidad fija</p>
-                      )}
+                      {plan.modality === "FIXED" && <p className="text-[11px] text-neutral-500">Modalidad fija</p>}
                     </div>
                     <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-neutral-600">
                       {statusLabel(plan.status)}
@@ -361,9 +357,7 @@ export default function MyReservationsPage() {
             </div>
             <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-3">
               <p className="text-xs uppercase tracking-wide text-neutral-500">Clases disponibles</p>
-              <p className="text-2xl font-bold text-neutral-900">
-                {summary.hasUnlimited ? "Ilimitado" : summary.availableCount ?? 0}
-              </p>
+              <p className="text-2xl font-bold text-neutral-900">{summary.hasUnlimited ? "Ilimitado" : summary.availableCount ?? 0}</p>
             </div>
           </div>
         </section>
@@ -396,7 +390,7 @@ export default function MyReservationsPage() {
                   <p className="text-xs text-neutral-500">{formatDateTime(booking.startTime)}</p>
                   <p className="text-xs text-neutral-500">
                     {booking.instructor}
-                    {booking.room ? ` · ${booking.room}` : ""}
+                    {booking.room ? ` Â· ${booking.room}` : ""}
                   </p>
                   {booking.planName ? (
                     <span className="mt-2 inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-[11px] font-medium text-brand-700">
@@ -430,7 +424,7 @@ export default function MyReservationsPage() {
                       <p className="text-xs text-neutral-500">{formatDateTime(booking.startTime)}</p>
                       <p className="text-xs text-neutral-500">
                         {booking.instructor}
-                        {booking.room ? ` · ${booking.room}` : ""}
+                        {booking.room ? ` Â· ${booking.room}` : ""}
                       </p>
                       {booking.planName && (
                         <span className="mt-2 inline-flex items-center rounded-full bg-neutral-100 px-2.5 py-0.5 text-[11px] font-medium text-neutral-600">
@@ -473,5 +467,3 @@ export default function MyReservationsPage() {
     </>
   );
 }
-
-
