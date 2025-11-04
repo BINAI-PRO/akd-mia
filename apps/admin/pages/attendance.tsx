@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -26,6 +27,35 @@ type ScanRecord = {
 const MAX_HISTORY = 10;
 const EMPTY_TEXT = "\u2014";
 
+function normalizeToken(raw: string): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+
+  try {
+    const url = new URL(trimmed);
+    const segments = url.pathname.split("/").filter(Boolean);
+    const candidate = segments[segments.length - 1];
+    if (candidate) {
+      return candidate.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+    }
+  } catch {
+    // Not a URL, fall back to string parsing
+  }
+
+  const alphanumeric = trimmed.replace(/[^A-Za-z0-9]/g, "");
+  if (alphanumeric.length >= 4) {
+    return alphanumeric.toUpperCase();
+  }
+
+  const trailing = trimmed.match(/[A-Za-z0-9]+$/);
+  if (trailing?.[0]) {
+    return trailing[0].toUpperCase();
+  }
+
+  return trimmed.toUpperCase();
+}
+
 export default function AttendanceScannerPage() {
   const { profile } = useAuth();
   const staffId = profile?.staffId ?? null;
@@ -35,6 +65,8 @@ export default function AttendanceScannerPage() {
   const detectorRef = useRef<BarcodeDetectorHandle | null>(null);
   const frameRequestRef = useRef<number | null>(null);
   const lastTokenRef = useRef<string | null>(null);
+  const scannerBufferRef = useRef<string>("");
+  const scannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [scannerSupported, setScannerSupported] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -47,7 +79,17 @@ export default function AttendanceScannerPage() {
 
   const handleToken = useCallback(
     async (token: string, fromCamera: boolean) => {
-      if (!token) return;
+      const normalized = normalizeToken(token);
+      if (!normalized) {
+        if (!fromCamera) {
+          setSubmissionError("Ingresa un c\u00f3digo v\u00e1lido.");
+        }
+        if (fromCamera) {
+          lastTokenRef.current = null;
+        }
+        return;
+      }
+
       setSubmissionError(null);
       setProcessing(true);
 
@@ -56,7 +98,7 @@ export default function AttendanceScannerPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            token,
+            token: normalized,
             present: true,
             actorStaffId: staffId,
           }),
@@ -95,7 +137,7 @@ export default function AttendanceScannerPage() {
               sessionStart: successPayload.session.startTime ?? null,
               status: successPayload.status,
               message: successPayload.message,
-              token,
+              token: normalized,
               timestamp: new Date().toISOString(),
             },
             ...prev,
@@ -170,7 +212,7 @@ export default function AttendanceScannerPage() {
       try {
         const barcodes = await detector.detect(video);
         if (barcodes.length > 0) {
-          const raw = (barcodes[0].rawValue ?? "").trim().toUpperCase();
+          const raw = (barcodes[0].rawValue ?? "").trim();
           if (raw && raw !== lastTokenRef.current) {
             lastTokenRef.current = raw;
             void handleToken(raw, true);
@@ -202,12 +244,11 @@ export default function AttendanceScannerPage() {
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const token = manualToken.trim().toUpperCase();
-    if (!token) {
+    if (!manualToken.trim()) {
       setSubmissionError("Ingresa un c\u00f3digo v\u00e1lido.");
       return;
     }
-    await handleToken(token, false);
+    await handleToken(manualToken, false);
     setManualToken("");
   };
 
@@ -279,7 +320,7 @@ export default function AttendanceScannerPage() {
               <input
                 type="text"
                 value={manualToken}
-                onChange={(event) => setManualToken(event.target.value.toUpperCase())}
+                onChange={(event) => setManualToken(event.target.value)}
                 placeholder="C\u00f3digo QR"
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
               />

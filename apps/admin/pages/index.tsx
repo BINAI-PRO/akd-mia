@@ -93,12 +93,16 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: "person_add",
     href: "/members/new",
   },
+  {
+    label: "Ver reportes",
+    icon: "bar_chart",
+    href: "/reports",
+  },
 ];
 
 const UPCOMING_ACTIONS: QuickAction[] = [
   { label: "Crear factura", icon: "receipt_long" },
   { label: "Enviar correo", icon: "email" },
-  { label: "Ver reportes", icon: "bar_chart" },
 ];
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {

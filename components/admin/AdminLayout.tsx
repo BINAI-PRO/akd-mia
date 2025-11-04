@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthContext";
 export type NavKey =
   | "dashboard"
   | "calendar"
+  | "reports"
   | "attendanceScanner"
   | "courses"
   | "courseScheduler"
@@ -89,6 +90,7 @@ const NAVIGATION: NavItem[] = [
       { type: "link", key: "planningStaff", label: "Staff", icon: "group", href: "/planeacion/staff" },
     ],
   },
+  { type: "link", key: "reports", label: "Reportes", icon: "insights", href: "/reports" },
   { type: "link", key: "attendanceScanner", label: "Asistencia", icon: "qr_code_scanner", href: "/attendance" },
 ];
 
@@ -97,6 +99,7 @@ const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
   LOCATION_MANAGER: [
     "dashboard",
     "calendar",
+    "reports",
     "attendanceScanner",
     "courses",
     "courseScheduler",
@@ -112,6 +115,7 @@ const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
   SUPPORT: [
     "dashboard",
     "calendar",
+    "reports",
     "attendanceScanner",
     "courses",
     "courseScheduler",
@@ -124,7 +128,7 @@ const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
     "planningRooms",
     "planningStaff",
   ],
-  RECEPTIONIST: ["dashboard", "calendar", "attendanceScanner", "classes", "members", "membershipPlans"],
+  RECEPTIONIST: ["dashboard", "calendar", "reports", "attendanceScanner", "classes", "members", "membershipPlans"],
   INSTRUCTOR: ["calendar"],
 };
 
