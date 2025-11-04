@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "No se pudo iniciar sesion con Google";
+          : "No se pudo iniciar sesi\u00f3n con Google";
       setFormError(message);
       setSubmitting(false);
     }
@@ -72,7 +72,9 @@ export default function AdminLoginPage() {
       await router.replace(redirectTarget);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesi√≥n";
+        error instanceof Error
+          ? error.message
+          : "No se pudo iniciar sesi\u00f3n";
       setFormError(message);
       setSubmitting(false);
     }
@@ -81,7 +83,7 @@ export default function AdminLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesi√≥n | Panel Admin</title>
+        <title>Iniciar sesi\u00f3n | Panel Admin</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
         <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
@@ -134,7 +136,7 @@ export default function AdminLoginPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                ContraseÒa
+                Contrase\u00f1a
               </label>
               <div className="relative">
                 <input
@@ -151,7 +153,9 @@ export default function AdminLoginPage() {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
-                  aria-label={showPassword ? "Ocultar contraseÒa" : "Mostrar contraseÒa"}
+                  aria-label={
+                    showPassword ? "Ocultar contrase\u00f1a" : "Mostrar contrase\u00f1a"
+                  }
                 >
                   <span className="material-icons-outlined text-base">
                     {showPassword ? "visibility_off" : "visibility"}
@@ -171,7 +175,7 @@ export default function AdminLoginPage() {
               className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-400"
               disabled={submitting}
             >
-              {submitting ? "Ingresando..." : "Iniciar sesi√≥n"}
+              {submitting ? "Ingresando..." : "Iniciar sesi\u00f3n"}
             </button>
           </form>
         </section>
@@ -181,7 +185,3 @@ export default function AdminLoginPage() {
 }
 
 AdminLoginPage.publicPage = true;
-
-
-
-

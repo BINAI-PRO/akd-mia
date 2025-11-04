@@ -144,6 +144,13 @@ export default function InstructorsPage({
   const [wa1, setWa1] = React.useState(false);
   const [wa2, setWa2] = React.useState(false);
   const [classTypeIds, setClassTypeIds] = React.useState<string[]>([]);
+  const allClassTypeIds = React.useMemo(() => classTypes.map((ct) => ct.id), [classTypes]);
+  const selectAllClassTypesRef = React.useRef<HTMLInputElement>(null);
+  const areAllClassTypesSelected = React.useMemo(
+    () => allClassTypeIds.length > 0 && allClassTypeIds.every((id) => classTypeIds.includes(id)),
+    [allClassTypeIds, classTypeIds]
+  );
+  const isClassTypeSelectionPartial = classTypeIds.length > 0 && !areAllClassTypesSelected;
   const [weeklyAvailability, setWeeklyAvailability] = React.useState<WeeklyAvailability>(createEmptyWeek());
   const [overrideWeeks, setOverrideWeeks] = React.useState<OverrideWeek[]>([]);
   const [activeScheduleTab, setActiveScheduleTab] = React.useState<"typical" | "atypical">("typical");
@@ -164,6 +171,36 @@ export default function InstructorsPage({
       return weekStartFormatter.format(date);
     },
     [weekStartFormatter]
+  );
+
+  React.useEffect(() => {
+    if (!selectAllClassTypesRef.current) return;
+    selectAllClassTypesRef.current.indeterminate = isClassTypeSelectionPartial;
+  }, [isClassTypeSelectionPartial]);
+
+  const handleToggleAllClassTypes = React.useCallback(() => {
+    setClassTypeIds((prev) => {
+      const currentlyAllSelected =
+        allClassTypeIds.length > 0 && allClassTypeIds.every((id) => prev.includes(id));
+      return currentlyAllSelected ? [] : [...allClassTypeIds];
+    });
+  }, [allClassTypeIds]);
+
+  const handleToggleClassType = React.useCallback(
+    (id: string) => {
+      setClassTypeIds((prev) => {
+        if (prev.includes(id)) {
+          return prev.filter((x) => x !== id);
+        }
+        const next = [...prev, id];
+        const getOrder = (value: string) => {
+          const idx = allClassTypeIds.indexOf(value);
+          return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+        };
+        return next.sort((a, b) => getOrder(a) - getOrder(b));
+      });
+    },
+    [allClassTypeIds]
   );
 
   const addTypicalRange = (day: DayKey) => {
@@ -470,14 +507,21 @@ export default function InstructorsPage({
                 Clases
               </header>
               <div className="grid grid-cols-1 gap-2 p-4 text-sm sm:grid-cols-2 md:grid-cols-3">
+                <label className="flex items-center gap-2 font-medium">
+                  <input
+                    ref={selectAllClassTypesRef}
+                    type="checkbox"
+                    checked={areAllClassTypesSelected}
+                    onChange={handleToggleAllClassTypes}
+                  />
+                  Todos
+                </label>
                 {classTypes.map((ct) => (
                   <label key={ct.id} className="flex items-center gap-2">
                     <input
                       type="checkbox"
                       checked={classTypeIds.includes(ct.id)}
-                      onChange={() => setClassTypeIds((prev) =>
-                        prev.includes(ct.id) ? prev.filter((x) => x !== ct.id) : [...prev, ct.id]
-                      )}
+                      onChange={() => handleToggleClassType(ct.id)}
                     />
                     {ct.name}
                   </label>
