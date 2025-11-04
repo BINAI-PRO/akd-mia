@@ -160,7 +160,7 @@ export default async function handler(
        qr_tokens ( token )`
     )
     .eq("client_id", clientId)
-    .in("status", ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"])
+    // bring all statuses; we'll filter client-side to avoid enum mismatches
 
   if (bookingsError) {
     return res.status(500).json({ error: bookingsError.message });
@@ -202,13 +202,18 @@ export default async function handler(
       const startTime = sessionRow.start_time;
       if (!startTime) return null;
 
+      const bookingStatus = (row.status ?? "").toUpperCase();
+      if (!["CONFIRMED", "CHECKED_IN"].includes(bookingStatus)) {
+        return null;
+      }
+
       if (!dayjs(startTime).isSameOrAfter(now, "minute")) {
         return null;
       }
 
       return {
         id: row.id,
-        status: row.status,
+        status: bookingStatus,
         classType: sessionRow.class_types?.name ?? "Clase",
         instructor: sessionRow.instructors?.full_name ?? "",
         room: sessionRow.rooms?.name ?? "",
