@@ -109,7 +109,7 @@ function TopPlansList({ data }: { data: TopPlan[] }) {
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{plan.label}</span>
               <span className="text-xs text-slate-500">
-                {(plan.percentage * 100).toFixed(1)}% · {formatCurrency(plan.total)}
+                {`${(plan.percentage * 100).toFixed(1)}% \u00b7 ${formatCurrency(plan.total)}`}
               </span>
             </div>
             <div className="h-2 rounded-full bg-slate-100">
@@ -150,7 +150,7 @@ function ExpirationsTable({ rows }: { rows: ExpirationRow[] }) {
             <tr key={`${item.type}-${item.id}`} className="hover:bg-slate-50">
               <td className="px-4 py-3 font-medium text-slate-800">{item.client}</td>
               <td className="px-4 py-3 text-slate-600">
-                {item.type === "MEMBERSHIP" ? "Membres\u00eda" : "Plan"} · {item.label}
+                {`${item.type === "MEMBERSHIP" ? "Membres\u00eda" : "Plan"} \u00b7 ${item.label}`}
               </td>
               <td className="px-4 py-3 text-slate-500">
                 {new Date(item.endDate).toLocaleDateString("es-MX", {
@@ -237,7 +237,7 @@ export default function ReportsPage() {
     if (state.status === "loading") {
       return (
         <div className="flex min-h-[320px] items-center justify-center rounded-xl border border-slate-200 bg-white text-sm text-slate-500">
-          Cargando reportes…
+          {"Cargando reportes..."}
         </div>
       );
     }

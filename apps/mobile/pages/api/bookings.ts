@@ -484,8 +484,6 @@ async function createBooking({
     bookingId = booking.id;
   }
 
-  const token = await generateQrToken(bookingId, session.start_time);
-
   const plan = await attachPlanPurchase({
     bookingId,
     clientId: cid,
@@ -505,13 +503,39 @@ async function createBooking({
       .lte("start_date", TODAY())
       .maybeSingle();
 
+    if (reusedCancelledBooking) {
+      await supabaseAdmin
+        .from("bookings")
+        .update({
+          status: "CANCELLED",
+          cancelled_at: nowIso,
+          cancelled_by: actors.actorClientId ?? null,
+          updated_at: nowIso,
+          plan_purchase_id: null,
+        })
+        .eq("id", bookingId);
+    } else {
+      await supabaseAdmin.from("bookings").delete().eq("id", bookingId);
+    }
+
+    await syncSessionOccupancy(sessionId);
+
     if (fixedPlan?.id) {
       throw Object.assign(
-        new Error("Tu plan fijo ya tiene las clases asignadas. Contacta a recepcion si necesitas cambios."),
+        new Error(
+          "Tu plan fijo ya tiene las clases asignadas. Contacta a recepcion si necesitas cambios."
+        ),
         { status: 409 }
       );
     }
+
+    throw Object.assign(
+      new Error("Necesitas un plan activo para reservar esta sesion."),
+      { status: 409 }
+    );
   }
+
+  const token = await generateQrToken(bookingId, session.start_time);
 
   const eventMetadata: Record<string, unknown> = {
     planPurchaseId: plan?.id ?? null,
