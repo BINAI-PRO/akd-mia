@@ -8,10 +8,12 @@ import {
   ensureClientForAuthUser,
 } from "@/lib/resolve-client";
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
+import { fetchMembershipSummary } from "@/lib/membership";
 
 dayjs.extend(isSameOrAfter);
 
 type DashboardResponse = {
+  membership: Awaited<ReturnType<typeof fetchMembershipSummary>> | null;
   upcomingBookings: Array<{
     id: string;
     status: string;
@@ -30,11 +32,23 @@ type DashboardResponse = {
     status: string;
     startDate: string;
     expiresAt: string | null;
+    displayExpiresAt: string | null;
     initialClasses: number | null;
     remainingClasses: number | null;
     modality: string;
     isUnlimited: boolean;
     category: string | null;
+    reservedCount: number;
+  }>;
+  recentBookings: Array<{
+    id: string;
+    classType: string;
+    instructor: string;
+    room: string;
+    startTime: string;
+    startLabel: string;
+    planName: string | null;
+    planPurchaseId: string | null;
   }>;
 };
 
@@ -146,7 +160,7 @@ export default async function handler(
        qr_tokens ( token )`
     )
     .eq("client_id", clientId)
-    .in("status", ["CONFIRMED", "CHECKED_IN"])
+    .in("status", ["CONFIRMED", "CHECKED_IN", "CHECKED_OUT"])
 
   if (bookingsError) {
     return res.status(500).json({ error: bookingsError.message });
@@ -169,6 +183,7 @@ export default async function handler(
   });
 
   const now = dayjs();
+  const membership = await fetchMembershipSummary(clientId);
 
   const upcomingBookings = (bookingsData ?? [])
     .map((row) => {
@@ -205,10 +220,35 @@ export default async function handler(
       };
     })
     .filter(Boolean) as DashboardResponse["upcomingBookings"];
+  upcomingBookings.sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf());
 
-  upcomingBookings.sort((a, b) =>
-    dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf()
-  );
+  const reservedCountMap = upcomingBookings.reduce<Map<string, number>>((acc, booking) => {
+    if (!booking.planPurchaseId) return acc;
+    acc.set(booking.planPurchaseId, (acc.get(booking.planPurchaseId) ?? 0) + 1);
+    return acc;
+  }, new Map());
+
+  const computeDisplayExpiry = (startDate?: string | null, expiresAt?: string | null) => {
+    if (!startDate || !expiresAt) return expiresAt ?? null;
+    const start = dayjs(startDate);
+    const expiry = dayjs(expiresAt);
+    if (!start.isValid() || !expiry.isValid()) return expiresAt;
+    if (expiry.isBefore(start)) return expiresAt;
+
+    let cursor = start.endOf("month");
+    let candidate: dayjs.Dayjs | null = null;
+
+    while (cursor.isSameOrBefore(expiry)) {
+      candidate = cursor;
+      cursor = cursor.add(1, "month").endOf("month");
+    }
+
+    if (candidate && candidate.isSameOrBefore(expiry)) {
+      return candidate.format("YYYY-MM-DD");
+    }
+
+    return expiry.format("YYYY-MM-DD");
+  };
 
   const plans = (planData ?? []).map((plan) => ({
     id: plan.id,
@@ -216,12 +256,53 @@ export default async function handler(
     status: plan.status,
     startDate: plan.start_date,
     expiresAt: plan.expires_at ?? null,
+    displayExpiresAt: computeDisplayExpiry(plan.start_date ?? null, plan.expires_at ?? null),
     initialClasses: plan.initial_classes,
     remainingClasses: plan.remaining_classes,
     modality: plan.modality ?? "FLEXIBLE",
     isUnlimited: plan.initial_classes === null,
     category: plan.plan_types?.category ?? null,
+    reservedCount: reservedCountMap.get(plan.id) ?? 0,
   }));
 
-  return res.status(200).json({ upcomingBookings, plans });
+  const fifteenDaysAgo = now.subtract(15, "day");
+  const recentBookings = (bookingsData ?? [])
+    .map((row) => {
+      const sessionRow = row.sessions as
+        | {
+            start_time: string;
+            end_time: string;
+            class_types?: { name?: string } | null;
+            instructors?: { full_name?: string } | null;
+            rooms?: { name?: string } | null;
+          }
+        | null;
+
+      if (!sessionRow?.start_time) return null;
+
+      const startTime = dayjs(sessionRow.start_time);
+      if (!startTime.isValid()) return null;
+      if (startTime.isAfter(now)) return null;
+      if (startTime.isBefore(fifteenDaysAgo)) return null;
+
+      const status = (row.status ?? "").toUpperCase();
+      if (status !== "CHECKED_IN" && status !== "CHECKED_OUT") {
+        return null;
+      }
+
+      return {
+        id: row.id,
+        classType: sessionRow.class_types?.name ?? "Clase",
+        instructor: sessionRow.instructors?.full_name ?? "",
+        room: sessionRow.rooms?.name ?? "",
+        startTime: sessionRow.start_time,
+        startLabel: startTime.format("DD MMM YYYY HH:mm"),
+        planName: row.plan_purchase_id ? planNameMap.get(row.plan_purchase_id) ?? null : null,
+        planPurchaseId: row.plan_purchase_id ?? null,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
+    .sort((a, b) => dayjs(b.startTime).valueOf() - dayjs(a.startTime).valueOf()) as DashboardResponse["recentBookings"];
+
+  return res.status(200).json({ membership, upcomingBookings, plans, recentBookings });
 }
