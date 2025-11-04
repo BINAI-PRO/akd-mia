@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Head from "next/head";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -156,6 +155,61 @@ export default function AttendanceScannerPage() {
     },
     [staffId]
   );
+
+  useEffect(() => {
+    const handleKeydown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) {
+          return;
+        }
+      }
+
+      if (event.key === "Enter") {
+        if (scannerTimeoutRef.current) {
+          clearTimeout(scannerTimeoutRef.current);
+          scannerTimeoutRef.current = null;
+        }
+        const buffer = scannerBufferRef.current;
+        scannerBufferRef.current = "";
+        if (buffer) {
+          event.preventDefault();
+          void handleToken(buffer, false);
+        }
+        return;
+      }
+
+      if (event.key === "Escape") {
+        scannerBufferRef.current = "";
+        if (scannerTimeoutRef.current) {
+          clearTimeout(scannerTimeoutRef.current);
+          scannerTimeoutRef.current = null;
+        }
+        return;
+      }
+
+      if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
+        scannerBufferRef.current += event.key;
+        if (scannerTimeoutRef.current) {
+          clearTimeout(scannerTimeoutRef.current);
+        }
+        scannerTimeoutRef.current = setTimeout(() => {
+          scannerBufferRef.current = "";
+          scannerTimeoutRef.current = null;
+        }, 150);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => {
+      window.removeEventListener("keydown", handleKeydown);
+      if (scannerTimeoutRef.current) {
+        clearTimeout(scannerTimeoutRef.current);
+        scannerTimeoutRef.current = null;
+      }
+    };
+  }, [handleToken]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -341,6 +395,9 @@ export default function AttendanceScannerPage() {
               {
                 "El c\u00f3digo impreso o digital puede ingresarse tal cual aparece en el QR del cliente."
               }
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              {"Los lectores de mano USB funcionarán como teclado: apunta al código y presiona el gatillo."}
             </p>
           </section>
 
