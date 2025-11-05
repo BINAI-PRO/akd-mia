@@ -288,7 +288,7 @@ export default function ReportsPage() {
         <section className="space-y-4">
           <header className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">{"Top planes por ventas"}</h2>
-            <p className="text-xs text-slate-500">{"Acumulado del mismo periodo."}</p>
+            <p className="text-xs text-slate-500">{"Acumulado del mismo per\u00edodo."}</p>
           </header>
           <TopPlansList data={data.revenue.topPlans} />
         </section>

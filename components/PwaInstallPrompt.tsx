@@ -122,8 +122,8 @@ const PwaInstallPrompt = () => {
 
   const description =
     variant === "install"
-      ? "Anade la app a tu dispositivo para tener un acceso mas rapido y recibir la mejor experiencia."
-      : "Presiona el icono de compartir y elige 'Agregar a la pantalla de inicio' para tener la app como si fuera nativa.";
+      ? "A\u00f1ade la app a tu dispositivo para tener un acceso m\u00e1s r\u00e1pido y recibir la mejor experiencia."
+      : "Presiona el \u00edcono de compartir y elige 'Agregar a la pantalla de inicio' para tener la app como si fuera nativa.";
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
@@ -152,7 +152,7 @@ const PwaInstallPrompt = () => {
         ) : (
           <div className="flex items-center justify-between gap-2">
             <div className="text-xs text-slate-500">
-              Para iPhone/iPad abre el menu compartir y selecciona
+              Para iPhone/iPad abre el men\u00fa compartir y selecciona
               <span className="font-semibold"> 'Agregar a pantalla de inicio'</span>.
             </div>
             <button
