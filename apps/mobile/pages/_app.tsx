@@ -2,6 +2,7 @@ import type { AppProps } from "next/app";
 import { useEffect } from "react";
 import "@/styles/globals.css";
 import Header from "@/components/Header";
+import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import TabBar from "@/components/TabBar";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -34,6 +35,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <AuthProvider>
+      <PwaInstallPrompt />
       {isPublic ? (
         <Component {...pageProps} />
       ) : (
