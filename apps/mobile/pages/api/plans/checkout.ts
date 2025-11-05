@@ -20,6 +20,8 @@ type RequestBody = {
   planTypeId?: string;
   startDate?: string | null;
   notes?: string | null;
+  successUrl?: string | null;
+  cancelUrl?: string | null;
 };
 
 function resolveUrl(
@@ -52,7 +54,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { planTypeId, startDate, notes } = req.body as RequestBody;
+  const { planTypeId, startDate, notes, successUrl, cancelUrl } = req.body as RequestBody;
   if (!planTypeId || typeof planTypeId !== "string") {
     return res.status(400).json({ error: "Plan no especificado" });
   }
@@ -151,14 +153,14 @@ export default async function handler(
     return res.status(500).json({ error: message });
   }
 
-  const successUrl = resolveUrl(
-    undefined,
+  const successUrlResolved = resolveUrl(
+    successUrl ?? undefined,
     process.env.STRIPE_CHECKOUT_SUCCESS_URL,
     "{CHECKOUT_SESSION_ID}"
   );
-  const cancelUrl = resolveUrl(undefined, process.env.STRIPE_CHECKOUT_CANCEL_URL);
+  const cancelUrlResolved = resolveUrl(cancelUrl ?? undefined, process.env.STRIPE_CHECKOUT_CANCEL_URL);
 
-  if (!successUrl || !cancelUrl) {
+  if (!successUrlResolved || !cancelUrlResolved) {
     return res.status(500).json({
       error:
         "Configura STRIPE_CHECKOUT_SUCCESS_URL y STRIPE_CHECKOUT_CANCEL_URL en las variables de entorno",
@@ -173,8 +175,8 @@ export default async function handler(
   try {
     const sessionResult = await stripe.checkout.sessions.create({
       mode: "payment",
-      success_url: successUrl,
-      cancel_url: cancelUrl,
+      success_url: successUrlResolved,
+      cancel_url: cancelUrlResolved,
       payment_method_types: ["card"],
       customer_email: prepared.client.email ?? undefined,
       metadata: {
@@ -212,7 +214,7 @@ export default async function handler(
 
     return res.status(200).json({
       sessionId: sessionResult.id,
-      url: sessionResult.url ?? successUrl,
+      url: sessionResult.url ?? successUrlResolved,
     });
   } catch (error) {
     const message =

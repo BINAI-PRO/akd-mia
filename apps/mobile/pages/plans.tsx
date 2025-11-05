@@ -154,10 +154,13 @@ export default function PlansPage() {
       return;
     }
     try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const successUrl = origin ? `${origin}/plans?status=success` : undefined;
+      const cancelUrl = origin ? `${origin}/plans?status=cancelled` : undefined;
       const response = await fetch("/api/plans/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planTypeId }),
+        body: JSON.stringify({ planTypeId, successUrl, cancelUrl }),
       });
 
       const payload = (await response.json()) as { sessionId?: string; url?: string; error?: string };
