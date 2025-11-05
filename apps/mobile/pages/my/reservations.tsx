@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { madridDayjs } from "@/lib/timezone";
@@ -125,7 +125,7 @@ export default function MyReservationsPage() {
   const formatDate = useCallback(
     (value: string | null | undefined) => {
       if (!value) return "Sin fecha";
-      const parsed = madridDayjs(value, true);
+      const parsed = madridDayjs(value);
       if (!parsed.isValid()) return value;
       return dateFormatter.format(parsed.toDate());
     },
@@ -135,7 +135,7 @@ export default function MyReservationsPage() {
   const formatDateTime = useCallback(
     (value: string | null | undefined) => {
       if (!value) return "Sin fecha";
-      const parsed = madridDayjs(value, true);
+      const parsed = madridDayjs(value);
       if (!parsed.isValid()) return value;
       return dateTimeFormatter.format(parsed.toDate());
     },
@@ -462,3 +462,4 @@ export default function MyReservationsPage() {
     </>
   );
 }
+

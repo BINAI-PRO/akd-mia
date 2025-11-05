@@ -1,7 +1,7 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
-import dayjs from "dayjs";
+import { studioDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
 
 type SessionDetailsResponse = {
@@ -73,7 +73,7 @@ const STATUS_LABELS: Record<string, string> = {
   WAITING: "En espera",
 };
 
-const EMPTY_TEXT = "—";
+const EMPTY_TEXT = "â€”";
 
 function formatStatus(status: string) {
   const key = status.toUpperCase();
@@ -82,17 +82,17 @@ function formatStatus(status: string) {
 
 function formatDateTime(iso: string | null) {
   if (!iso) return EMPTY_TEXT;
-  const instance = dayjs(iso);
+  const instance = studioDayjs(iso);
   if (!instance.isValid()) return EMPTY_TEXT;
   return instance.format("DD MMM YYYY HH:mm");
 }
 
 function formatSchedule(startISO: string | null, endISO: string | null) {
-  const start = startISO ? dayjs(startISO) : null;
-  const end = endISO ? dayjs(endISO) : null;
+  const start = startISO ? studioDayjs(startISO) : null;
+  const end = endISO ? studioDayjs(endISO) : null;
   if (!start || !start.isValid()) return EMPTY_TEXT;
   if (!end || !end.isValid()) return start.format("DD MMM YYYY HH:mm");
-  return `${start.format("DD MMM YYYY HH:mm")} – ${end.format("HH:mm")}`;
+  return `${start.format("DD MMM YYYY HH:mm")} â€“ ${end.format("HH:mm")}`;
 }
 
 export default function SessionDetailsModal({ sessionId, open, onClose }: Props) {
@@ -169,10 +169,10 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       session.availableSpots !== null ? Math.max(session.availableSpots, 0) : null;
 
     return {
-      headline: session.title ?? "Sesión",
+      headline: session.title ?? "SesiÃ³n",
       schedule,
       instructor: session.instructorName ?? "Sin instructor asignado",
-      room: session.roomName ?? "Sin salón",
+      room: session.roomName ?? "Sin salÃ³n",
       classType: session.classTypeName ?? "Clase general",
       course: session.courseTitle ?? null,
       capacity,
@@ -261,9 +261,9 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <header className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-brand-600">Detalle de sesión</p>
+            <p className="text-xs uppercase tracking-wide text-brand-600">Detalle de sesiÃ³n</p>
             <h2 id="session-detail-heading" className="mt-1 text-xl font-semibold text-slate-900">
-              {summary?.headline ?? "Sesión"}
+              {summary?.headline ?? "SesiÃ³n"}
             </h2>
             {summary?.course && <p className="text-sm text-slate-500">{summary.course}</p>}
           </div>
@@ -271,7 +271,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
             type="button"
             onClick={onClose}
             className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Cerrar detalles de sesión"
+            aria-label="Cerrar detalles de sesiÃ³n"
           >
             <span className="material-icons-outlined text-xl">close</span>
           </button>
@@ -280,7 +280,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
         <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-slate-700">
           {status === "loading" && (
             <div className="flex h-48 items-center justify-center text-sm text-slate-500">
-              Cargando detalles de la sesión…
+              Cargando detalles de la sesiÃ³nâ€¦
             </div>
           )}
 
@@ -299,7 +299,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <dd className="mt-1 text-sm text-slate-800">{summary.schedule}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Duración</dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">DuraciÃ³n</dt>
                     <dd className="mt-1 text-sm text-slate-800">{summary.duration}</dd>
                   </div>
                   <div>
@@ -348,7 +348,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                 ) : null}
                 {data.participants.length === 0 ? (
                   <p className="mt-3 text-sm text-slate-500">
-                    Aún no hay reservaciones registradas.
+                    AÃºn no hay reservaciones registradas.
                   </p>
                 ) : (
                   <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
@@ -436,7 +436,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                       <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                         <tr>
-                          <th className="px-4 py-3">Posición</th>
+                          <th className="px-4 py-3">PosiciÃ³n</th>
                           <th className="px-4 py-3">Cliente</th>
                           <th className="px-4 py-3">Contacto</th>
                           <th className="px-4 py-3">Estado</th>
@@ -493,3 +493,4 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     </div>
   );
 }
+

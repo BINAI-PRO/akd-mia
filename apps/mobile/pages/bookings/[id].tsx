@@ -6,19 +6,7 @@ import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
-
-const TIME_ZONE = "Europe/Madrid";
-const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
-  timeZone: TIME_ZONE,
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
-const TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
-  timeZone: TIME_ZONE,
-  hour: "2-digit",
-  minute: "2-digit",
-});
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 // --- Tipos auxiliares para evitar avisos "untracked" en los joins ---
 type SessionJoin = {
@@ -49,6 +37,20 @@ type QrTokenRow = { token: string };
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const id = ctx.params?.id as string;
 
+  const settings = await loadStudioSettings();
+  const timezone = settings.scheduleTimezone;
+  const dateFormatter = new Intl.DateTimeFormat("es-ES", {
+    timeZone: timezone,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const timeFormatter = new Intl.DateTimeFormat("es-ES", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   const { data: booking, error: bookingError } = await supabaseAdmin
     .from("bookings")
     .select("id, session_id")
@@ -78,9 +80,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .maybeSingle();
   const tokenValue = (qr as QrTokenRow | null)?.token ?? null;
 
-  const startDate = madridDayjs(sj.start_time, true);
-  const dateLabel = DATE_FORMATTER.format(startDate.toDate()).toLocaleUpperCase("es-ES");
-  const timeLabel = TIME_FORMATTER.format(startDate.toDate());
+    const dateLabel = dateFormatter.format(madridDayjs(sj.start_time).toDate()).toLocaleUpperCase("es-ES");
+  const timeLabel = timeFormatter.format(madridDayjs(sj.start_time).toDate());
 
   const data: PageData = {
     id,
@@ -147,7 +148,7 @@ export default function BookingDetail({
         <main className="container-mobile py-6">
           <h1 className="h1 mb-3">Reserva</h1>
           <div className="card p-4">
-            <p className="text-neutral-600">No se pudo cargar la información de la reserva.</p>
+            <p className="text-neutral-600">No se pudo cargar la informaci�n de la reserva.</p>
           </div>
         </main>
       </>
@@ -168,10 +169,10 @@ export default function BookingDetail({
         <section className="card p-4">
           <h2 className="text-lg font-semibold">{s.classType}</h2>
           <p className="mt-1 text-sm text-neutral-600">
-            {s.dateLabel} · {s.timeLabel}
+            {s.dateLabel} � {s.timeLabel}
           </p>
           <p className="text-sm text-neutral-600">
-            {s.room ? `${s.room} · ` : ""}
+            {s.room ? `${s.room} � ` : ""}
             {s.instructor}
           </p>
         </section>
@@ -195,7 +196,7 @@ export default function BookingDetail({
                 Descargar QR
               </a>
               <p className="text-center text-xs text-neutral-500">
-                Muestra este código al llegar para registrar tu asistencia.
+                Muestra este c�digo al llegar para registrar tu asistencia.
               </p>
             </>
           ) : (
@@ -228,7 +229,7 @@ export default function BookingDetail({
           </div>
 
           {cancelState === "success" && (
-            <p className="text-xs text-green-600">La reserva se canceló correctamente.</p>
+            <p className="text-xs text-green-600">La reserva se cancel� correctamente.</p>
           )}
           {cancelError && cancelState === "error" && (
             <p className="text-xs text-red-600">{cancelError}</p>
@@ -238,3 +239,5 @@ export default function BookingDetail({
     </>
   );
 }
+
+
