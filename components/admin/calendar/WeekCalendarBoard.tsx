@@ -1,12 +1,9 @@
 ﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import type { CalendarFilterOption, CalendarSession } from "./types";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
-
-dayjs.extend(utc);
+import { formatOffsetLabel, studioDayjs } from "@/lib/timezone";
 
 const START_HOUR = 4;
 const END_HOUR = 23;
@@ -53,9 +50,14 @@ function formatHourLabel(hour: number) {
 }
 
 function computeEventStyle(startISO: string, endISO: string) {
-  const start = dayjs.utc(startISO);
-  const end = dayjs.utc(endISO);
-  const anchor = start.startOf("day").hour(START_HOUR).minute(0).second(0).millisecond(0);
+  const start = studioDayjs(startISO);
+  const end = studioDayjs(endISO);
+  const anchor = start
+    .startOf("day")
+    .hour(START_HOUR)
+    .minute(0)
+    .second(0)
+    .millisecond(0);
   const topMinutes = Math.max(0, start.diff(anchor, "minute"));
   const durationMinutes = Math.max(30, end.diff(start, "minute"));
 
@@ -111,8 +113,9 @@ export default function WeekCalendarBoard({
     return () => clearTimeout(handle);
   }, [filters.search]);
 
-  const weekStart = useMemo(() => dayjs.utc(weekStartISO), [weekStartISO]);
-  const today = useMemo(() => dayjs.utc(todayISO), [todayISO]);
+  const weekStart = useMemo(() => studioDayjs(weekStartISO), [weekStartISO]);
+  const today = useMemo(() => studioDayjs(todayISO), [todayISO]);
+  const timezoneLabel = useMemo(() => formatOffsetLabel(studioDayjs().utcOffset()), []);
 
   const colorMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -127,7 +130,7 @@ export default function WeekCalendarBoard({
       const date = weekStart.add(offset, "day");
       const isoDate = date.format("YYYY-MM-DD");
       const daySessions = sessions
-        .filter((session) => dayjs.utc(session.startISO).isSame(date, "day"))
+        .filter((session) => studioDayjs(session.startISO).isSame(date, "day"))
         .map((session) => ({
           ...session,
           color: getColor(session.classTypeId, colorMap),
@@ -253,7 +256,7 @@ return (
                 <input
                   value={filters.search}
                   onChange={(event) => updateFilter("search", event.target.value)}
-                  placeholder="Buscar por sesión, instructor o sala"
+                  placeholder="Buscar por sesi�n, instructor o sala"
                   className="h-full border-0 bg-transparent text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
                 />
               </label>
@@ -338,7 +341,7 @@ return (
             <span className="text-slate-500">Semana de</span>
             <span className="font-semibold text-slate-700">{weekStart.format("D MMMM YYYY")}</span>
           </div>
-          <div className="text-slate-500">GMT-6</div>
+          <div className="text-slate-500">{timezoneLabel}</div>
         </div>
 
         <div className="grid grid-cols-[80px_repeat(7,minmax(0,1fr))] text-sm">
@@ -376,8 +379,8 @@ return (
 
                 {day.sessions.map((session) => {
                   const { top, height } = computeEventStyle(session.startISO, session.endISO);
-                  const start = dayjs.utc(session.startISO).format("HH:mm");
-                  const end = dayjs.utc(session.endISO).format("HH:mm");
+                  const start = studioDayjs(session.startISO).format("HH:mm");
+                  const end = studioDayjs(session.endISO).format("HH:mm");
                   const color = getColor(session.classTypeId, colorMap);
                   return (
                     <div
@@ -412,6 +415,10 @@ return (
     </>
   );
 }
+
+
+
+
 
 
 

@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs, madridStartOfDay, madridEndOfDay } from "@/lib/timezone";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type WaitlistRow = {
   id: string;
@@ -24,6 +25,8 @@ type SessionRow = {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    await loadStudioSettings();
+
     const date = (req.query.date as string) || madridDayjs().format("YYYY-MM-DD");
     const clientId = typeof req.query.clientId === "string" ? req.query.clientId : null;
     const start = madridStartOfDay(date).toISOString();

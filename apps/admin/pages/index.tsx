@@ -2,8 +2,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -11,8 +9,7 @@ import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
 import { useRouter } from "next/router";
-
-dayjs.extend(utc);
+import { studioDayjs } from "@/lib/timezone";
 
 type Stats = {
   activeMembers: number;
@@ -106,7 +103,7 @@ const UPCOMING_ACTIONS: QuickAction[] = [
 ];
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const now = dayjs();
+  const now = studioDayjs();
   const todayIso = now.startOf("day").format("YYYY-MM-DD");
   const startOfMonth = now.startOf("month").toISOString();
   const endOfMonth = now.endOf("month").toISOString();
@@ -365,7 +362,7 @@ export default function AdminDashboardPage({
             ) : (
               <ul className="space-y-4">
                 {upcomingSessions.map((session) => {
-                  const start = dayjs.utc(session.startTime).format("D MMM, HH:mm");
+                  const start = studioDayjs(session.startTime).format("D MMM, HH:mm");
                   return (
                     <li
                       key={session.id}
@@ -414,7 +411,7 @@ export default function AdminDashboardPage({
               <ul className="space-y-3">
                 {recentPayments.map((payment) => {
                   const paidLabel = payment.paidAt
-                    ? dayjs(payment.paidAt).format("DD MMM YYYY")
+                    ? studioDayjs(payment.paidAt).format("DD MMM YYYY")
                     : "Sin registrar";
                   const amountFormatter = new Intl.NumberFormat("es-MX", {
                     style: "currency",
@@ -544,6 +541,8 @@ function StatCard({ title, icon, tone, value, helper }: StatCardProps) {
     </article>
   );
 }
+
+
 
 
 

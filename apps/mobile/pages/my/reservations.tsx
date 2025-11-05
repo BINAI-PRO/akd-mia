@@ -1,8 +1,9 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { madridDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
+import { useStudioTimezone } from "@/components/StudioTimezoneContext";
 
 type MembershipSummary = {
   id: string;
@@ -85,44 +86,61 @@ const CATEGORY_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_ORDER = ["GRUPAL", "PARTICULAR", "SEMI_PARTICULAR"];
-const TIME_ZONE = "Europe/Madrid";
-const DATE_FORMATTER = new Intl.DateTimeFormat("es-ES", {
-  timeZone: TIME_ZONE,
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-const DATE_TIME_FORMATTER = new Intl.DateTimeFormat("es-ES", {
-  timeZone: TIME_ZONE,
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 function statusLabel(raw: string) {
   return STATUS_LABEL[raw] ?? raw;
 }
 
-function formatDate(value: string | null | undefined) {
-  if (!value) return "Sin fecha";
-  const parsed = madridDayjs(value, true);
-  if (!parsed.isValid()) return value;
-  return DATE_FORMATTER.format(parsed.toDate());
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) return "Sin fecha";
-  const parsed = madridDayjs(value, true);
-  if (!parsed.isValid()) return value;
-  return DATE_TIME_FORMATTER.format(parsed.toDate());
-}
 
 export default function MyReservationsPage() {
+  const timezone = useStudioTimezone();
   const { user, loading } = useAuth();
   const [state, setState] = useState<ScreenState>({ status: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
+
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("es-ES", {
+        timeZone: timezone,
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }),
+    [timezone]
+  );
+
+  const dateTimeFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat("es-ES", {
+        timeZone: timezone,
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    [timezone]
+  );
+
+  const formatDate = useCallback(
+    (value: string | null | undefined) => {
+      if (!value) return "Sin fecha";
+      const parsed = madridDayjs(value, true);
+      if (!parsed.isValid()) return value;
+      return dateFormatter.format(parsed.toDate());
+    },
+    [dateFormatter]
+  );
+
+  const formatDateTime = useCallback(
+    (value: string | null | undefined) => {
+      if (!value) return "Sin fecha";
+      const parsed = madridDayjs(value, true);
+      if (!parsed.isValid()) return value;
+      return dateTimeFormatter.format(parsed.toDate());
+    },
+    [dateTimeFormatter]
+  );
 
   useEffect(() => {
     if (loading) return;

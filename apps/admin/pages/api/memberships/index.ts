@@ -5,6 +5,7 @@ import {
   prepareMembershipPurchase,
   type MembershipPurchasePayload,
 } from "@/lib/membership-purchase";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type SuccessResponse = {
   message: string;
@@ -21,6 +22,8 @@ export default async function handler(
   }
 
   try {
+    await loadStudioSettings();
+
     const payload = req.body as MembershipPurchasePayload;
     const prepared = await prepareMembershipPurchase(payload);
 

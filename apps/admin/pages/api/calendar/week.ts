@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { CalendarSession } from "@/components/admin/calendar/types";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 function startOfWeek(date: Dayjs) {
   const day = date.day();
@@ -32,9 +33,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    await loadStudioSettings();
+
     const { date, instructorId, roomId, classTypeId } = req.query;
 
-    const anchor = typeof date === "string" ? madridDayjs(date) : madridDayjs();
+    const anchor = typeof date === "string" ? madridDayjs(date, true) : madridDayjs();
     const normalized = anchor.isValid() ? anchor.startOf("day") : madridDayjs().startOf("day");
     const weekStart = startOfWeek(normalized);
     const weekEnd = weekStart.add(6, "day").endOf("day");

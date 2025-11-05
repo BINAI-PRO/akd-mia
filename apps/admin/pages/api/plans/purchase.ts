@@ -6,6 +6,7 @@ import {
   type PlanPurchasePayload,
   type PlanPaymentPayload,
 } from "@/lib/plan-purchase";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 const VALID_MODALITIES = new Set<"FLEXIBLE" | "FIXED">(["FLEXIBLE", "FIXED"]);
 
@@ -22,6 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  await loadStudioSettings();
 
   const {
     clientId,

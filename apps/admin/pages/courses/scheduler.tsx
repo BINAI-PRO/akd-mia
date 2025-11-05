@@ -5,11 +5,8 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import type { Tables } from "@/types/database";
-
-dayjs.extend(utc);
+import { studioDayjs } from "@/lib/timezone";
 
 type ScheduledSession = {
   id: string;
@@ -114,13 +111,13 @@ const UPCOMING_PREVIEW_LIMIT = 5;
 const DEFAULT_TIME = "08:00";
 
 const sortSessionsByStartTime = (a: ScheduledSession, b: ScheduledSession) => {
-  const aTime = a.startTime ? dayjs.utc(a.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
-  const bTime = b.startTime ? dayjs.utc(b.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
+  const aTime = a.startTime ? studioDayjs(a.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
+  const bTime = b.startTime ? studioDayjs(b.startTime).valueOf() : Number.MAX_SAFE_INTEGER;
   return aTime - bTime;
 };
 
 const computeRecurringDates = (startDate: string, selectedDays: string[], count: number) => {
-  const start = dayjs(startDate).startOf("day");
+  const start = studioDayjs(startDate, true).startOf("day");
   if (!start.isValid() || selectedDays.length === 0 || count <= 0) return [];
 
   const selectedDayNumbers = new Set(selectedDays.map((day) => DAY_TO_INDEX[day] ?? -1));
@@ -140,7 +137,7 @@ const computeRecurringDates = (startDate: string, selectedDays: string[], count:
 };
 
 const formatSessionDateLabel = (dateISO: string) => {
-  const date = dayjs(dateISO);
+  const date = studioDayjs(dateISO);
   if (!date.isValid()) return "Sin fecha";
   const dayKey = ORDERED_DAYS[date.day()];
   const dayLabel = DAY_LABELS[dayKey] ?? "";
@@ -250,10 +247,10 @@ export default function CourseSchedulerPage({
   const [coursesState, setCoursesState] = useState<SchedulerCourse[]>(courses);
   const [frequency, setFrequency] = useState<Frequency>("recurring");
   const [selectedDays, setSelectedDays] = useState<string[]>(DEFAULT_DAYS);
-  const [recurringStartDate, setRecurringStartDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [recurringStartDate, setRecurringStartDate] = useState(studioDayjs().format("YYYY-MM-DD"));
   const [recurringStartTime, setRecurringStartTime] = useState(DEFAULT_TIME);
   const [recurringCount, setRecurringCount] = useState(1);
-  const [singleDate, setSingleDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [singleDate, setSingleDate] = useState(studioDayjs().format("YYYY-MM-DD"));
   const [singleBaseTime, setSingleBaseTime] = useState(DEFAULT_TIME);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [draftSessions, setDraftSessions] = useState<DraftSession[]>([]);
@@ -332,12 +329,12 @@ export default function CourseSchedulerPage({
     setPlanError(null);
     setIsPlanning(false);
     setSelectedDays(DEFAULT_DAYS);
-    setRecurringStartDate(dayjs().format("YYYY-MM-DD"));
+    setRecurringStartDate(studioDayjs().format("YYYY-MM-DD"));
     setRecurringStartTime(DEFAULT_TIME);
     const autoRecurring =
       pendingSessionsForSelectedCourse > 0 ? Math.min(pendingSessionsForSelectedCourse, 3) : 1;
     setRecurringCount(autoRecurring);
-    setSingleDate(dayjs().format("YYYY-MM-DD"));
+    setSingleDate(studioDayjs().format("YYYY-MM-DD"));
     setSingleBaseTime(DEFAULT_TIME);
     setDraftSessions([]);
   }, [selectedCourseId, selectedCourse, pendingSessionsForSelectedCourse]);
@@ -498,9 +495,9 @@ export default function CourseSchedulerPage({
 
   const upcomingSessions = useMemo(() => {
     if (!selectedCourse) return [] as ScheduledSession[];
-    const now = dayjs.utc();
+    const now = studioDayjs();
     const future = selectedCourse.sessions.filter(
-      (session) => session.startTime && dayjs.utc(session.startTime).isAfter(now)
+      (session) => session.startTime && studioDayjs(session.startTime).isAfter(now)
     );
     const source = future.length > 0 ? future : selectedCourse.sessions;
     return source.slice(0, UPCOMING_PREVIEW_LIMIT);
@@ -1057,8 +1054,8 @@ export default function CourseSchedulerPage({
               ) : (
                 <ul className="space-y-2">
                   {upcomingSessions.map((session) => {
-                    const start = session.startTime ? dayjs.utc(session.startTime) : null;
-                    const end = session.endTime ? dayjs.utc(session.endTime) : null;
+                    const start = session.startTime ? studioDayjs(session.startTime) : null;
+                    const end = session.endTime ? studioDayjs(session.endTime) : null;
                     const hasValidStart = start?.isValid();
                     return (
                       <li
@@ -1126,6 +1123,12 @@ export default function CourseSchedulerPage({
     </AdminLayout>
   );
 }
+
+
+
+
+
+
 
 
 

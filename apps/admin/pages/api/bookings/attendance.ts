@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type SuccessResponse = {
   bookingId: string;
@@ -134,6 +135,8 @@ export default async function handler(
   }
 
   try {
+    await loadStudioSettings();
+
     const { bookingId: rawBookingId, token, present: rawPresent, actorStaffId } =
       (req.body ?? {}) as Record<string, unknown>;
 

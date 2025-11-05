@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { madridDayjs } from "@/lib/timezone";
+import { madridDayjs, formatOffsetLabel } from "@/lib/timezone";
 import type { CalendarFilterOption, CalendarSession, MiniCalendarDay } from "./types";
 import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal";
 
@@ -41,20 +41,9 @@ type ActiveFilterChip = {
 };
 
 function formatTimeRange(startISO: string, endISO: string) {
-  const start = madridDayjs(startISO, true).format("h:mm A");
-  const end = madridDayjs(endISO, true).format("h:mm A");
+  const start = madridDayjs(startISO).format("h:mm A");
+  const end = madridDayjs(endISO).format("h:mm A");
   return `${start}  ${end}`;
-}
-
-function formatGmtOffsetLabel(utcOffsetMinutes: number): string {
-  const sign = utcOffsetMinutes >= 0 ? "+" : "-";
-  const absoluteMinutes = Math.abs(utcOffsetMinutes);
-  const hours = Math.floor(absoluteMinutes / 60);
-  const minutes = absoluteMinutes % 60;
-  if (minutes === 0) {
-    return `GMT${sign}${hours}`;
-  }
-  return `GMT${sign}${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
 function getOptionLabel(options: CalendarFilterOption[], id: string) {
@@ -178,12 +167,12 @@ export default function DayAgendaBoard({
   }, [filterOptions.classTypes, filterOptions.instructors, filterOptions.rooms, filters.classTypeId, filters.instructorId, filters.roomId, filters.search]);
 
   const agendaLabel = useMemo(
-    () => madridDayjs(selectedDateISO).format("D [de] MMMM, YYYY"),
+    () => madridDayjs(selectedDateISO, true).format("D [de] MMMM, YYYY"),
     [selectedDateISO]
   );
   const timezoneLabel = useMemo(() => {
-    const offsetMinutes = madridDayjs(selectedDateISO).utcOffset();
-    return formatGmtOffsetLabel(offsetMinutes);
+    const offsetMinutes = madridDayjs(selectedDateISO, true).utcOffset();
+    return formatOffsetLabel(offsetMinutes);
   }, [selectedDateISO]);
   const totalSessions = sessions.length;
 

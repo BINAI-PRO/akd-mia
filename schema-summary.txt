@@ -407,3 +407,10 @@ CREATE TABLE public.staff_roles (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT staff_roles_pkey PRIMARY KEY (id)
 );
+CREATE TABLE public.studio_settings (
+  key text NOT NULL PRIMARY KEY,
+  schedule_timezone text NOT NULL DEFAULT 'Etc/GMT-1',
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_by uuid,
+  CONSTRAINT studio_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.staff(id)
+);

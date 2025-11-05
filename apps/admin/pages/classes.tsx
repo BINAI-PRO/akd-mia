@@ -1,6 +1,4 @@
 ﻿import Head from "next/head";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -9,8 +7,7 @@ import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
-
-dayjs.extend(utc);
+import { studioDayjs } from "@/lib/timezone";
 
 type CourseOption = {
   id: string;
@@ -79,7 +76,7 @@ type SingleSessionForm = {
 };
 
 const sortClasses = (rows: ClassRow[]) =>
-  [...rows].sort((a, b) => dayjs.utc(a.startISO).valueOf() - dayjs.utc(b.startISO).valueOf());
+  [...rows].sort((a, b) => studioDayjs(a.startISO).valueOf() - studioDayjs(b.startISO).valueOf());
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
   const [sessionsResp, coursesResp, instructorsResp, roomsResp, classTypesResp] = await Promise.all([
@@ -105,8 +102,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
 
   const initialClasses: ClassRow[] = sortClasses(
     sessionRows.map((row) => {
-      const start = dayjs.utc(row.start_time);
-      const end = dayjs.utc(row.end_time);
+      const start = studioDayjs(row.start_time);
+      const end = studioDayjs(row.end_time);
       const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
       return {
         id: row.id,
@@ -196,7 +193,7 @@ export default function AdminClassesPage({
   const classTypeOptions = classTypes;
 
   const buildSingleDefaults = useCallback((): SingleSessionForm => {
-    const nextHour = dayjs().add(1, 'hour').minute(0).second(0);
+    const nextHour = studioDayjs().add(1, 'hour').minute(0).second(0);
     return {
       classTypeId: classTypeOptions[0]?.id ?? '',
       instructorId: instructorOptions[0]?.id ?? '',
@@ -236,8 +233,8 @@ export default function AdminClassesPage({
       return;
     }
     setDetailState({
-      startDate: dayjs.utc(activeClass.startISO).format('YYYY-MM-DD'),
-      startTime: dayjs.utc(activeClass.startISO).format('HH:mm'),
+      startDate: studioDayjs(activeClass.startISO).format('YYYY-MM-DD'),
+      startTime: studioDayjs(activeClass.startISO).format('HH:mm'),
       instructorId: activeClass.instructorId ?? '',
       roomId: activeClass.roomId ?? '',
     });
@@ -253,14 +250,14 @@ export default function AdminClassesPage({
   }, [singleModalOpen, buildSingleDefaults]);
 
   const filteredClasses = useMemo(() => {
-    const dayFilter = dateFilter ? dayjs.utc(dateFilter) : null;
-    const nowUtc = dayjs.utc();
+    const dayFilter = dateFilter ? studioDayjs(dateFilter, true) : null;
+    const nowUtc = studioDayjs();
 
     return classes.filter((row) => {
       if (courseFilter !== 'all' && row.courseId !== courseFilter) return false;
 
-      const start = dayjs.utc(row.startISO);
-      const end = dayjs.utc(row.endISO);
+      const start = studioDayjs(row.startISO);
+      const end = studioDayjs(row.endISO);
 
       if (dayFilter && !start.isSame(dayFilter, 'day')) return false;
       if (statusFilter === 'upcoming' && start.isBefore(nowUtc)) return false;
@@ -351,8 +348,8 @@ export default function AdminClassesPage({
       }
 
       const created = body.session as SessionQueryRow;
-      const start = dayjs.utc(created.start_time);
-      const end = dayjs.utc(created.end_time);
+      const start = studioDayjs(created.start_time);
+      const end = studioDayjs(created.end_time);
       const duration = Math.max(end.diff(start, 'minute'), 1);
 
       const newRow: ClassRow = {
@@ -404,8 +401,8 @@ export default function AdminClassesPage({
         roomId: detailState.roomId || null,
       };
 
-      const originalDate = dayjs.utc(activeClass.startISO).format('YYYY-MM-DD');
-      const originalTime = dayjs.utc(activeClass.startISO).format('HH:mm');
+      const originalDate = studioDayjs(activeClass.startISO).format('YYYY-MM-DD');
+      const originalTime = studioDayjs(activeClass.startISO).format('HH:mm');
       if (detailState.startDate !== originalDate) payload.date = detailState.startDate;
       if (detailState.startTime !== originalTime) payload.startTime = detailState.startTime;
 
@@ -417,12 +414,12 @@ export default function AdminClassesPage({
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudo actualizar la sesión');
+        throw new Error(body?.error ?? 'No se pudo actualizar la sesi�n');
       }
 
       const updated = body.session as SessionQueryRow;
-      const start = dayjs.utc(updated.start_time);
-      const end = dayjs.utc(updated.end_time);
+      const start = studioDayjs(updated.start_time);
+      const end = studioDayjs(updated.end_time);
       const durationMinutes = Math.max(end.diff(start, 'minute'), 1);
 
       setClasses((prev) =>
@@ -445,9 +442,9 @@ export default function AdminClassesPage({
         )
       );
 
-      setDetailMessage(body?.message ?? 'Sesión actualizada');
+      setDetailMessage(body?.message ?? 'Sesi�n actualizada');
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : 'Error al actualizar la sesión');
+      setDetailError(error instanceof Error ? error.message : 'Error al actualizar la sesi�n');
     } finally {
       setUpdatingDetail(false);
     }
@@ -543,8 +540,8 @@ export default function AdminClassesPage({
   };
 
   const renderStatusBadge = (row: ClassRow) => {
-    const end = dayjs.utc(row.endISO);
-    if (end.isBefore(dayjs.utc())) {
+    const end = studioDayjs(row.endISO);
+    if (end.isBefore(studioDayjs())) {
       return <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">Finalizada</span>;
     }
     if (row.occupancy >= row.capacity && row.capacity > 0) {
@@ -569,8 +566,8 @@ export default function AdminClassesPage({
           <div className="relative z-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Programar sesión 1:1</h2>
-                <p className="text-xs text-slate-500">Crea una sesión individual sin vincularla a un horario.</p>
+                <h2 className="text-lg font-semibold text-slate-900">Programar sesi�n 1:1</h2>
+                <p className="text-xs text-slate-500">Crea una sesi�n individual sin vincularla a un horario.</p>
               </div>
               <button
                 type="button"
@@ -619,7 +616,7 @@ export default function AdminClassesPage({
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Salón</span>
+                    <span className="text-xs font-medium text-slate-600">Sal�n</span>
                     <select
                       value={singleForm.roomId}
                       onChange={handleSingleChange('roomId')}
@@ -655,7 +652,7 @@ export default function AdminClassesPage({
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Duración (minutos)</span>
+                    <span className="text-xs font-medium text-slate-600">Duraci�n (minutos)</span>
                     <input
                       type="number"
                       min={15}
@@ -679,7 +676,7 @@ export default function AdminClassesPage({
                   </label>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Las sesiones 1:1 se crean sin horario asociado. Podrás gestionar reservas y ajustes desde esta misma pantalla.
+                  Las sesiones 1:1 se crean sin horario asociado. Podr�s gestionar reservas y ajustes desde esta misma pantalla.
                 </p>
                 {singleError && (
                   <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
@@ -702,13 +699,13 @@ export default function AdminClassesPage({
                     <span className="material-icons-outlined text-base" aria-hidden="true">
                       {singleSubmitting ? 'hourglass_top' : 'check_circle'}
                     </span>
-                    {singleSubmitting ? 'Guardando…' : 'Crear sesión'}
+                    {singleSubmitting ? 'Guardando�' : 'Crear sesi�n'}
                   </button>
                 </div>
               </form>
             ) : (
               <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                Para programar una sesión 1:1 necesitas tener al menos un tipo de clase, un instructor y un salón registrados.
+                Para programar una sesi�n 1:1 necesitas tener al menos un tipo de clase, un instructor y un sal�n registrados.
               </div>
             )}
           </div>
@@ -851,7 +848,7 @@ export default function AdminClassesPage({
                       />
                     </th>
                     <th className="px-4 py-3">Curso</th>
-                    <th className="px-4 py-3">Sesión</th>
+                    <th className="px-4 py-3">Sesi�n</th>
                     <th className="px-4 py-3">Horario</th>
                     <th className="px-4 py-3">Cupo</th>
                     <th className="px-4 py-3">Estado</th>
@@ -922,13 +919,13 @@ export default function AdminClassesPage({
 
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold">Detalles de la sesión</h3>
+            <h3 className="text-xl font-semibold">Detalles de la sesi�n</h3>
             {activeClass && detailState ? (
               <div className="mt-4 space-y-4 text-sm">
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <div className="font-semibold text-slate-800">{activeClass.courseTitle}</div>
                   <div className="text-xs text-slate-500">
-                    {dayjs.utc(activeClass.startISO).format('dddd DD MMM YYYY')} - {activeClass.className}
+                    {studioDayjs(activeClass.startISO).format('dddd DD MMM YYYY')} - {activeClass.className}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-500">
                     <span>Duracion: {activeClass.durationMinutes} min</span>
@@ -1023,7 +1020,7 @@ export default function AdminClassesPage({
                 </button>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">Selecciona una sesión en el listado para editarla.</p>
+              <p className="mt-4 text-sm text-slate-500">Selecciona una sesi�n en el listado para editarla.</p>
             )}
           </div>
         </section>
@@ -1036,6 +1033,11 @@ export default function AdminClassesPage({
     </AdminLayout>
   );
 }
+
+
+
+
+
 
 
 

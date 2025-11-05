@@ -2,6 +2,7 @@
 import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert } from "@/types/database";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type SessionPayload = Tables<"sessions"> & {
   class_types: Pick<Tables<"class_types">, "id" | "name" | "description"> | null;
@@ -40,6 +41,8 @@ export default async function handler(
   }
 
   try {
+    await loadStudioSettings();
+
     const {
       classTypeId,
       instructorId,
@@ -68,7 +71,7 @@ export default async function handler(
     const sessionCapacity =
       typeof capacity === "number" && capacity > 0 ? Math.floor(capacity) : 1;
 
-    const start = madridDayjs(`${date}T${startTime}`);
+    const start = madridDayjs(`${date}T${startTime}`, true);
     if (!start.isValid()) {
       return res.status(400).json({ error: "Fecha u hora invalidas" });
     }

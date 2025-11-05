@@ -1,5 +1,4 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
-import dayjs from "dayjs";
 import { useRouter } from "next/router";
 import MonthPicker from "@/components/MonthPicker";
 import WeekStrip from "@/components/WeekStrip";
@@ -7,6 +6,7 @@ import DayBar from "@/components/DayBar";
 import SessionCard, { type SessionSummary } from "@/components/SessionCard";
 import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseBrowser } from "@/lib/supabase-browser";
+import { madridDayjs } from "@/lib/timezone";
 import { clampAnchor, earliestAnchor, startOfWeekMX } from "@/lib/date-mx";
 import type { PostgresInsertPayload } from "@supabase/supabase-js";
 import type { Tables } from "@/types/database";
@@ -32,7 +32,7 @@ type BookingRow = Tables<"bookings">;
 type SessionState = SessionSummary & { _pending?: boolean };
 
 export default function SchedulePage() {
-  const today = dayjs().format("YYYY-MM-DD");
+  const today = madridDayjs().format("YYYY-MM-DD");
   const router = useRouter();
   const { profile } = useAuth();
 
@@ -48,16 +48,16 @@ export default function SchedulePage() {
   const isRebooking = Boolean(rebookFrom);
 
   const toSummary = (s: ApiSession): SessionSummary => {
-    const availableLabel = s.availableFrom ? dayjs(s.availableFrom).format("DD/MM/YYYY") : undefined;
+    const availableLabel = s.availableFrom ? madridDayjs(s.availableFrom).format("DD/MM/YYYY") : undefined;
     return {
       id: s.id,
       capacity: s.capacity,
       current_occupancy: s.current_occupancy,
-      startLabel: dayjs(s.start).format("hh:mm A"),
+      startLabel: madridDayjs(s.start).format("hh:mm A"),
       classType: s.classType,
       instructor: s.instructor,
       room: s.room,
-      duration: Math.max(30, Math.round((+new Date(s.end) - +new Date(s.start)) / 60000)),
+      duration: Math.max(30, madridDayjs(s.end).diff(madridDayjs(s.start), "minute")),
       canBook: s.canBook,
       availableFrom: s.availableFrom,
       availableFromLabel: availableLabel,
@@ -119,8 +119,8 @@ export default function SchedulePage() {
   }, []);
 
   const handleMonthChange = (isoFirstDay: string) => {
-    const first = dayjs(isoFirstDay);
-    const now = dayjs();
+    const first = madridDayjs(isoFirstDay, true);
+    const now = madridDayjs();
     const newAnchor =
       first.month() === now.month() && first.year() === now.year()
         ? startOfWeekMX(now.format("YYYY-MM-DD")).format("YYYY-MM-DD")
@@ -130,13 +130,13 @@ export default function SchedulePage() {
   };
 
   const handleToday = () => {
-    const iso = dayjs().format("YYYY-MM-DD");
+    const iso = madridDayjs().format("YYYY-MM-DD");
     setSelected(iso);
     setAnchor(startOfWeekMX(iso).format("YYYY-MM-DD"));
   };
 
   const handleWeekShift = (delta: number) => {
-    const newAnchor = dayjs(anchor).add(delta, "week").format("YYYY-MM-DD");
+    const newAnchor = madridDayjs(anchor, true).add(delta, "week").format("YYYY-MM-DD");
     setAnchor(clampAnchor(newAnchor));
   };
 
@@ -172,7 +172,7 @@ export default function SchedulePage() {
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
       setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: false } : s)));
-      alert(msg?.error || "No se pudo completar la acción.");
+      alert(msg?.error || "No se pudo completar la acci�n.");
       return;
     }
 
@@ -191,7 +191,7 @@ export default function SchedulePage() {
 
   const handleJoinWaitlist = async (id: string) => {
     if (!profile?.clientId) {
-      alert("Inicia sesión para unirte a la lista de espera.");
+      alert("Inicia sesi�n para unirte a la lista de espera.");
       return;
     }
 
@@ -292,11 +292,11 @@ export default function SchedulePage() {
 
       {isRebooking && (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Selecciona una nueva sesión para completar la reprogramación de tu reserva.
+          Selecciona una nueva sesi�n para completar la reprogramaci�n de tu reserva.
         </p>
       )}
 
-      {/* Selector de MES AÑO a la izquierda y HOY a la derecha (misma altura h-10) */}
+      {/* Selector de MES A�O a la izquierda y HOY a la derecha (misma altura h-10) */}
       <div className="flex items-center justify-between">
         <MonthPicker anchor={anchor} onMonthChange={handleMonthChange} />
         <button onClick={handleToday} className="h-10 rounded-xl border px-3 text-sm font-semibold">
@@ -309,7 +309,7 @@ export default function SchedulePage() {
       <DayBar iso={selected} />
 
       <div className="mt-2 space-y-3">
-        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este día.</p>}
+        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este d�a.</p>}
         {sessions.map((s) => (
           <SessionCard
             key={s.id}
@@ -324,3 +324,8 @@ export default function SchedulePage() {
     </section>
   );
 }
+
+
+
+
+

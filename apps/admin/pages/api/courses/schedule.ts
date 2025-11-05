@@ -1,5 +1,6 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import { madridDayjs } from "@/lib/timezone";
+import { loadStudioSettings } from "@/lib/studio-settings";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert } from "@/types/database";
 
@@ -51,6 +52,8 @@ export default async function handler(
   }
 
   const { courseId, sessions } = req.body as ScheduleRequestBody;
+
+  await loadStudioSettings();
 
   if (!courseId) {
     return res.status(400).json({ error: "Debes indicar un curso" });

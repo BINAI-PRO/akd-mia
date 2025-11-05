@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { madridDayjs } from "@/lib/timezone";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type SessionRow = Tables<"sessions"> & {
   class_types: Pick<Tables<"class_types">, "id" | "name"> | null;
@@ -81,6 +82,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  await loadStudioSettings();
 
   const { id } = req.query;
   if (typeof id !== "string" || !id) {

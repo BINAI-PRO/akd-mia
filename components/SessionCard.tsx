@@ -1,4 +1,4 @@
-﻿import dayjs from "dayjs";
+﻿import { madridDayjs } from "@/lib/timezone";
 
 export type SessionSummary = {
   id: string;
@@ -40,7 +40,7 @@ export default function SessionCard({
   const canBook = session.canBook;
   const unlockLabel =
     session.availableFromLabel ??
-    (session.availableFrom ? dayjs(session.availableFrom).format("DD/MM/YYYY") : undefined);
+    (session.availableFrom ? madridDayjs(session.availableFrom).format("DD/MM/YYYY") : undefined);
   const disabledForWindow = !soldOut && !canBook;
 
   const disableButton = soldOut || pending || disabledForWindow;
@@ -68,7 +68,7 @@ export default function SessionCard({
 
   const joinLabel =
     waitlistBusy === "join"
-      ? "Uniéndose..."
+      ? "Uni�ndose..."
       : waitlistCount > 0
       ? `Unirse a la lista (${waitlistCount})`
       : "Unirse a la lista de espera";
@@ -103,7 +103,7 @@ export default function SessionCard({
               {isOnWaitlist ? (
                 <>
                   <p className="text-xs text-brand-700">
-                    Estás en la lista de espera{waitlistPosition ? ` (posición ${waitlistPosition})` : ""}.
+                    Est�s en la lista de espera{waitlistPosition ? ` (posici�n ${waitlistPosition})` : ""}.
                   </p>
                   <button
                     type="button"
@@ -116,7 +116,7 @@ export default function SessionCard({
                 </>
               ) : isPromoted ? (
                 <p className="text-xs text-green-700">
-                  ¡Liberamos un lugar para ti! Revisa tus reservas para confirmar tu acceso.
+                  �Liberamos un lugar para ti! Revisa tus reservas para confirmar tu acceso.
                 </p>
               ) : (
                 <>
@@ -148,3 +148,6 @@ export default function SessionCard({
     </div>
   );
 }
+
+
+

@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { CalendarSession } from "@/components/admin/calendar/types";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type SessionQueryRow = {
   id: string;
@@ -25,9 +26,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    await loadStudioSettings();
+
     const { date, instructorId, roomId, classTypeId } = req.query;
 
-    const anchor = typeof date === "string" ? madridDayjs(date) : madridDayjs();
+    const anchor = typeof date === "string" ? madridDayjs(date, true) : madridDayjs();
     const normalized = anchor.isValid() ? anchor.startOf("day") : madridDayjs().startOf("day");
     const dayStart = normalized.startOf("day");
     const dayEnd = normalized.endOf("day");

@@ -88,6 +88,7 @@ const NAVIGATION: NavItem[] = [
       { type: "link", key: "planningInstructors", label: "Instructores", icon: "self_improvement", href: "/planeacion/instructores" },
       { type: "link", key: "planningRooms", label: "Salas", icon: "meeting_room", href: "/planeacion/salas" },
       { type: "link", key: "planningStaff", label: "Staff", icon: "group", href: "/planeacion/staff" },
+      { type: "link", key: "settings", label: "Configuracion", icon: "schedule", href: "/planeacion/settings" },
     ],
   },
   { type: "link", key: "reports", label: "Reportes", icon: "insights", href: "/reports" },

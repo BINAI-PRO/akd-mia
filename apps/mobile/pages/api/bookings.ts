@@ -4,6 +4,7 @@ import { madridDayjs } from "@/lib/timezone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { resequenceWaitlist } from "@/lib/waitlist";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type ActorInput = {
   actorClientId?: string | null;
@@ -711,6 +712,8 @@ async function cancelBooking({
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
+    await loadStudioSettings();
+
     if (req.method === "POST") {
       const { sessionId, clientId, clientHint, ...actorRest } = req.body || {};
       if (!sessionId) return res.status(400).json({ error: "Missing sessionId" });

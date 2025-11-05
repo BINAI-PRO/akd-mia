@@ -13,6 +13,7 @@ import {
 } from "@/lib/resolve-client";
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { fetchMembershipSummary } from "@/lib/membership";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -88,6 +89,8 @@ export default async function handler(
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
   }
+
+  await loadStudioSettings();
 
   const supabase = createSupabaseServerClient({ req, res });
   const {
