@@ -166,9 +166,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 };
 
 function formatDate(value: string | null): string {
-  if (!value) return "\u2014";
+  if (!value) return "—";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "\u2014";
+  if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleString("es-MX", {
     year: "numeric",
     month: "short",

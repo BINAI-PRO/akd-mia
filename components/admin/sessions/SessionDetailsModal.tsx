@@ -73,7 +73,7 @@ const STATUS_LABELS: Record<string, string> = {
   WAITING: "En espera",
 };
 
-const EMPTY_TEXT = "\u2014";
+const EMPTY_TEXT = "—";
 
 function formatStatus(status: string) {
   const key = status.toUpperCase();
@@ -348,7 +348,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                 ) : null}
                 {data.participants.length === 0 ? (
                   <p className="mt-3 text-sm text-slate-500">
-                    A\u00fan no hay reservaciones registradas.
+                    Aún no hay reservaciones registradas.
                   </p>
                 ) : (
                   <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">

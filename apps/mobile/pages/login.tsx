@@ -48,7 +48,7 @@ export default function MobileLoginPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "No se pudo iniciar sesi\u00f3n con Google";
+          : "No se pudo iniciar sesión con Google";
       setFormError(message);
       setSubmitting(false);
     }
@@ -63,7 +63,7 @@ export default function MobileLoginPage() {
 
     if (!passwordIsValid) {
       setFormError(
-        "La contrase\u00f1a debe tener entre 8 y 64 caracteres e incluir letras, n\u00fameros y al menos un s\u00edmbolo."
+        "La contraseña debe tener entre 8 y 64 caracteres e incluir letras, números y al menos un símbolo."
       );
       setSubmitting(false);
       return;
@@ -86,7 +86,7 @@ export default function MobileLoginPage() {
       await router.replace(redirectTarget);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesi\u00f3n";
+        error instanceof Error ? error.message : "No se pudo iniciar sesión";
       setFormError(message);
       setSubmitting(false);
     }
@@ -95,7 +95,7 @@ export default function MobileLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesi\u00f3n | AT Pilates Time</title>
+        <title>Iniciar sesión | AT Pilates Time</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -140,7 +140,7 @@ export default function MobileLoginPage() {
                 className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
                 htmlFor="email"
               >
-                Correo electr\u00f3nico
+                Correo electrónico
               </label>
               <input
                 id="email"
@@ -159,7 +159,7 @@ export default function MobileLoginPage() {
                 className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
                 htmlFor="password"
               >
-                Contrase\u00f1a
+                Contraseña
               </label>
               <div className="relative">
                 <input
@@ -177,7 +177,7 @@ export default function MobileLoginPage() {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-400 transition hover:text-neutral-600"
-                  aria-label={showPassword ? "Ocultar contrase\u00f1a" : "Mostrar contrase\u00f1a"}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                 >
                   <span className="material-icons-outlined text-base">
                     {showPassword ? "visibility_off" : "visibility"}
@@ -185,11 +185,11 @@ export default function MobileLoginPage() {
                 </button>
               </div>
               <p className="text-xs text-neutral-500">
-                Usa entre 8 y 64 caracteres con letras, n\u00fameros y al menos un s\u00edmbolo.
+                Usa entre 8 y 64 caracteres con letras, números y al menos un símbolo.
               </p>
               {passwordTouched && !passwordIsValid && (
                 <p className="text-xs text-rose-600">
-                  Revisa los requisitos de la contrase\u00f1a antes de continuar.
+                  Revisa los requisitos de la contraseña antes de continuar.
                 </p>
               )}
             </div>

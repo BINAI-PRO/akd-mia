@@ -24,7 +24,7 @@ type ScanRecord = {
 };
 
 const MAX_HISTORY = 10;
-const EMPTY_TEXT = "\u2014";
+const EMPTY_TEXT = "—";
 
 function normalizeToken(raw: string): string {
   if (!raw) return "";
@@ -81,7 +81,7 @@ export default function AttendanceScannerPage() {
       const normalized = normalizeToken(token);
       if (!normalized) {
         if (!fromCamera) {
-          setSubmissionError("Ingresa un c\u00f3digo v\u00e1lido.");
+          setSubmissionError("Ingresa un código válido.");
         }
         if (fromCamera) {
           lastTokenRef.current = null;
@@ -244,7 +244,7 @@ export default function AttendanceScannerPage() {
         setCameraError(
           error instanceof Error
             ? error.message
-            : "No fue posible acceder a la c\u00e1mara para el escaneo."
+            : "No fue posible acceder a la cámara para el escaneo."
         );
       }
     };
@@ -299,7 +299,7 @@ export default function AttendanceScannerPage() {
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!manualToken.trim()) {
-      setSubmissionError("Ingresa un c\u00f3digo v\u00e1lido.");
+      setSubmissionError("Ingresa un código válido.");
       return;
     }
     await handleToken(manualToken, false);
@@ -324,10 +324,10 @@ export default function AttendanceScannerPage() {
             <header className="mb-4 flex items-center justify-between">
               <div>
                 <h1 className="text-xl font-semibold text-slate-900">
-                  {"Escaneo de membres\u00eda"}
+                  {"Escaneo de membresía"}
                 </h1>
                 <p className="text-sm text-slate-500">
-                  {"Usa la c\u00e1mara para registrar autom\u00e1ticamente la asistencia del cliente."}
+                  {"Usa la cámara para registrar automáticamente la asistencia del cliente."}
                 </p>
               </div>
               <span className="material-icons-outlined text-3xl text-brand-600">qr_code_scanner</span>
@@ -336,7 +336,7 @@ export default function AttendanceScannerPage() {
             {!scannerSupported && (
               <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 {
-                  "Tu navegador no soporta el lector de c\u00f3digos mediante c\u00e1mara. Puedes registrar asistencia ingresando el c\u00f3digo manualmente."
+                  "Tu navegador no soporta el lector de códigos mediante cámara. Puedes registrar asistencia ingresando el código manualmente."
                 }
               </div>
             )}
@@ -362,7 +362,7 @@ export default function AttendanceScannerPage() {
             ) : (
               <p className="mt-3 text-xs text-slate-500">
                 {
-                  "Apunta el c\u00f3digo QR del pase del cliente hacia la c\u00e1mara. El registro se realizar\u00e1 de forma autom\u00e1tica."
+                  "Apunta el código QR del pase del cliente hacia la cámara. El registro se realizará de forma automática."
                 }
               </p>
             )}
@@ -375,7 +375,7 @@ export default function AttendanceScannerPage() {
                 type="text"
                 value={manualToken}
                 onChange={(event) => setManualToken(event.target.value)}
-                placeholder="C\u00f3digo QR"
+                placeholder="Código QR"
                 className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
               />
               <button
@@ -393,7 +393,7 @@ export default function AttendanceScannerPage() {
             )}
             <p className="mt-2 text-xs text-slate-500">
               {
-                "El c\u00f3digo impreso o digital puede ingresarse tal cual aparece en el QR del cliente."
+                "El código impreso o digital puede ingresarse tal cual aparece en el QR del cliente."
               }
             </p>
             <p className="mt-1 text-xs text-slate-500">
@@ -404,11 +404,11 @@ export default function AttendanceScannerPage() {
           <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">
-                {"\u00daltimos registros"}
+                {"Últimos registros"}
               </h2>
               <span className="text-xs text-slate-500">
                 {history.length === 0
-                  ? "Sin registros a\u00fan"
+                  ? "Sin registros aún"
                   : `${history.length} registro(s) recientes`}
               </span>
             </div>
@@ -444,7 +444,7 @@ export default function AttendanceScannerPage() {
                         colSpan={6}
                         className="px-4 py-6 text-center text-sm text-slate-500"
                       >
-                        {"A\u00fan no se registra asistencia desde este panel."}
+                        {"Aún no se registra asistencia desde este panel."}
                       </td>
                     </tr>
                   ) : (
@@ -454,7 +454,7 @@ export default function AttendanceScannerPage() {
                           {record.clientName}
                         </td>
                         <td className="px-4 py-3 text-slate-500">
-                          {record.classType ?? "Sesi\u00f3n"}
+                          {record.classType ?? "Sesión"}
                         </td>
                         <td className="px-4 py-3 text-slate-500">
                           {formatSessionTime(record.sessionStart)}

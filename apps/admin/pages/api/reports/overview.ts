@@ -200,9 +200,9 @@ export default async function handler(
     for (const row of membershipPaymentsRes.data ?? []) {
       const amount = Number(row.amount) || 0;
       addRevenue(row.paid_at, amount);
-      const membershipName = row.memberships?.membership_types?.name ?? "Membres\u00eda";
+      const membershipName = row.memberships?.membership_types?.name ?? "Membresía";
       const key = `membership-${membershipName}`;
-      addPlanTotal(key, `Membres\u00eda - ${membershipName}`, amount);
+      addPlanTotal(key, `Membresía - ${membershipName}`, amount);
     }
 
     for (const row of planPaymentsRes.data ?? []) {
@@ -242,7 +242,7 @@ export default async function handler(
         id: item.id,
         type: "MEMBERSHIP",
         client: item.clients?.full_name ?? "Cliente",
-        label: item.membership_types?.name ?? "Membres\u00eda",
+        label: item.membership_types?.name ?? "Membresía",
         endDate: endDate.toISOString(),
         daysLeft: endDate.diff(today, "day"),
       });

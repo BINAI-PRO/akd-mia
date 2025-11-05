@@ -53,8 +53,8 @@ function formatCurrency(value: number) {
 function formatRelativeLabel(daysLeft: number) {
   if (daysLeft < 0) return "Vencido";
   if (daysLeft === 0) return "Hoy";
-  if (daysLeft === 1) return "Ma\u00f1ana";
-  return `${daysLeft} d\u00edas`;
+  if (daysLeft === 1) return "Mañana";
+  return `${daysLeft} días`;
 }
 
 function MetricCard({ label, value, helper }: { label: string; value: string; helper?: string }) {
@@ -102,14 +102,14 @@ function TopPlansList({ data }: { data: TopPlan[] }) {
   return (
     <div className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
       {data.length === 0 ? (
-        <p className="px-4 py-6 text-sm text-slate-500">{"No hay ingresos registrados todav\u00eda."}</p>
+        <p className="px-4 py-6 text-sm text-slate-500">{"No hay ingresos registrados todavía."}</p>
       ) : (
         data.map((plan) => (
           <div key={plan.id} className="flex flex-col gap-2 px-4 py-3 text-sm text-slate-700">
             <div className="flex items-center justify-between gap-2">
               <span className="font-medium">{plan.label}</span>
               <span className="text-xs text-slate-500">
-                {`${(plan.percentage * 100).toFixed(1)}% \u00b7 ${formatCurrency(plan.total)}`}
+                {`${(plan.percentage * 100).toFixed(1)}% · ${formatCurrency(plan.total)}`}
               </span>
             </div>
             <div className="h-2 rounded-full bg-slate-100">
@@ -129,7 +129,7 @@ function ExpirationsTable({ rows }: { rows: ExpirationRow[] }) {
   if (rows.length === 0) {
     return (
       <p className="rounded-xl border border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-        {"No hay vencimientos dentro de los pr\u00f3ximos 30 d\u00edas."}
+        {"No hay vencimientos dentro de los próximos 30 días."}
       </p>
     );
   }
@@ -150,7 +150,7 @@ function ExpirationsTable({ rows }: { rows: ExpirationRow[] }) {
             <tr key={`${item.type}-${item.id}`} className="hover:bg-slate-50">
               <td className="px-4 py-3 font-medium text-slate-800">{item.client}</td>
               <td className="px-4 py-3 text-slate-600">
-                {`${item.type === "MEMBERSHIP" ? "Membres\u00eda" : "Plan"} \u00b7 ${item.label}`}
+                {`${item.type === "MEMBERSHIP" ? "Membresía" : "Plan"} · ${item.label}`}
               </td>
               <td className="px-4 py-3 text-slate-500">
                 {new Date(item.endDate).toLocaleDateString("es-MX", {
@@ -190,7 +190,7 @@ function SessionsSummary({
       <MetricCard
         label="Reservas confirmadas"
         value={NUMBER_FORMATTER.format(reserved)}
-        helper={`${reservationRate}% de ocupaci\u00f3n`}
+        helper={`${reservationRate}% de ocupación`}
       />
       <MetricCard
         label="Asistencias"
@@ -200,7 +200,7 @@ function SessionsSummary({
       <MetricCard
         label="Sesiones perdidas por vencimiento"
         value={NUMBER_FORMATTER.format(lost)}
-        helper="Cr\u00e9ditos que expiraron con saldo"
+        helper="Créditos que expiraron con saldo"
       />
     </div>
   );
@@ -260,7 +260,7 @@ export default function ReportsPage() {
             value={NUMBER_FORMATTER.format(data.metrics.totalClients)}
           />
           <MetricCard
-            label="Membres\u00edas activas"
+            label="Membresías activas"
             value={NUMBER_FORMATTER.format(data.metrics.activeMemberships)}
           />
           <MetricCard
@@ -268,7 +268,7 @@ export default function ReportsPage() {
             value={NUMBER_FORMATTER.format(data.metrics.activePlans)}
           />
           <MetricCard
-            label="Sesiones pr\u00f3ximas (7 d\u00edas)"
+            label="Sesiones próximas (7 días)"
             value={NUMBER_FORMATTER.format(data.metrics.upcomingSessions)}
           />
         </section>
@@ -278,7 +278,7 @@ export default function ReportsPage() {
             <div>
               <h2 className="text-lg font-semibold text-slate-900">{"Ingresos mensuales"}</h2>
               <p className="text-sm text-slate-500">
-                {"Montos consolidados de membres\u00edas y planes (\u00faltimos 12 meses)."}
+                {"Montos consolidados de membresías y planes (últimos 12 meses)."}
               </p>
             </div>
           </header>
@@ -288,15 +288,15 @@ export default function ReportsPage() {
         <section className="space-y-4">
           <header className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">{"Top planes por ventas"}</h2>
-            <p className="text-xs text-slate-500">{"Acumulado del mismo per\u00edodo."}</p>
+            <p className="text-xs text-slate-500">{"Acumulado del mismo período."}</p>
           </header>
           <TopPlansList data={data.revenue.topPlans} />
         </section>
 
         <section className="space-y-4">
           <header className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">{"Vencimientos pr\u00f3ximos"}</h2>
-            <p className="text-xs text-slate-500">{"Pr\u00f3ximos 30 d\u00edas (planes y membres\u00edas)."}</p>
+            <h2 className="text-lg font-semibold text-slate-900">{"Vencimientos próximos"}</h2>
+            <p className="text-xs text-slate-500">{"Próximos 30 días (planes y membresías)."}</p>
           </header>
           <ExpirationsTable rows={data.expirations.slice(0, 25)} />
         </section>
@@ -305,7 +305,7 @@ export default function ReportsPage() {
           <header className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">{"Sesiones y asistencia"}</h2>
             <p className="text-xs text-slate-500">
-              {"Actividades para los siguientes 30 d\u00edas y cr\u00e9ditos expirados."}
+              {"Actividades para los siguientes 30 días y créditos expirados."}
             </p>
           </header>
           <SessionsSummary

@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "No se pudo iniciar sesi\u00f3n con Google";
+          : "No se pudo iniciar sesión con Google";
       setFormError(message);
       setSubmitting(false);
     }
@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
       const message =
         error instanceof Error
           ? error.message
-          : "No se pudo iniciar sesi\u00f3n";
+          : "No se pudo iniciar sesión";
       setFormError(message);
       setSubmitting(false);
     }
@@ -83,7 +83,7 @@ export default function AdminLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesi\u00f3n | Panel Admin</title>
+        <title>Iniciar sesión | Panel Admin</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
         <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
@@ -136,7 +136,7 @@ export default function AdminLoginPage() {
 
             <div className="space-y-1">
               <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                Contrase\u00f1a
+                Contraseña
               </label>
               <div className="relative">
                 <input
@@ -154,7 +154,7 @@ export default function AdminLoginPage() {
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
                   aria-label={
-                    showPassword ? "Ocultar contrase\u00f1a" : "Mostrar contrase\u00f1a"
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
                   }
                 >
                   <span className="material-icons-outlined text-base">
@@ -175,7 +175,7 @@ export default function AdminLoginPage() {
               className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-400"
               disabled={submitting}
             >
-              {submitting ? "Ingresando..." : "Iniciar sesi\u00f3n"}
+              {submitting ? "Ingresando..." : "Iniciar sesión"}
             </button>
           </form>
         </section>
