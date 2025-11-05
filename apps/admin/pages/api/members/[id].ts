@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { loadStudioSettings } from "@/lib/studio-settings";
+import { normalizePhoneInput } from "@/lib/phone";
 
 type UpdatePayload = {
   fullName?: string;
@@ -44,14 +46,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } = req.body as UpdatePayload;
 
     const clientUpdates: Record<string, unknown> = {};
+    const settings = await loadStudioSettings();
+    let normalizedPhone: string | null | undefined = undefined;
+    if (phone !== undefined) {
+      if (!phone) {
+        return res.status(400).json({ error: "El numero telefonico es obligatorio" });
+      }
+      const result = normalizePhoneInput(phone, settings.phoneCountry);
+      if (!result.ok) {
+        return res.status(400).json({ error: result.error });
+      }
+      normalizedPhone = result.value;
+    }
+
     if (typeof fullName === "string" && fullName.trim().length > 0) {
       clientUpdates.full_name = fullName.trim();
     }
     if (email !== undefined) {
       clientUpdates.email = email && email.trim().length > 0 ? email.trim() : null;
     }
-    if (phone !== undefined) {
-      clientUpdates.phone = phone && phone.trim().length > 0 ? phone.trim() : null;
+    if (normalizedPhone !== undefined) {
+      clientUpdates.phone = normalizedPhone;
     }
 
     if (Object.keys(clientUpdates).length > 0) {

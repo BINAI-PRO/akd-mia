@@ -1,6 +1,7 @@
 create table if not exists public.studio_settings (
   key text primary key,
   schedule_timezone text not null default 'Etc/GMT-1',
+  phone_country text not null default 'MX',
   updated_at timestamp with time zone not null default now(),
   updated_by uuid references public.staff(id)
 );

@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { loadStudioSettings } from "@/lib/studio-settings";
+import { normalizePhoneInput } from "@/lib/phone";
 
 type LookupFilter = { column: "email" | "phone"; value: string };
 
@@ -40,10 +42,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "El nombre del miembro es obligatorio" });
     }
 
+    const settings = await loadStudioSettings();
+    const normalizedPhone = normalizePhoneInput(phone ?? "", settings.phoneCountry);
+    if (!normalizedPhone.ok) {
+      return res.status(400).json({ error: normalizedPhone.error });
+    }
+    const normalizedPhoneValue = normalizedPhone.value;
+
     let clientId: string | null = null;
     const lookupFilters: LookupFilter[] = [];
     if (email) lookupFilters.push({ column: "email", value: email });
-    if (phone) lookupFilters.push({ column: "phone", value: phone });
+    lookupFilters.push({ column: "phone", value: normalizedPhoneValue });
 
     if (lookupFilters.length > 0) {
       for (const filter of lookupFilters) {
@@ -65,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .update({
           full_name: fullName,
           email: email ?? null,
-          phone: phone ?? null,
+          phone: normalizedPhoneValue,
         })
         .eq("id", clientId);
       if (updateClientError) {
@@ -78,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .insert({
           full_name: fullName,
           email: email ?? null,
-          phone: phone ?? null,
+          phone: normalizedPhoneValue,
         })
         .select("id")
         .single();

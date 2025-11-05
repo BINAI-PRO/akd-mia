@@ -11,9 +11,12 @@ import {
   setStudioTimezone,
 } from "@/lib/timezone";
 
+type PhoneCountry = "MX" | "ES";
+
 type PageProps = {
   initialTimezone: string;
   initialOffsetLabel: string | null;
+  initialPhoneCountry: PhoneCountry;
   suggestions: TimezoneOption[];
 };
 
@@ -24,6 +27,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     props: {
       initialTimezone: settings.scheduleTimezone,
       initialOffsetLabel: offset === null ? null : formatOffsetLabel(offset),
+      initialPhoneCountry: settings.phoneCountry,
       suggestions: STUDIO_TIMEZONE_SUGGESTIONS,
     },
   };
@@ -39,9 +43,11 @@ const FIXED_OPTIONS_SET = new Set(FIXED_GMT_OPTIONS.map((option) => option.value
 export default function StudioSettingsPage({
   initialTimezone,
   initialOffsetLabel,
+  initialPhoneCountry,
   suggestions,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [timezoneValue, setTimezoneValue] = useState(initialTimezone);
+  const [phoneCountry, setPhoneCountry] = useState<PhoneCountry>(initialPhoneCountry);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<Feedback>({ status: "idle", message: null });
   const [activeOffsetLabel, setActiveOffsetLabel] = useState(initialOffsetLabel);
@@ -69,27 +75,38 @@ export default function StudioSettingsPage({
       return;
     }
 
+    const payload = {
+      timezone: candidate,
+      phoneCountry,
+    };
+
     setSubmitting(true);
     setFeedback({ status: "idle", message: null });
     try {
       const response = await fetch("/api/settings/timezone", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timezone: candidate }),
+        body: JSON.stringify(payload),
       });
-      const payload = (await response.json()) as { timezone?: string; offsetLabel?: string | null; error?: string };
+      const body = (await response.json()) as {
+        timezone?: string;
+        offsetLabel?: string | null;
+        phoneCountry?: PhoneCountry;
+        error?: string;
+      };
       if (!response.ok) {
-        throw new Error(payload?.error ?? "No se pudo actualizar el horario");
+        throw new Error(body?.error ?? "No se pudo actualizar la configuracion");
       }
 
-      const updatedTimezone = typeof payload?.timezone === "string" ? payload.timezone : candidate;
+      const updatedTimezone = typeof body?.timezone === "string" ? body.timezone : candidate;
       setStudioTimezone(updatedTimezone);
       setTimezoneValue(updatedTimezone);
-      setActiveOffsetLabel(payload?.offsetLabel ?? null);
-      setFeedback({ status: "success", message: "Horario actualizado correctamente" });
+      setPhoneCountry(body?.phoneCountry ?? phoneCountry);
+      setActiveOffsetLabel(body?.offsetLabel ?? null);
+      setFeedback({ status: "success", message: "Configuracion actualizada correctamente" });
     } catch (error) {
       console.error("Failed to update studio timezone", error);
-      const message = error instanceof Error ? error.message : "No se pudo actualizar el horario";
+      const message = error instanceof Error ? error.message : "No se pudo actualizar la configuracion";
       setFeedback({ status: "error", message });
     } finally {
       setSubmitting(false);
@@ -177,12 +194,37 @@ export default function StudioSettingsPage({
                 </p>
               </div>
 
+              <div className="space-y-2">
+                <label htmlFor="phone-country" className="text-sm font-medium text-slate-800">
+                  País para validar teléfonos
+                </label>
+                <select
+                  id="phone-country"
+                  className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                  value={phoneCountry}
+                  onChange={(event) => setPhoneCountry((event.target.value as PhoneCountry) ?? "MX")}
+                >
+                  <option value="MX">México (+52)</option>
+                  <option value="ES">España (+34)</option>
+                </select>
+                <p className="text-xs text-slate-500">
+                  Los registros nuevos y las apps aplicarán esta regla para exigir el formato correcto del número
+                  telefónico.
+                </p>
+              </div>
+
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
                 <p className="font-semibold text-slate-800">Vista previa</p>
                 <p>
                   Offset detectado:{" "}
                   <span className="font-medium text-slate-900">
                     {infoOffsetLabel} {previewOffset === null ? "(verifica el identificador)" : ""}
+                  </span>
+                </p>
+                <p className="mt-1">
+                  Formato telefónico:{" "}
+                  <span className="font-medium text-slate-900">
+                    {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -204,9 +246,15 @@ export default function StudioSettingsPage({
                     <span className="text-emerald-600">{feedback.message ?? "Horario actualizado"}</span>
                   )}
                   {feedback.status === "error" && <span className="text-rose-600">{feedback.message}</span>}
-                  {feedback.status === "idle" && activeOffsetLabel && (
+                  {feedback.status === "idle" && (
                     <span className="text-slate-500">
-                      Offset actual: <span className="font-medium text-slate-700">{activeOffsetLabel}</span>
+                      Offset actual:{" "}
+                      <span className="font-medium text-slate-700">{activeOffsetLabel ?? "Sin detectar"}</span>
+                      {"  •  "}
+                      Teléfono:{" "}
+                      <span className="font-medium text-slate-700">
+                        {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
+                      </span>
                     </span>
                   )}
                 </div>

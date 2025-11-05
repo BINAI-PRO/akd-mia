@@ -108,20 +108,27 @@ export default function NewMemberPage({
     });
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError(null);
+const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  setError(null);
 
-    if (!form.fullName.trim()) {
-      setError("El nombre completo es obligatorio");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const payload = {
-        fullName: form.fullName.trim(),
-        email: form.email.trim() || null,
-        phone: form.phone.trim() || null,
+  if (!form.fullName.trim()) {
+    setError("El nombre completo es obligatorio");
+    return;
+  }
+
+  const normalizedPhone = normalizePhoneInput(form.phone, phoneCountry);
+  if (!normalizedPhone.ok) {
+    setError(normalizedPhone.error);
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+    const payload = {
+      fullName: form.fullName.trim(),
+      email: form.email.trim() || null,
+      phone: normalizedPhone.value,
         profileStatus: form.profileStatus,
         avatarUrl: form.avatarUrl.trim() || null,
         birthdate: form.birthdate || null,
@@ -216,9 +223,15 @@ export default function NewMemberPage({
                 type="tel"
                 value={form.phone}
                 onChange={handleChange("phone")}
+                required
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                placeholder="10 digitos"
+                placeholder={phoneCountry === "MX" ? "+52 55 0000 0000" : "+34 600 000 000"}
               />
+              <span className="mt-1 block text-xs text-slate-500">
+                {phoneCountry === "MX"
+                  ? "Formato México: 10 dígitos, admite prefijo +52."
+                  : "Formato España: 9 dígitos, admite prefijo +34."}
+              </span>
             </label>
             <label className="text-sm font-medium text-slate-700">
               Estado del perfil
