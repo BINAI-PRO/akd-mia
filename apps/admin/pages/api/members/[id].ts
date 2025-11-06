@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loadStudioSettings } from "@/lib/studio-settings";
 import { normalizePhoneInput } from "@/lib/phone";
 
@@ -18,15 +19,115 @@ type UpdatePayload = {
   membershipNotes?: string | null;
 };
 
+async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse): Promise<string | null> {
+  const supabase = createSupabaseServerClient({ req, res });
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session?.user) {
+    res.status(401).json({ error: "Not authenticated" });
+    return null;
+  }
+
+  const { data: staffRow, error: staffError } = await supabaseAdmin
+    .from("staff")
+    .select("staff_roles ( slug )")
+    .eq("auth_user_id", session.user.id)
+    .maybeSingle<{ staff_roles: { slug: string | null } | null }>();
+
+  if (staffError) {
+    res.status(500).json({ error: staffError.message });
+    return null;
+  }
+
+  const slug = staffRow?.staff_roles?.slug ?? null;
+  if (!slug || slug.toUpperCase() !== "MASTER") {
+    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta accion" });
+    return null;
+  }
+
+  return session.user.id;
+}
+
+async function handleDeleteMemberRequest(
+  req: NextApiRequest,
+  res: NextApiResponse,
+  clientId: string
+) {
+  const masterUserId = await assertMasterAccess(req, res);
+  if (!masterUserId) return;
+
+  const { count: bookingCount, error: bookingError } = await supabaseAdmin
+    .from("bookings")
+    .select("id", { head: true, count: "exact" })
+    .eq("client_id", clientId);
+
+  if (bookingError) {
+    console.error("/api/members/[id] delete bookings check", bookingError);
+    return res.status(500).json({ error: "No se pudo verificar las reservas del miembro" });
+  }
+
+  if ((bookingCount ?? 0) > 0) {
+    return res.status(400).json({
+      error: "El miembro tiene reservas registradas. Cancela o reasigna esas reservas antes de eliminarlo.",
+    });
+  }
+
+  const { error: planDeleteError } = await supabaseAdmin
+    .from("plan_purchases")
+    .delete()
+    .eq("client_id", clientId);
+
+  if (planDeleteError) {
+    console.error("/api/members/[id] delete plan_purchases", planDeleteError);
+    return res.status(500).json({ error: "No se pudo limpiar los planes del miembro" });
+  }
+
+  const { error: membershipsDeleteError } = await supabaseAdmin
+    .from("memberships")
+    .delete()
+    .eq("client_id", clientId);
+
+  if (membershipsDeleteError) {
+    console.error("/api/members/[id] delete memberships", membershipsDeleteError);
+    return res.status(500).json({ error: "No se pudo limpiar las membresias del miembro" });
+  }
+
+  await supabaseAdmin.from("client_profiles").delete().eq("client_id", clientId);
+
+  const { error: clientDeleteError } = await supabaseAdmin
+    .from("clients")
+    .delete()
+    .eq("id", clientId);
+
+  if (clientDeleteError) {
+    console.error("/api/members/[id] delete client", clientDeleteError);
+    const message =
+      clientDeleteError.code === "23503"
+        ? "No se pudo eliminar al miembro porque tiene registros relacionados"
+        : clientDeleteError.message ?? "No se pudo eliminar al miembro";
+    return res.status(500).json({ error: message });
+  }
+
+  return res.status(200).json({ success: true });
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "PATCH") {
-    res.setHeader("Allow", "PATCH");
+  if (req.method !== "PATCH" && req.method !== "DELETE") {
+    res.setHeader("Allow", "PATCH,DELETE");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
 
   const { id } = req.query;
   if (typeof id !== "string" || id.length === 0) {
     return res.status(400).json({ error: "ID de miembro invalido" });
+  }
+
+  if (req.method === "DELETE") {
+    await handleDeleteMemberRequest(req, res, id);
+    return;
   }
 
   try {

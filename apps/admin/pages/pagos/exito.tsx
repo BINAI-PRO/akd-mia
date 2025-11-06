@@ -28,22 +28,20 @@ export default function PaymentSuccessPage() {
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
           <h1 className="text-2xl font-semibold text-slate-900">Pago registrado correctamente</h1>
           <p className="mt-4 text-sm text-slate-600">
-            Stripe confirmó el pago y nuestro sistema procesará la compra del plan. Puedes volver al panel para
-            revisar los planes del cliente o realizar otra operación.
+            Stripe confirmo el pago y el sistema activara el plan en cuanto se procese. Regresa al panel para revisar
+            el historial del cliente o continuar con otra operacion.
           </p>
           {sessionId ? (
             <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
-              <p className="font-medium text-slate-900">ID de sesión</p>
+              <p className="font-medium text-slate-900">ID de sesion</p>
               <code className="mt-1 block break-all text-slate-600">{sessionId}</code>
               <p className="mt-2 text-slate-600">
-                Si necesitas soporte, comparte este identificador para rastrear el pago en Stripe y en el historial
-                interno.
+                Si necesitas soporte, comparte este identificador para rastrear el pago en Stripe y en el historial interno.
               </p>
             </div>
           ) : (
             <p className="mt-6 rounded-md border border-amber-200 bg-amber-50 p-4 text-xs text-amber-700">
-              No se recibió un <code>session_id</code>. Si el plan no aparece en el historial, verifica el pago
-              directamente en Stripe.
+              No recibimos un <code>session_id</code>. Si el plan no aparece en el historial, verifica el pago directamente en Stripe.
             </p>
           )}
 
@@ -52,13 +50,13 @@ export default function PaymentSuccessPage() {
               href="/members"
               className="inline-flex w-full items-center justify-center rounded-md bg-brand-700 px-4 py-2 text-sm font-medium text-white shadow transition hover:bg-brand-800"
             >
-              Ir a miembros
+              Regresar a miembros
             </Link>
             <Link
               href="/"
               className="inline-flex w-full items-center justify-center rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
             >
-              Volver al dashboard
+              Ir al inicio
             </Link>
           </div>
         </div>

@@ -6,17 +6,24 @@ import PwaInstallPrompt from "@/components/PwaInstallPrompt";
 import TabBar from "@/components/TabBar";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { StudioTimezoneProvider } from "@/components/StudioTimezoneContext";
+import { StudioSettingsProvider } from "@/components/StudioTimezoneContext";
 import { DEFAULT_STUDIO_TIMEZONE, setStudioTimezone } from "@/lib/timezone";
+import {
+  DEFAULT_PHONE_COUNTRY,
+  type StudioPhoneCountry,
+} from "@/lib/studio-settings-shared";
 
 type NextPageWithAuth = AppProps["Component"] & {
   publicPage?: boolean;
 };
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [timezone, setTimezone] = useState(() => {
+  const [settings, setSettings] = useState(() => {
     setStudioTimezone(DEFAULT_STUDIO_TIMEZONE);
-    return DEFAULT_STUDIO_TIMEZONE;
+    return {
+      timezone: DEFAULT_STUDIO_TIMEZONE,
+      phoneCountry: DEFAULT_PHONE_COUNTRY,
+    };
   });
 
   useEffect(() => {
@@ -42,15 +49,18 @@ export default function App({ Component, pageProps }: AppProps) {
     fetch("/api/settings/timezone")
       .then(async (response) => {
         if (!response.ok) throw new Error(await response.text());
-        return response.json() as Promise<{ timezone?: string }>;
+        return response.json() as Promise<{ timezone?: string; phoneCountry?: StudioPhoneCountry }>;
       })
       .then((payload) => {
         if (!active) return;
         const candidate = typeof payload?.timezone === "string" ? payload.timezone.trim() : "";
-        if (candidate) {
-          setStudioTimezone(candidate);
-          setTimezone(candidate);
-        }
+        const phone = payload?.phoneCountry ?? DEFAULT_PHONE_COUNTRY;
+        const next = {
+          timezone: candidate || DEFAULT_STUDIO_TIMEZONE,
+          phoneCountry: phone === "ES" ? "ES" : DEFAULT_PHONE_COUNTRY,
+        };
+        setStudioTimezone(next.timezone);
+        setSettings(next);
       })
       .catch(() => undefined);
     return () => {
@@ -60,15 +70,16 @@ export default function App({ Component, pageProps }: AppProps) {
 
   const ComponentWithAuth = Component as NextPageWithAuth;
   const isPublic = ComponentWithAuth.publicPage ?? false;
+  const timezone = settings.timezone;
 
   return (
     <AuthProvider>
-      <StudioTimezoneProvider value={timezone}>
+      <StudioSettingsProvider value={settings}>
         <PwaInstallPrompt />
         {isPublic ? (
           <Component key={`tz-${timezone}`} {...pageProps} />
         ) : (
-          <ProtectedRoute>
+          <ProtectedRoute requireProfileCompletion>
             <>
               <Header />
               <main className="mx-auto max-w-md px-4 pb-28">
@@ -78,7 +89,7 @@ export default function App({ Component, pageProps }: AppProps) {
             </>
           </ProtectedRoute>
         )}
-      </StudioTimezoneProvider>
+      </StudioSettingsProvider>
     </AuthProvider>
   );
 }

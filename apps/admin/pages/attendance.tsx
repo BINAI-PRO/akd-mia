@@ -66,6 +66,8 @@ export default function AttendanceScannerPage() {
   const lastTokenRef = useRef<string | null>(null);
   const scannerBufferRef = useRef<string>("");
   const scannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingScanRef = useRef<string | null>(null);
+  const tokenCooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [scannerSupported, setScannerSupported] = useState(true);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function AttendanceScannerPage() {
   const [manualToken, setManualToken] = useState("");
   const [history, setHistory] = useState<ScanRecord[]>([]);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [pendingScan, setPendingScan] = useState<{ raw: string } | null>(null);
 
   const recentSuccess = useMemo(() => history[0] ?? null, [history]);
 
@@ -263,18 +266,19 @@ export default function AttendanceScannerPage() {
         return;
       }
 
+      if (pendingScanRef.current) {
+        frameRequestRef.current = requestAnimationFrame(scanFrame);
+        return;
+      }
+
       try {
         const barcodes = await detector.detect(video);
         if (barcodes.length > 0) {
           const raw = (barcodes[0].rawValue ?? "").trim();
           if (raw && raw !== lastTokenRef.current) {
             lastTokenRef.current = raw;
-            void handleToken(raw, true);
-            setTimeout(() => {
-              if (lastTokenRef.current === raw) {
-                lastTokenRef.current = null;
-              }
-            }, 1500);
+            pendingScanRef.current = raw;
+            setPendingScan({ raw });
           }
         }
       } catch (error) {
@@ -306,12 +310,68 @@ export default function AttendanceScannerPage() {
     setManualToken("");
   };
 
+
+
+  const handleConfirmPending = useCallback(async () => {
+
+    if (!pendingScan) return;
+
+    await handleToken(pendingScan.raw, true);
+
+    if (tokenCooldownRef.current) {
+
+      clearTimeout(tokenCooldownRef.current);
+
+    }
+
+    tokenCooldownRef.current = setTimeout(() => {
+
+      if (lastTokenRef.current === pendingScan.raw) {
+
+        lastTokenRef.current = null;
+
+      }
+
+      tokenCooldownRef.current = null;
+
+    }, 1500);
+
+    pendingScanRef.current = null;
+
+    setPendingScan(null);
+
+  }, [handleToken, pendingScan]);
+
+
+
+  const handleCancelPending = useCallback(() => {
+
+    pendingScanRef.current = null;
+
+    setPendingScan(null);
+
+    lastTokenRef.current = null;
+
+  }, []);
+
+
+
   const formatSessionTime = (iso: string | null) => {
     if (!iso) return EMPTY_TEXT;
     const instance = dayjs(iso);
     if (!instance.isValid()) return EMPTY_TEXT;
     return instance.format("DD MMM YYYY HH:mm");
   };
+
+  useEffect(() => {
+    return () => {
+      if (tokenCooldownRef.current) {
+        clearTimeout(tokenCooldownRef.current);
+        tokenCooldownRef.current = null;
+      }
+    };
+  }, []);
+
 
   return (
     <>
@@ -351,6 +411,30 @@ export default function AttendanceScannerPage() {
                 />
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <div className="h-40 w-40 rounded-lg border-2 border-emerald-400/80 outline outline-2 outline-offset-4 outline-emerald-400/40" />
+                </div>
+              </div>
+            )}
+
+            {pendingScan && (
+              <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                <p className="font-semibold">Codigo listo: {normalizeToken(pendingScan.raw)}</p>
+                <div className="mt-3 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmPending}
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                    disabled={processing}
+                  >
+                    Registrar asistencia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelPending}
+                    className="inline-flex items-center justify-center rounded-md border border-emerald-600 px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                    disabled={processing}
+                  >
+                    Cancelar
+                  </button>
                 </div>
               </div>
             )}

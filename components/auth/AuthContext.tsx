@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 
 type AuthProfile = {
@@ -33,6 +32,7 @@ type AuthContextValue = {
   profileLoading: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
+  reloadProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -94,6 +94,92 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
+  const performSignOut = useCallback(
+    async (options?: { redirect?: boolean; reason?: string }) => {
+      try {
+        if (supabase) {
+          await supabase.auth.signOut();
+        }
+      } catch {
+        // ignore sign out errors
+      } finally {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        setProfileLoading(false);
+        if (options?.redirect && typeof window !== "undefined") {
+          const loginUrl = new URL("/login", window.location.origin);
+          if (options.reason) {
+            loginUrl.searchParams.set("error", options.reason);
+          }
+          const shouldPreservePath =
+            options.reason !== "staff_required" &&
+            window.location.pathname !== "/login";
+          if (shouldPreservePath) {
+            const redirectValue = `${window.location.pathname}${window.location.search ?? ""}`;
+            loginUrl.searchParams.set("redirectTo", redirectValue);
+          }
+          window.location.replace(loginUrl.toString());
+        }
+      }
+    },
+    [supabase]
+  );
+
+  const reloadProfile = useCallback(async () => {
+    if (!user || typeof window === "undefined") return;
+    setProfileLoading(true);
+    try {
+      const response = await fetch("/api/me");
+      if (response.status === 401 || response.status === 403) {
+        await performSignOut({
+          redirect: true,
+          reason: response.status === 403 ? "staff_required" : "auth_required",
+        });
+        return;
+      }
+      if (!response.ok) {
+        throw new Error("Failed to load profile");
+      }
+      const payload = (await response.json().catch(() => null)) as
+        | { profile?: Partial<AuthProfile> & { authUserId: string }; error?: string }
+        | null;
+
+      if (!payload || typeof payload !== "object" || !payload.profile) {
+        return;
+      }
+
+      const remoteProfile = payload.profile;
+      setProfile((current) => {
+        const base = current ?? deriveBaseProfile(user);
+        return {
+          ...base,
+          ...remoteProfile,
+          clientId: remoteProfile.clientId ?? base.clientId,
+          avatarUrl: remoteProfile.avatarUrl ?? base.avatarUrl,
+          email: remoteProfile.email ?? base.email,
+          phone: remoteProfile.phone ?? base.phone,
+          fullName: remoteProfile.fullName ?? base.fullName,
+          status: remoteProfile.status ?? base.status,
+          role: remoteProfile.role ?? base.role,
+          isAdmin:
+            remoteProfile.isAdmin !== undefined
+              ? remoteProfile.isAdmin
+              : base.isAdmin,
+          staffId: remoteProfile.staffId ?? base.staffId,
+          permissions: Array.isArray(remoteProfile.permissions)
+            ? remoteProfile.permissions
+            : base.permissions,
+        };
+      });
+    } catch (error) {
+      console.error("[AuthContext] reloadProfile failed", error);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, [performSignOut, user]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -105,12 +191,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
 
         if (error) {
-          if (isRefreshTokenMissingError(error)) {
-            await supabase.auth.signOut();
-            if (!mounted) return;
-          }
-          setSession(null);
-          setUser(null);
+          await performSignOut();
+          if (!mounted) return;
         } else {
           setSession(data.session ?? null);
           setUser(data.session?.user ?? null);
@@ -139,7 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [performSignOut, supabase]);
 
   useEffect(() => {
     if (!user) {
@@ -149,70 +231,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setProfile(deriveBaseProfile(user));
-
-    if (typeof window === "undefined") return;
-
-    const controller = new AbortController();
-    let active = true;
-    setProfileLoading(true);
-
-    fetch("/api/me", { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          throw new Error(errorBody.error ?? "me endpoint failed");
-        }
-        return response.json() as Promise<{
-          profile: Partial<AuthProfile> & { authUserId: string };
-        }>;
-      })
-      .then(({ profile: remoteProfile }) => {
-        if (!active) return;
-        setProfile((current) => {
-          const base = current ?? deriveBaseProfile(user);
-          return {
-            ...base,
-            ...remoteProfile,
-            clientId: remoteProfile.clientId ?? base.clientId,
-            avatarUrl: remoteProfile.avatarUrl ?? base.avatarUrl,
-            email: remoteProfile.email ?? base.email,
-            phone: remoteProfile.phone ?? base.phone,
-            fullName: remoteProfile.fullName ?? base.fullName,
-            status: remoteProfile.status ?? base.status,
-            role: remoteProfile.role ?? base.role,
-            isAdmin:
-              remoteProfile.isAdmin !== undefined
-                ? remoteProfile.isAdmin
-                : base.isAdmin,
-            staffId: remoteProfile.staffId ?? base.staffId,
-            permissions: Array.isArray(remoteProfile.permissions)
-              ? remoteProfile.permissions
-              : base.permissions,
-          };
-        });
-      })
-      .catch(() => {
-        if (!active) return;
-        // silently ignore; base profile already set
-      })
-      .finally(() => {
-        if (!active) return;
-        setProfileLoading(false);
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [user]);
+    void reloadProfile();
+  }, [user, reloadProfile]);
 
   const signOut = useCallback(async () => {
-    if (!supabase) return;
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-  }, [supabase]);
+    await performSignOut();
+  }, [performSignOut]);
 
   const refreshSession = useCallback(async () => {
     if (!supabase) return;
@@ -220,23 +244,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase.auth.getSession();
       if (error) {
-        if (isRefreshTokenMissingError(error)) {
-          await supabase.auth.signOut();
-        }
-        setSession(null);
-        setUser(null);
+        await performSignOut();
         return;
       }
       const nextSession = data.session ?? null;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
     } catch {
-      setSession(null);
-      setUser(null);
+      await performSignOut();
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [performSignOut, supabase]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -247,8 +266,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading,
       signOut,
       refreshSession,
+      reloadProfile,
     }),
-    [loading, profile, profileLoading, refreshSession, session, signOut, user]
+    [loading, profile, profileLoading, refreshSession, reloadProfile, session, signOut, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

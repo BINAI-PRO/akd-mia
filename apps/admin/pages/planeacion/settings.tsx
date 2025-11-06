@@ -204,8 +204,8 @@ export default function StudioSettingsPage({
                   value={phoneCountry}
                   onChange={(event) => setPhoneCountry((event.target.value as PhoneCountry) ?? "MX")}
                 >
-                  <option value="MX">México (+52)</option>
-                  <option value="ES">España (+34)</option>
+                  <option value="MX">Mexico (+52)</option>
+                  <option value="ES">Espana (+34)</option>
                 </select>
                 <p className="text-xs text-slate-500">
                   Los registros nuevos y las apps aplicarán esta regla para exigir el formato correcto del número
@@ -224,7 +224,7 @@ export default function StudioSettingsPage({
                 <p className="mt-1">
                   Formato telefónico:{" "}
                   <span className="font-medium text-slate-900">
-                    {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
+                    {phoneCountry === "MX" ? "Mexico (+52)" : "Espana (+34)"}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
@@ -253,7 +253,7 @@ export default function StudioSettingsPage({
                       {"  •  "}
                       Teléfono:{" "}
                       <span className="font-medium text-slate-700">
-                        {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
+                        {phoneCountry === "MX" ? "Mexico (+52)" : "Espana (+34)"}
                       </span>
                     </span>
                   )}

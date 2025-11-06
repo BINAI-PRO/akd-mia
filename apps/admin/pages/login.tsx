@@ -24,6 +24,20 @@ export default function AdminLoginPage() {
     }
   }, [loading, redirectTarget, router, user]);
 
+  useEffect(() => {
+    if (!router.isReady) return;
+    const errorParam = router.query.error;
+    if (typeof errorParam === "string") {
+      if (errorParam === "staff_required") {
+        setFormError(
+          "Tu cuenta no tiene acceso administrativo. Solicita una invitacion al administrador."
+        );
+      } else if (errorParam === "auth_required") {
+        setFormError("Tu sesion expiro. Vuelve a iniciar sesion para continuar.");
+      }
+    }
+  }, [router.isReady, router.query.error]);
+
   const handleGoogleLogin = async () => {
     if (submitting) return;
     setSubmitting(true);

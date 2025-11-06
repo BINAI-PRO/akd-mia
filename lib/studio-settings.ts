@@ -5,8 +5,12 @@ import {
   isValidTimezone,
   setStudioTimezone,
 } from "@/lib/timezone";
+import {
+  DEFAULT_PHONE_COUNTRY,
+  type StudioPhoneCountry,
+} from "@/lib/studio-settings-shared";
 
-export type StudioPhoneCountry = "MX" | "ES";
+export { DEFAULT_PHONE_COUNTRY, type StudioPhoneCountry } from "@/lib/studio-settings-shared";
 
 export type StudioSettings = {
   scheduleTimezone: string;
@@ -14,7 +18,6 @@ export type StudioSettings = {
 };
 
 const SETTINGS_KEY = "default";
-export const DEFAULT_PHONE_COUNTRY: StudioPhoneCountry = "MX";
 
 let cachedSettings: StudioSettings | null = null;
 let lastLoadedAt = 0;
@@ -33,6 +36,12 @@ function normalizePhoneCountryCandidate(candidate: unknown): StudioPhoneCountry 
   return upper === "ES" ? "ES" : "MX";
 }
 
+function isMissingColumnError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = (error as { code?: string }).code;
+  return code === "42703";
+}
+
 export function getCachedStudioSettings(): StudioSettings {
   if (cachedSettings) {
     return cachedSettings;
@@ -49,12 +58,32 @@ async function fetchStudioSettings(): Promise<StudioSettings> {
     .eq("key", SETTINGS_KEY)
     .maybeSingle<{ schedule_timezone: string | null; phone_country: string | null }>();
 
-  if (error) {
-    console.error("[studio-settings] fetch failed", error);
+  let record = data;
+  let fetchError = error;
+
+  if (fetchError && isMissingColumnError(fetchError)) {
+    // Older schema without phone_country column.
+    console.warn(
+      "[studio-settings] phone_country column not found. Run the latest migration to enable phone settings."
+    );
+    const fallback = await supabaseAdmin
+      .from("studio_settings")
+      .select("schedule_timezone")
+      .eq("key", SETTINGS_KEY)
+      .maybeSingle<{ schedule_timezone: string | null }>();
+    record = fallback.data ?? null;
+    fetchError = fallback.error;
   }
 
-  const scheduleTimezone = normalizeTimezoneCandidate(data?.schedule_timezone);
-  const phoneCountry = normalizePhoneCountryCandidate(data?.phone_country);
+  if (fetchError) {
+    console.error("[studio-settings] fetch failed", fetchError);
+  }
+
+  const scheduleTimezone = normalizeTimezoneCandidate(record?.schedule_timezone);
+  const phoneCountry =
+    fetchError && isMissingColumnError(fetchError)
+      ? DEFAULT_PHONE_COUNTRY
+      : normalizePhoneCountryCandidate((record as { phone_country?: string | null } | null)?.phone_country);
   setStudioTimezone(scheduleTimezone);
   cachedSettings = { scheduleTimezone, phoneCountry };
   lastLoadedAt = Date.now();
@@ -99,22 +128,45 @@ export async function updateStudioSettings(options: UpdateSettingsPayload): Prom
     payload.phone_country = nextPhoneCountry;
   }
 
-  const { error } = await supabaseAdmin.from("studio_settings").upsert(payload, { onConflict: "key" });
+  let upsertError: unknown = null;
+  let upsertPayload = payload;
+  let retryPerformed = false;
 
-  if (error) {
-    console.error("[studio-settings] failed to update", error);
+  const attemptUpsert = async (body: Record<string, unknown>) => {
+    const { error } = await supabaseAdmin.from("studio_settings").upsert(body, { onConflict: "key" });
+    return error;
+  };
+
+  upsertError = await attemptUpsert(upsertPayload);
+
+  if (upsertError && isMissingColumnError(upsertError) && "phone_country" in upsertPayload) {
+    const { phone_country, ...rest } = upsertPayload;
+    upsertPayload = rest;
+    upsertError = await attemptUpsert(upsertPayload);
+    retryPerformed = true;
+    if (!upsertError) {
+      console.warn(
+        "[studio-settings] phone_country column missing. Saved timezone only; run migrations to enable phone settings."
+      );
+    }
+  }
+
+  if (upsertError) {
+    console.error("[studio-settings] failed to update", upsertError);
     throw new Error("No se pudo guardar la configuracion");
   }
 
   if (!cachedSettings) {
     cachedSettings = {
       scheduleTimezone: nextTimezone ?? getStudioTimezone() ?? DEFAULT_STUDIO_TIMEZONE,
-      phoneCountry: nextPhoneCountry ?? DEFAULT_PHONE_COUNTRY,
+      phoneCountry:
+        retryPerformed || !nextPhoneCountry ? DEFAULT_PHONE_COUNTRY : nextPhoneCountry,
     };
   } else {
     cachedSettings = {
       scheduleTimezone: nextTimezone ?? cachedSettings.scheduleTimezone,
-      phoneCountry: nextPhoneCountry ?? cachedSettings.phoneCountry,
+      phoneCountry:
+        retryPerformed || !nextPhoneCountry ? cachedSettings.phoneCountry : nextPhoneCountry,
     };
   }
 

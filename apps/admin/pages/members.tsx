@@ -13,6 +13,7 @@ import type {
   InferGetServerSidePropsType,
 } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -310,6 +311,8 @@ export default function AdminMiembrosPage(
   const [planModalMember, setPlanModalMember] = useState<MemberRow | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [planLoading, setPlanLoading] = useState(false);
+  const [planPaymentMode, setPlanPaymentMode] = useState<PlanPaymentMode>("CASH");
+  const [planSuccess, setPlanSuccess] = useState<string | null>(null);
 
   const membershipDefaultType = useMemo(
     () => membershipOptions.find((option) => option.isActive) ?? membershipOptions[0] ?? null,
@@ -328,6 +331,8 @@ type MembershipFormState = {
 };
 
 type MembershipPaymentMode = "CARD" | "CASH";
+type PlanPaymentMode = "CARD" | "CASH";
+type SortColumn = "NAME" | "MEMBERSHIP" | "PLANS" | "STATUS" | "JOINED";
 
 type PlanFormState = {
   planTypeId: string;
@@ -353,10 +358,19 @@ type PlanFormState = {
     modality: "FLEXIBLE",
     courseId: "",
   }));
+  const [sortConfig, setSortConfig] = useState<{ column: SortColumn; direction: "asc" | "desc" }>({
+    column: "NAME",
+    direction: "asc",
+  });
+  const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { profile } = useAuth();
+  const isMaster = (profile?.role ?? "").toUpperCase() === "MASTER";
 
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return rows.filter((row) => {
+    const filtered = rows.filter((row) => {
       if (term) {
         const haystack = `${row.name} ${row.email ?? ""} ${row.membershipName ?? ""}`.toLowerCase();
         if (!haystack.includes(term)) return false;
@@ -364,7 +378,108 @@ type PlanFormState = {
       if (estadoFilter !== "all" && row.Estado !== estadoFilter) return false;
       return true;
     });
-  }, [rows, search, estadoFilter]);
+
+    const membershipOrder: Record<MembershipState, number> = {
+      ACTIVE: 0,
+      EXPIRED: 1,
+      NONE: 2,
+    };
+    const estadoOrder: Record<MiembroEstado, number> = {
+      ACTIVE: 0,
+      ON_HOLD: 1,
+      CANCELED: 2,
+    };
+    const compareText = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: "base" });
+
+    const sorted = [...filtered].sort((a, b) => {
+      let comparison = 0;
+      switch (sortConfig.column) {
+        case "NAME": {
+          comparison = compareText(a.name, b.name);
+          break;
+        }
+        case "MEMBERSHIP": {
+          const rankA = membershipOrder[a.membershipStatus] ?? 99;
+          const rankB = membershipOrder[b.membershipStatus] ?? 99;
+          comparison = rankA - rankB;
+          if (comparison === 0) {
+            comparison = compareText(a.membershipName ?? "", b.membershipName ?? "");
+          }
+          break;
+        }
+        case "PLANS": {
+          comparison = (a.planActiveCount ?? 0) - (b.planActiveCount ?? 0);
+          break;
+        }
+        case "STATUS": {
+          const rankA = estadoOrder[a.Estado] ?? 99;
+          const rankB = estadoOrder[b.Estado] ?? 99;
+          comparison = rankA - rankB;
+          if (comparison === 0) {
+            comparison = compareText(a.name, b.name);
+          }
+          break;
+        }
+        case "JOINED": {
+          comparison = dayjs(a.joinedAt).valueOf() - dayjs(b.joinedAt).valueOf();
+          break;
+        }
+        default: {
+          comparison = 0;
+          break;
+        }
+      }
+
+      if (comparison === 0 && sortConfig.column !== "NAME") {
+        comparison = compareText(a.name, b.name);
+      }
+
+      return sortConfig.direction === "asc" ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [rows, search, estadoFilter, sortConfig]);
+
+  const handleSort = (column: SortColumn) => {
+    setSortConfig((prev) =>
+      prev.column === column
+        ? { column, direction: prev.direction === "asc" ? "desc" : "asc" }
+        : { column, direction: "asc" }
+    );
+  };
+
+  const getSortIcon = (column: SortColumn) => {
+    if (sortConfig.column !== column) return "unfold_more";
+    return sortConfig.direction === "asc" ? "arrow_upward" : "arrow_downward";
+  };
+
+  const closeDeleteModal = () => {
+    if (deleteLoading) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+  };
+
+  const handleDeleteMember = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    setDeleteError(null);
+    try {
+      const response = await fetch(`/api/members/${deleteTarget.id}`, {
+        method: "DELETE",
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(body?.error ?? "No se pudo eliminar al miembro");
+      }
+      setRows((current) => current.filter((item) => item.id !== deleteTarget.id));
+      closeDeleteModal();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "No se pudo eliminar al miembro";
+      setDeleteError(message);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   const headerToolbar = (
     <div className="flex items-center gap-4">
@@ -462,6 +577,9 @@ type PlanFormState = {
     });
     setPlanModalMember(member);
     setPlanError(null);
+    setPlanSuccess(null);
+    setPlanPaymentMode("CASH");
+    setPlanLoading(false);
     setPlanModalOpen(true);
   };
 
@@ -470,6 +588,8 @@ type PlanFormState = {
     setPlanModalMember(null);
     setPlanError(null);
     setPlanLoading(false);
+    setPlanSuccess(null);
+    setPlanPaymentMode("CASH");
   };
 
   async function handleMembershipSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -562,6 +682,7 @@ type PlanFormState = {
   async function handlePlanSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!planModalMember) return;
+
     if (!planForm.planTypeId) {
       setPlanError("Selecciona un plan");
       return;
@@ -581,21 +702,55 @@ type PlanFormState = {
       return;
     }
 
+    const planAmount = Number(selectedPlan.price ?? 0);
     setPlanLoading(true);
     setPlanError(null);
+    setPlanSuccess(null);
+
+    const payload = {
+      clientId: planModalMember.id,
+      planTypeId: planForm.planTypeId,
+      startDate: planForm.startDate,
+      notes: planForm.notes || null,
+      modality: planForm.modality,
+      courseId: planForm.modality === "FIXED" ? planForm.courseId : null,
+    };
 
     try {
+      if (planPaymentMode === "CARD") {
+        if (!Number.isFinite(planAmount) || planAmount <= 0) {
+          setPlanError("Configura un monto mayor a 0 para poder cobrar este plan con tarjeta");
+          setPlanLoading(false);
+          return;
+        }
+
+        const origin = typeof window === "undefined" ? "" : window.location.origin;
+        const successUrl = origin ? `${origin}/pagos/exito` : undefined;
+        const cancelUrl = origin ? `${origin}/pagos/cancelado` : undefined;
+
+        const response = await fetch("/api/plans/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...payload, successUrl, cancelUrl }),
+        });
+
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok || typeof body?.url !== "string") {
+          throw new Error(body?.error ?? "No se pudo generar el pago con tarjeta");
+        }
+
+        window.open(body.url, "_blank", "noopener");
+        setPlanSuccess(
+          "Abrimos Stripe en una nueva pestana. El plan se activara automaticamente cuando el pago sea confirmado."
+        );
+        setPlanLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/plans/purchase", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId: planModalMember.id,
-          planTypeId: planForm.planTypeId,
-          startDate: planForm.startDate,
-          notes: planForm.notes || null,
-          modality: planForm.modality,
-          courseId: planForm.modality === "FIXED" ? planForm.courseId : null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const body = await response.json().catch(() => ({}));
@@ -608,7 +763,13 @@ type PlanFormState = {
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo registrar el plan";
       setPlanError(message);
-      setPlanLoading(false);
+      if (planPaymentMode === "CARD") {
+        setPlanLoading(false);
+      }
+    } finally {
+      if (planPaymentMode !== "CARD") {
+        setPlanLoading(false);
+      }
     }
   }
 
@@ -617,6 +778,14 @@ type PlanFormState = {
   const membershipCurrency = selectedMembershipOption?.currency ?? "MXN";
   const membershipMaxYears = selectedMembershipOption?.maxPrepaidYears ?? null;
   const selectedPlanOption = getPlanOption(planForm.planTypeId);
+  const rawPlanPrice = selectedPlanOption?.price ?? null;
+  const planCurrency = selectedPlanOption?.currency ?? "MXN";
+  const hasPlanPrice =
+    typeof rawPlanPrice === "number" && Number.isFinite(rawPlanPrice) && rawPlanPrice >= 0;
+  const planPriceLabel = hasPlanPrice
+    ? getCurrencyFormatter(planCurrency).format(rawPlanPrice)
+    : "Consultar en recepcion";
+  const planSupportsCard = Boolean(hasPlanPrice && (rawPlanPrice ?? 0) > 0);
   const selectedPlanClassCount = selectedPlanOption
     ? selectedPlanOption.classCount === null
       ? "Ilimitado"
@@ -675,12 +844,57 @@ type PlanFormState = {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                  <th className="px-6 py-3">Miembro</th>
-                  <th className="px-6 py-3">Membresia</th>
-                  <th className="px-6 py-3">Planes activos</th>
-                  <th className="px-6 py-3">Estado</th>
+                  <th className="px-6 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("NAME")}
+                      className="flex items-center gap-1 font-semibold tracking-wide text-slate-500"
+                    >
+                      Miembro
+                      <span className="material-icons-outlined text-base">{getSortIcon("NAME")}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("MEMBERSHIP")}
+                      className="flex items-center gap-1 font-semibold tracking-wide text-slate-500"
+                    >
+                      Membresia
+                      <span className="material-icons-outlined text-base">{getSortIcon("MEMBERSHIP")}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("PLANS")}
+                      className="flex items-center gap-1 font-semibold tracking-wide text-slate-500"
+                    >
+                      Planes activos
+                      <span className="material-icons-outlined text-base">{getSortIcon("PLANS")}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("STATUS")}
+                      className="flex items-center gap-1 font-semibold tracking-wide text-slate-500"
+                    >
+                      Estado
+                      <span className="material-icons-outlined text-base">{getSortIcon("STATUS")}</span>
+                    </button>
+                  </th>
                   <th className="px-6 py-3">Acciones</th>
-                  <th className="px-6 py-3 text-right">Alta</th>
+                  <th className="px-6 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleSort("JOINED")}
+                      className="ml-auto flex items-center gap-1 font-semibold tracking-wide text-slate-500"
+                    >
+                      Alta
+                      <span className="material-icons-outlined text-base">{getSortIcon("JOINED")}</span>
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -757,6 +971,19 @@ type PlanFormState = {
                               <span className="material-icons-outlined text-sm">edit</span>
                               Editar
                             </Link>
+                            {isMaster && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeleteError(null);
+                                  setDeleteTarget(row);
+                                }}
+                                className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                              >
+                                <span className="material-icons-outlined text-sm">delete</span>
+                                Eliminar
+                              </button>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
@@ -784,6 +1011,46 @@ type PlanFormState = {
           </div>
         </section>
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
+          <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-2xl">
+            <div className="border-b border-slate-200 px-6 py-4">
+              <h3 className="text-lg font-semibold text-slate-800">Eliminar miembro</h3>
+              <p className="mt-1 text-sm text-slate-600">
+                Confirma la eliminacion permanente de{" "}
+                <span className="font-semibold">{deleteTarget.name}</span>.
+              </p>
+            </div>
+            <div className="space-y-3 px-6 py-5 text-sm text-slate-600">
+              <p>Esta accion elimina al miembro y sus registros relacionados. No se puede deshacer.</p>
+              {deleteError && (
+                <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                  {deleteError}
+                </p>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+              <button
+                type="button"
+                onClick={closeDeleteModal}
+                className="rounded-md border border-slate-200 px-4 py-2 text-sm text-slate-600"
+                disabled={deleteLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteMember}
+                disabled={deleteLoading}
+                className="rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+              >
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {membershipModalOpen && membershipModalMember && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
@@ -979,12 +1246,68 @@ type PlanFormState = {
               </div>
               <div className="space-y-4 px-6 py-6 text-sm">
                 <div>
+                  <span className="block text-xs font-medium text-slate-600">Metodo de pago</span>
+                  <div className="mt-2 inline-flex rounded-lg border border-slate-200 bg-slate-100 p-1 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanPaymentMode("CARD");
+                        setPlanError(null);
+                        setPlanSuccess(null);
+                      }}
+                      className={`rounded-md px-3 py-2 transition ${
+                        planPaymentMode === "CARD"
+                          ? "bg-white text-brand-600 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                      disabled={planLoading}
+                    >
+                      Cobrar con tarjeta
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlanPaymentMode("CASH");
+                        setPlanError(null);
+                        setPlanSuccess(null);
+                      }}
+                      className={`ml-1 rounded-md px-3 py-2 transition ${
+                        planPaymentMode === "CASH"
+                          ? "bg-white text-brand-600 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                      }`}
+                      disabled={planLoading}
+                    >
+                      Registrar pago en efectivo
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[11px] text-slate-500">
+                    {planPaymentMode === "CARD"
+                      ? "Generaremos un checkout de Stripe en una nueva pestana para que el cliente pague con tarjeta."
+                      : "Registra aqui los pagos confirmados en recepcion o efectivo. El plan se activara al guardar."}
+                  </p>
+                  {planPaymentMode === "CARD" && !planSupportsCard ? (
+                    <p className="mt-2 text-[11px] text-amber-600">
+                      Selecciona un plan con precio mayor a 0 para habilitar el cobro con tarjeta.
+                    </p>
+                  ) : null}
+                </div>
+
+                {planSuccess ? (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    {planSuccess}
+                  </div>
+                ) : null}
+
+                <div>
                   <label className="block text-xs font-medium text-slate-600">Plan</label>
                   <select
                     value={planForm.planTypeId}
-                    onChange={(event) =>
-                      setPlanForm((prev) => ({ ...prev, planTypeId: event.target.value }))
-                    }
+                    onChange={(event) => {
+                      setPlanSuccess(null);
+                      setPlanError(null);
+                      setPlanForm((prev) => ({ ...prev, planTypeId: event.target.value }));
+                    }}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                     disabled={availablePlanOptions.length === 0}
                   >
@@ -1009,6 +1332,8 @@ type PlanFormState = {
                     value={planForm.modality}
                     onChange={(event) => {
                       const next = event.target.value === "FIXED" ? "FIXED" : "FLEXIBLE";
+                      setPlanSuccess(null);
+                      setPlanError(null);
                       setPlanForm((prev) => ({
                         ...prev,
                         modality: next,
@@ -1044,44 +1369,49 @@ type PlanFormState = {
                     </label>
                     <input
                       type="date"
-                      value={planForm.startDate}
-                      onChange={(event) =>
-                        setPlanForm((prev) => ({ ...prev, startDate: event.target.value }))
-                      }
+                    value={planForm.startDate}
+                      onChange={(event) => {
+                        setPlanSuccess(null);
+                        setPlanError(null);
+                        setPlanForm((prev) => ({ ...prev, startDate: event.target.value }));
+                      }}
                       className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                     />
                   </div>
                   <div className="rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
                     {selectedPlanOption ? (
-                      planForm.modality === "FLEXIBLE" ? (
-                        <>
-                          <p>
-                            Clases: <span className="font-semibold">{selectedPlanClassCount}</span>
-                          </p>
-                          {selectedPlanOption.validityDays ? (
-                            <p>Validez: {selectedPlanOption.validityDays} dias</p>
-                          ) : (
-                            <p>Sin fecha de vencimiento</p>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          <p>
-                            Se asignaran{" "}
-                            <span className="font-semibold">{selectedPlanClassCount}</span> sesiones del horario.
-                          </p>
-                          <p>El alumno no necesita reservar de forma manual.</p>
-                        </>
-                      )
+                      <>
+                        {planForm.modality === "FLEXIBLE" ? (
+                          <>
+                            <p>
+                              Clases: <span className="font-semibold">{selectedPlanClassCount}</span>
+                            </p>
+                            {selectedPlanOption.validityDays ? (
+                              <p>Validez: {selectedPlanOption.validityDays} dias</p>
+                            ) : (
+                              <p>Sin fecha de vencimiento</p>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <p>
+                              Se asignaran{" "}
+                              <span className="font-semibold">{selectedPlanClassCount}</span> sesiones del horario.
+                            </p>
+                            <p>El alumno no necesita reservar de forma manual.</p>
+                          </>
+                        )}
+                        <p className="mt-2 text-xs text-slate-500">
+                          Precio: <span className="font-semibold text-slate-700">{planPriceLabel}</span>
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {selectedPlanOption.requiresMembership
+                            ? "Requiere membresia activa para asignarse."
+                            : "Disponible para clientes sin membresia activa."}
+                        </p>
+                      </>
                     ) : (
                       <p>Selecciona un plan para ver detalles.</p>
-                    )}
-                    {selectedPlanOption && (
-                      <p className="mt-2">
-                        {selectedPlanOption.requiresMembership
-                          ? "Requiere membresia activa para asignarse."
-                          : "Disponible para clientes sin membresia activa."}
-                      </p>
                     )}
                   </div>
                 </div>
@@ -1090,9 +1420,11 @@ type PlanFormState = {
                     <label className="block text-xs font-medium text-slate-600">Horario asignado</label>
                     <select
                       value={planForm.courseId}
-                      onChange={(event) =>
-                        setPlanForm((prev) => ({ ...prev, courseId: event.target.value }))
-                      }
+                      onChange={(event) => {
+                        setPlanSuccess(null);
+                        setPlanError(null);
+                        setPlanForm((prev) => ({ ...prev, courseId: event.target.value }));
+                      }}
                       className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                     >
                       <option value="">Selecciona un horario</option>
@@ -1117,9 +1449,11 @@ type PlanFormState = {
                   <label className="block text-xs font-medium text-slate-600">Notas (opcional)</label>
                   <textarea
                     value={planForm.notes}
-                    onChange={(event) =>
-                      setPlanForm((prev) => ({ ...prev, notes: event.target.value }))
-                    }
+                    onChange={(event) => {
+                      setPlanSuccess(null);
+                      setPlanError(null);
+                      setPlanForm((prev) => ({ ...prev, notes: event.target.value }));
+                    }}
                     rows={3}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
                   />
@@ -1140,7 +1474,13 @@ type PlanFormState = {
                   disabled={planLoading || availablePlanOptions.length === 0}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {planLoading ? "Registrando..." : "Registrar"}
+                  {planLoading
+                    ? planPaymentMode === "CARD"
+                      ? "Generando pago..."
+                      : "Registrando..."
+                    : planPaymentMode === "CARD"
+                    ? "Generar link de pago"
+                    : "Registrar"}
                 </button>
               </div>
             </form>

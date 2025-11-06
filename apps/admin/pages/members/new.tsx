@@ -9,6 +9,8 @@ import {
 } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useStudioPhoneCountry } from "@/components/StudioTimezoneContext";
+import { normalizePhoneInput } from "@/lib/phone";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -72,6 +74,7 @@ export default function NewMemberPage({
   apparatusOptions,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter();
+  const phoneCountry = useStudioPhoneCountry();
 
   const [form, setForm] = useState<FormState>({
     fullName: "",
@@ -108,34 +111,39 @@ export default function NewMemberPage({
     });
   };
 
-const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  setError(null);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
 
-  if (!form.fullName.trim()) {
-    setError("El nombre completo es obligatorio");
-    return;
-  }
+    const fullName = form.fullName.trim();
+    if (!fullName) {
+      setError("El nombre completo es obligatorio");
+      return;
+    }
 
-  const normalizedPhone = normalizePhoneInput(form.phone, phoneCountry);
-  if (!normalizedPhone.ok) {
-    setError(normalizedPhone.error);
-    return;
-  }
+    const phoneResult = normalizePhoneInput(form.phone, phoneCountry);
+    if (!phoneResult.ok) {
+      setError(phoneResult.error);
+      return;
+    }
 
-  setSubmitting(true);
-  try {
-    const payload = {
-      fullName: form.fullName.trim(),
-      email: form.email.trim() || null,
-      phone: normalizedPhone.value,
+    setSubmitting(true);
+    try {
+      const payload = {
+        fullName,
+        email: form.email.trim() ? form.email.trim() : null,
+        phone: phoneResult.value,
         profileStatus: form.profileStatus,
-        avatarUrl: form.avatarUrl.trim() || null,
+        avatarUrl: form.avatarUrl.trim() ? form.avatarUrl.trim() : null,
         birthdate: form.birthdate || null,
-        occupation: form.occupation.trim() || null,
-        profileNotes: form.profileNotes.trim() || null,
-        emergencyContactName: form.emergencyContactName.trim() || null,
-        emergencyContactPhone: form.emergencyContactPhone.trim() || null,
+        occupation: form.occupation.trim() ? form.occupation.trim() : null,
+        profileNotes: form.profileNotes.trim() ? form.profileNotes.trim() : null,
+        emergencyContactName: form.emergencyContactName.trim()
+          ? form.emergencyContactName.trim()
+          : null,
+        emergencyContactPhone: form.emergencyContactPhone.trim()
+          ? form.emergencyContactPhone.trim()
+          : null,
         preferredApparatus: form.preferredApparatus,
       };
 
@@ -144,15 +152,18 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      const body = await response.json().catch(() => ({}));
+      const body = (await response.json().catch(() => ({}))) as {
+        member?: { id?: string | null };
+        error?: string;
+      };
       if (!response.ok) {
         throw new Error(body?.error ?? "No se pudo crear el miembro");
       }
 
+      const memberId = body?.member?.id;
       const targetQuery =
-        body?.member?.id != null
-          ? { created: "1", memberId: body.member.id as string }
+        typeof memberId === "string" && memberId.length > 0
+          ? { created: "1", memberId }
           : { created: "1" };
 
       await router.push({
@@ -229,8 +240,8 @@ const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
               />
               <span className="mt-1 block text-xs text-slate-500">
                 {phoneCountry === "MX"
-                  ? "Formato México: 10 dígitos, admite prefijo +52."
-                  : "Formato España: 9 dígitos, admite prefijo +34."}
+                  ? "Formato Mexico: 10 digitos, admite prefijo +52."
+                  : "Formato Espana: 9 digitos, admite prefijo +34."}
               </span>
             </label>
             <label className="text-sm font-medium text-slate-700">

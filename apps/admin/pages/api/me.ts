@@ -16,6 +16,9 @@ type StaffRow = {
   id: string;
   role_id: string | null;
   full_name: string | null;
+  email: string | null;
+  auth_user_id: string | null;
+  last_login_at: string | null;
   staff_roles: { slug: string | null } | null;
 };
 
@@ -100,14 +103,16 @@ export default async function handler(
   }
 
   const { fullName, avatarUrl, phone, role, isAdmin } = extractMetadata(session.user);
+  const normalizedEmail = session.user.email?.trim().toLowerCase() ?? null;
 
   let resolvedRole = role;
   let resolvedIsAdmin = isAdmin;
   let permissions: string[] = [];
 
-  const { data: staffRow, error: staffError } = await supabaseAdmin
+  const staffSelect = "id, role_id, full_name, email, auth_user_id, last_login_at, staff_roles ( slug )";
+  const { data: staffRowByAuth, error: staffError } = await supabaseAdmin
     .from("staff")
-    .select("id, role_id, full_name, staff_roles ( slug )")
+    .select(staffSelect)
     .eq("auth_user_id", session.user.id)
     .maybeSingle<StaffRow>();
 
@@ -115,38 +120,88 @@ export default async function handler(
     return res.status(500).json({ error: staffError.message });
   }
 
-  let staffFullName: string | null = null;
+  let staffRecord = staffRowByAuth ?? null;
+  if (!staffRecord && normalizedEmail) {
+    const { data: staffByEmail, error: staffByEmailError } = await supabaseAdmin
+      .from("staff")
+      .select(staffSelect)
+      .eq("email", normalizedEmail)
+      .maybeSingle<StaffRow>();
 
-  if (staffRow) {
-    staffFullName = staffRow.full_name ?? null;
-    const roleSlug =
-      ((staffRow.staff_roles as { slug: string | null } | null)?.slug ?? null) ||
-      null;
-    if (roleSlug) {
-      resolvedRole = roleSlug;
-      if (roleSlug.toUpperCase() === "MASTER") {
-        resolvedIsAdmin = true;
-      }
+    if (staffByEmailError) {
+      return res.status(500).json({ error: staffByEmailError.message });
     }
 
-    if (staffRow.role_id) {
-      const { data: permissionRows, error: permissionsError } = await supabaseAdmin
-        .from("staff_role_permissions")
-        .select("admin_permissions ( code )")
-        .eq("role_id", staffRow.role_id)
-        .returns<PermissionRow[]>();
-
-      if (permissionsError) {
-        return res.status(500).json({ error: permissionsError.message });
+    if (staffByEmail) {
+      if (staffByEmail.auth_user_id && staffByEmail.auth_user_id !== session.user.id) {
+        return res.status(403).json({ error: "Esta cuenta ya esta vinculada con otro acceso" });
       }
 
-      permissions =
-        permissionRows?.map((entry) => {
-          const record = entry.admin_permissions as { code: string | null } | null;
-          return record?.code ?? null;
-        }).filter((code): code is string => typeof code === "string") ?? [];
+      const updatePayload: Record<string, unknown> = {
+        auth_user_id: session.user.id,
+        updated_at: new Date().toISOString(),
+      };
+      if (!staffByEmail.full_name && fullName) {
+        updatePayload.full_name = fullName;
+      }
+
+      const {
+        data: updatedStaff,
+        error: updateStaffError,
+      } = await supabaseAdmin
+        .from("staff")
+        .update(updatePayload)
+        .eq("id", staffByEmail.id)
+        .select(staffSelect)
+        .maybeSingle<StaffRow>();
+
+      if (updateStaffError) {
+        return res.status(500).json({ error: updateStaffError.message });
+      }
+
+      staffRecord = updatedStaff ?? { ...staffByEmail, auth_user_id: session.user.id };
     }
   }
+
+  if (!staffRecord) {
+    return res.status(403).json({ error: "Acceso restringido al equipo autorizado" });
+  }
+
+  let staffFullName: string | null = null;
+
+  staffFullName = staffRecord.full_name ?? null;
+  const roleSlug =
+    ((staffRecord.staff_roles as { slug: string | null } | null)?.slug ?? null) || null;
+  if (roleSlug) {
+    resolvedRole = roleSlug;
+    if (roleSlug.toUpperCase() === "MASTER") {
+      resolvedIsAdmin = true;
+    }
+  }
+
+  if (staffRecord.role_id) {
+    const { data: permissionRows, error: permissionsError } = await supabaseAdmin
+      .from("staff_role_permissions")
+      .select("admin_permissions ( code )")
+      .eq("role_id", staffRecord.role_id)
+      .returns<PermissionRow[]>();
+
+    if (permissionsError) {
+      return res.status(500).json({ error: permissionsError.message });
+    }
+
+    permissions =
+      permissionRows?.map((entry) => {
+        const record = entry.admin_permissions as { code: string | null } | null;
+        return record?.code ?? null;
+      }).filter((code): code is string => typeof code === "string") ?? [];
+  }
+
+  const nowIso = new Date().toISOString();
+  void supabaseAdmin
+    .from("staff")
+    .update({ last_login_at: nowIso, updated_at: nowIso })
+    .eq("id", staffRecord.id);
 
   const { data: client, error } = await supabaseAdmin
     .from("clients")
@@ -199,10 +254,7 @@ export default async function handler(
     }
   }
 
-  const displayFullName =
-    staffFullName ??
-    profile?.full_name ??
-    fullName;
+  const displayFullName = staffFullName ?? profile?.full_name ?? fullName;
 
   return res.status(200).json({
     profile: {
@@ -217,7 +269,7 @@ export default async function handler(
       status: profile?.client_profiles?.status ?? null,
       role: resolvedRole,
       isAdmin: resolvedIsAdmin,
-      staffId: staffRow?.id ?? null,
+      staffId: staffRecord.id,
       permissions,
     },
   });

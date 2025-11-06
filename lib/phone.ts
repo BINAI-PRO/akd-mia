@@ -1,4 +1,4 @@
-import type { StudioPhoneCountry } from "@/lib/studio-settings";
+import type { StudioPhoneCountry } from "@/lib/studio-settings-shared";
 
 type NormalizeResult =
   | { ok: true; value: string }
@@ -43,7 +43,7 @@ export function normalizePhoneInput(value: string, country: StudioPhoneCountry):
     }
     return {
       ok: false,
-      error: "Ingresa un numero valido de España (9 digitos, con o sin prefijo +34)",
+      error: "Ingresa un numero valido de Espana (9 digitos, con o sin prefijo +34)",
     };
   }
 
@@ -54,3 +54,5 @@ export function maskPhoneForDisplay(value: string): string {
   if (!value) return "";
   return value.replace(/(\+\d{2})(\d{3})(\d{3})(\d{3,4})/, (_, p1, p2, p3, p4) => `${p1} ${p2} ${p3} ${p4}`);
 }
+
+

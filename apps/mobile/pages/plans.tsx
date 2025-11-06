@@ -92,6 +92,7 @@ export default function PlansPage() {
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "cancelled"; message: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -116,6 +117,32 @@ export default function PlansPage() {
 
     return () => controller.abort();
   }, []);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const rawStatus = router.query.status;
+    const statusValue = Array.isArray(rawStatus) ? rawStatus[0] : rawStatus;
+    if (!statusValue) return;
+
+    setCheckoutLoading(null);
+
+    if (statusValue === "success") {
+      setCheckoutError(null);
+      setStatusBanner({
+        type: "success",
+        message: "Pago completado. Actualizaremos tu plan en cuanto confirmemos el movimiento.",
+      });
+    } else if (statusValue === "cancelled") {
+      setStatusBanner({
+        type: "cancelled",
+        message: "Pago cancelado. Puedes intentarlo de nuevo cuando lo decidas.",
+      });
+    } else {
+      setStatusBanner(null);
+    }
+
+    router.replace("/plans", undefined, { shallow: true });
+  }, [router, router.isReady, router.query.status]);
 
   const activePlan = useMemo(() => {
     if (state.status !== "ready") return null;
@@ -247,6 +274,34 @@ export default function PlansPage() {
             Consulta tus planes vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
           </p>
         </header>
+
+        {statusBanner && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-sm ${
+              statusBanner.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-800"
+            }`}
+          >
+            <p className="font-medium">{statusBanner.message}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => setStatusBanner(null)}
+                className="inline-flex items-center justify-center rounded-md border border-current px-3 py-1 font-semibold hover:bg-white"
+              >
+                Seguir en planes
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push("/")}
+                className="inline-flex items-center justify-center rounded-md border border-current px-3 py-1 font-semibold hover:bg-white"
+              >
+                Ir al inicio
+              </button>
+            </div>
+          </div>
+        )}
 
         {membershipBanner}
 
