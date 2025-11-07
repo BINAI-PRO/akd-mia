@@ -1,3 +1,4 @@
+import type { User } from "@supabase/supabase-js";
 import { AuthApiError } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -39,17 +40,10 @@ export async function ensureClientAppAccess(options: EnsureClientAppAccessOption
       throw new Error(updateError.message ?? "No se pudo actualizar el usuario de la app.");
     }
   } else {
-    const existing = await supabaseAdmin.auth.admin
-      .getUserByEmail(normalizedEmail)
-      .catch((error) => {
-        if (error instanceof AuthApiError && error.status === 404) {
-          return null;
-        }
-        throw error;
-      });
+    const existingUser = await findAuthUserByEmail(normalizedEmail);
 
-    if (existing?.data?.user) {
-      authUserId = existing.data.user.id;
+    if (existingUser) {
+      authUserId = existingUser.id;
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
         password,
         user_metadata: metadata,
@@ -58,16 +52,38 @@ export async function ensureClientAppAccess(options: EnsureClientAppAccessOption
         throw new Error(updateError.message ?? "No se pudo actualizar el usuario existente.");
       }
     } else {
-      const createResponse = await supabaseAdmin.auth.admin.createUser({
-        email: normalizedEmail,
-        password,
-        email_confirm: true,
-        user_metadata: metadata,
-      });
-      if (createResponse.error || !createResponse.data?.user) {
-        throw new Error(createResponse.error?.message ?? "No se pudo crear el usuario de la app.");
+      try {
+        const createResponse = await supabaseAdmin.auth.admin.createUser({
+          email: normalizedEmail,
+          password,
+          email_confirm: true,
+          user_metadata: metadata,
+        });
+        if (createResponse.error || !createResponse.data?.user) {
+          throw new Error(createResponse.error?.message ?? "No se pudo crear el usuario de la app.");
+        }
+        authUserId = createResponse.data.user.id;
+      } catch (createError) {
+        if (createError instanceof AuthApiError && createError.status === 422) {
+          const fallbackUser = await findAuthUserByEmail(normalizedEmail);
+          if (fallbackUser) {
+            authUserId = fallbackUser.id;
+            const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+              password,
+              user_metadata: metadata,
+            });
+            if (updateError) {
+              throw new Error(updateError.message ?? "No se pudo actualizar el usuario existente.");
+            }
+          } else {
+            throw new Error("El correo ya está registrado en Supabase Auth.");
+          }
+        } else {
+          const message =
+            createError instanceof Error ? createError.message : "No se pudo crear el usuario de la app.";
+          throw new Error(message);
+        }
       }
-      authUserId = createResponse.data.user.id;
     }
   }
 
@@ -98,3 +114,27 @@ export async function ensureClientAppAccess(options: EnsureClientAppAccessOption
   return authUserId;
 }
 
+async function findAuthUserByEmail(email: string): Promise<User | null> {
+  const targetEmail = email.toLowerCase();
+  const perPage = 1000;
+  let page = 1;
+
+  while (true) {
+    const response = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+    if (response.error) {
+      throw new Error(response.error.message ?? "No se pudieron consultar los usuarios actuales.");
+    }
+
+    const users = response.data?.users ?? [];
+    const match = users.find((user) => (user.email ?? "").toLowerCase() === targetEmail);
+    if (match) return match;
+
+    const nextPage = response.data?.nextPage;
+    if (!nextPage || nextPage <= page || users.length === 0) {
+      break;
+    }
+    page = nextPage;
+  }
+
+  return null;
+}
