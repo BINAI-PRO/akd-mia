@@ -10,14 +10,14 @@ type Props = {
 
 export function ProtectedRoute({ children, requireProfileCompletion = false }: Props) {
   const router = useRouter();
-  const { user, loading, profile, profileLoading } = useAuth();
+  const { user, loading, profileLoading, profileCompleted } = useAuth();
   const onboardingPath = "/setup/profile";
   const isOnboardingRoute = router.pathname === onboardingPath;
-  const needsPhone =
+  const needsProfileCompletion =
     requireProfileCompletion &&
     Boolean(user) &&
     !profileLoading &&
-    (!profile?.phone || profile.phone.trim().length === 0);
+    !profileCompleted;
 
   useEffect(() => {
     if (!loading && !user) {
@@ -31,7 +31,7 @@ export function ProtectedRoute({ children, requireProfileCompletion = false }: P
   }, [loading, router, user]);
 
   useEffect(() => {
-    if (!loading && user && needsPhone && !isOnboardingRoute) {
+    if (!loading && user && needsProfileCompletion && !isOnboardingRoute) {
       const redirectTo =
         router.asPath && router.asPath !== onboardingPath ? router.asPath : undefined;
       void router.replace({
@@ -39,7 +39,7 @@ export function ProtectedRoute({ children, requireProfileCompletion = false }: P
         query: redirectTo ? { redirectTo } : undefined,
       });
     }
-  }, [isOnboardingRoute, loading, needsPhone, router, user, onboardingPath]);
+  }, [isOnboardingRoute, loading, needsProfileCompletion, router, user, onboardingPath]);
 
   if (loading || (requireProfileCompletion && !isOnboardingRoute && profileLoading)) {
     return (
@@ -50,11 +50,19 @@ export function ProtectedRoute({ children, requireProfileCompletion = false }: P
   }
 
   if (!user) {
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-neutral-500">
+        Redirigiendo...
+      </div>
+    );
   }
 
-  if (needsPhone && !isOnboardingRoute) {
-    return null;
+  if (needsProfileCompletion && !isOnboardingRoute) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-neutral-500">
+        Cargando perfil...
+      </div>
+    );
   }
 
   return <>{children}</>;

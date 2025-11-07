@@ -30,12 +30,14 @@ type AuthContextValue = {
   profile: AuthProfile | null;
   loading: boolean;
   profileLoading: boolean;
+  profileCompleted: boolean;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<void>;
   reloadProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const PROFILE_COMPLETED_KEY = "mobile-profile-complete";
 
 const deriveBaseProfile = (source: User): AuthProfile => {
   const metadata = (source.user_metadata ?? {}) as Record<string, unknown>;
@@ -93,6 +95,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const [localProfileComplete, setLocalProfileComplete] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage?.getItem(PROFILE_COMPLETED_KEY) === "1";
+    setLocalProfileComplete(stored);
+  }, []);
+
+  const updateProfileCompletedFlag = useCallback((value: boolean) => {
+    if (typeof window !== "undefined") {
+      if (value) {
+        window.localStorage?.setItem(PROFILE_COMPLETED_KEY, "1");
+      } else {
+        window.localStorage?.removeItem(PROFILE_COMPLETED_KEY);
+      }
+    }
+    setLocalProfileComplete(value);
+  }, []);
 
   const performSignOut = useCallback(
     async (options?: { redirect?: boolean; reason?: string }) => {
@@ -103,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // ignore sign out errors
       } finally {
+        updateProfileCompletedFlag(false);
         setSession(null);
         setUser(null);
         setProfile(null);
@@ -124,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     },
-    [supabase]
+    [supabase, updateProfileCompletedFlag]
   );
 
   const reloadProfile = useCallback(async () => {
@@ -176,12 +197,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             : base.permissions,
         };
       });
+      const hasPhone =
+        typeof remoteProfile.phone === "string" && remoteProfile.phone.trim().length > 0;
+      updateProfileCompletedFlag(hasPhone);
     } catch (error) {
       console.error("[AuthContext] reloadProfile failed", error);
     } finally {
       setProfileLoading(false);
     }
-  }, [performSignOut, user]);
+  }, [performSignOut, updateProfileCompletedFlag, user]);
 
   useEffect(() => {
     let mounted = true;
@@ -261,6 +285,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [performSignOut, supabase]);
 
+  const profileCompleted =
+    Boolean(profile?.phone && profile.phone.trim().length > 0) || localProfileComplete;
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -268,11 +295,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       profileLoading,
+      profileCompleted,
       signOut,
       refreshSession,
       reloadProfile,
     }),
-    [loading, profile, profileLoading, refreshSession, reloadProfile, session, signOut, user]
+    [
+      loading,
+      profile,
+      profileCompleted,
+      profileLoading,
+      refreshSession,
+      reloadProfile,
+      session,
+      signOut,
+      user,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
