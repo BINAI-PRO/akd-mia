@@ -52,6 +52,8 @@ type SessionDetailsResponse = {
   }>;
 };
 
+type Participant = SessionDetailsResponse["participants"][number];
+
 type Props = {
   sessionId: string | null;
   open: boolean;
@@ -81,11 +83,15 @@ type QrPreviewState = {
   bookingId: string;
   loading: boolean;
   error: string | null;
+  clientName: string;
+  clientEmail: string | null;
   token?: string;
   imageUrl?: string;
   downloadUrl?: string;
   expiresAt?: string | null;
 };
+
+type QrShareFeedback = { type: "success" | "error"; text: string };
 
 const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmada",
@@ -138,6 +144,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   const [manualAction, setManualAction] = useState<string | null>(null);
   const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
   const [qrPreview, setQrPreview] = useState<QrPreviewState | null>(null);
+  const [qrShareFeedback, setQrShareFeedback] = useState<QrShareFeedback | null>(null);
+  const [qrShareBusy, setQrShareBusy] = useState<"share" | "copy" | "email" | null>(null);
+
+  const resetQrShareState = () => {
+    setQrShareFeedback(null);
+    setQrShareBusy(null);
+  };
 
   const fetchSessionDetails = useCallback(
     async (options?: { signal?: AbortSignal; silent?: boolean }) => {
@@ -198,6 +211,8 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       setManualAction(null);
       setCancelBusyId(null);
       setQrPreview(null);
+      setQrShareFeedback(null);
+      setQrShareBusy(null);
     }
   }, [open, sessionId]);
 
@@ -409,8 +424,12 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     }
   };
 
-  const openQrPreview = async (bookingId: string) => {
-    setQrPreview({ bookingId, loading: true, error: null });
+  const openQrPreview = async (participant: Participant) => {
+    const { bookingId, client } = participant;
+    const clientName = client.fullName;
+    const clientEmail = client.email ?? null;
+    resetQrShareState();
+    setQrPreview({ bookingId, loading: true, error: null, clientName, clientEmail });
     try {
       const response = await fetch(`/api/bookings/${bookingId}/qr-token`);
       const body = (await response.json().catch(() => ({}))) as
@@ -433,17 +452,123 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
         imageUrl: body.imageUrl,
         downloadUrl: body.downloadUrl,
         expiresAt: body.expiresAt ?? null,
+        clientName,
+        clientEmail,
       });
     } catch (error) {
       setQrPreview({
         bookingId,
         loading: false,
         error: error instanceof Error ? error.message : "No se pudo recuperar el QR",
+        clientName,
+        clientEmail,
       });
     }
   };
 
-  const closeQrPreview = () => setQrPreview(null);
+  const closeQrPreview = () => {
+    setQrPreview(null);
+    resetQrShareState();
+  };
+
+  const copyToClipboard = async (value: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+    if (typeof document !== "undefined") {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return;
+    }
+    throw new Error("Clipboard API no disponible");
+  };
+
+  const copyQrLink = async () => {
+    if (!qrPreview?.imageUrl) return;
+    setQrShareBusy("copy");
+    setQrShareFeedback(null);
+    try {
+      await copyToClipboard(qrPreview.imageUrl);
+      setQrShareFeedback({ type: "success", text: "Enlace copiado en el portapapeles." });
+    } catch {
+      setQrShareFeedback({
+        type: "error",
+        text: "No se pudo copiar el enlace. Intenta abrirlo en una nueva pestaña.",
+      });
+    } finally {
+      setQrShareBusy((prev) => (prev === "copy" ? null : prev));
+    }
+  };
+
+  const shareQrLink = async () => {
+    if (!qrPreview?.imageUrl) return;
+    setQrShareBusy("share");
+    setQrShareFeedback(null);
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: "QR de reservación",
+          text: "Comparte el código QR con el cliente.",
+          url: qrPreview.imageUrl,
+        });
+        setQrShareFeedback({
+          type: "success",
+          text: "Se abrió el menú de compartir en tu dispositivo.",
+        });
+      } else {
+        await copyToClipboard(qrPreview.imageUrl);
+        setQrShareFeedback({
+          type: "success",
+          text: "Copiamos el enlace para que puedas compartirlo.",
+        });
+      }
+    } catch (shareError) {
+      if (shareError instanceof DOMException && shareError.name === "AbortError") {
+        setQrShareFeedback(null);
+      } else {
+        setQrShareFeedback({
+          type: "error",
+          text: "No se pudo compartir el QR. Vuelve a intentarlo.",
+        });
+      }
+    } finally {
+      setQrShareBusy((prev) => (prev === "share" ? null : prev));
+    }
+  };
+
+  const emailQrToClient = () => {
+    if (!qrPreview?.imageUrl) return;
+    if (!qrPreview.clientEmail) {
+      setQrShareFeedback({
+        type: "error",
+        text: "Este cliente no tiene correo registrado.",
+      });
+      return;
+    }
+    if (typeof window === "undefined") return;
+    setQrShareBusy("email");
+    try {
+      const subject = encodeURIComponent("Tu QR para el acceso a la sesión");
+      const greeting = qrPreview.clientName ? `Hola ${qrPreview.clientName},\n\n` : "";
+      const body = `${greeting}Te compartimos el código QR de tu reservación. Puedes mostrarlo al llegar al estudio o reenviarlo a quien lo necesite.\n\n${qrPreview.imageUrl}\n\nNos vemos pronto.`;
+      const href = `mailto:${qrPreview.clientEmail}?subject=${subject}&body=${encodeURIComponent(body)}`;
+      window.location.href = href;
+      setQrShareFeedback({
+        type: "success",
+        text: `Abrimos tu correo para enviar el QR a ${qrPreview.clientEmail}.`,
+      });
+    } finally {
+      setQrShareBusy((prev) => (prev === "email" ? null : prev));
+    }
+  };
 
   const closeOnOverlay = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -706,7 +831,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                                 <div className="flex flex-wrap justify-end gap-2">
                                   <button
                                     type="button"
-                                    onClick={() => openQrPreview(participant.bookingId)}
+                                    onClick={() => openQrPreview(participant)}
                                     className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
                                   >
                                     Ver QR
@@ -822,9 +947,17 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                   {qrPreview.imageUrl && (
                     <img
                       src={qrPreview.imageUrl}
-                      alt="QR de reservación"
+                      alt="QR de reservacion"
                       className="mx-auto h-48 w-48 rounded-lg border border-slate-200 object-contain"
                     />
+                  )}
+                  {(qrPreview.clientName || qrPreview.clientEmail) && (
+                    <div className="mt-3 text-xs text-slate-500">
+                      {qrPreview.clientName && (
+                        <p className="text-sm font-semibold text-slate-800">{qrPreview.clientName}</p>
+                      )}
+                      {qrPreview.clientEmail && <p>{qrPreview.clientEmail}</p>}
+                    </div>
                   )}
                   <p className="mt-3 text-xs text-slate-500">
                     Token: <span className="font-semibold">{qrPreview.token}</span>
@@ -832,7 +965,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                   <p className="text-xs text-slate-500">
                     {qrPreview.expiresAt
                       ? `Vence ${studioDayjs(qrPreview.expiresAt).format("DD MMM YYYY HH:mm")}`
-                      : "Sin fecha de expiración"}
+                      : "Sin fecha de expiracion"}
                   </p>
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
                     {qrPreview.downloadUrl && (
@@ -852,10 +985,49 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                         rel="noreferrer"
                         className="inline-flex flex-1 items-center justify-center rounded-md border border-brand-500 px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
                       >
-                        Abrir en pestaña
+                        Abrir en pestana
                       </a>
                     )}
                   </div>
+                  <div className="mt-4 space-y-2 text-left">
+                    <button
+                      type="button"
+                      onClick={shareQrLink}
+                      disabled={qrShareBusy === "share" || !qrPreview.imageUrl}
+                      className="w-full rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {qrShareBusy === "share" ? "Abriendo opciones..." : "Compartir QR"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={copyQrLink}
+                      disabled={qrShareBusy === "copy" || !qrPreview.imageUrl}
+                      className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {qrShareBusy === "copy" ? "Copiando..." : "Copiar enlace"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={emailQrToClient}
+                      disabled={qrShareBusy === "email" || !qrPreview.clientEmail || !qrPreview.imageUrl}
+                      className="w-full rounded-md border border-emerald-400 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {qrPreview.clientEmail
+                        ? qrShareBusy === "email"
+                          ? "Preparando correo..."
+                          : "Enviar por correo"
+                        : "Sin correo disponible"}
+                    </button>
+                  </div>
+                  {qrShareFeedback && (
+                    <p
+                      className={`mt-2 text-xs ${
+                        qrShareFeedback.type === "success" ? "text-emerald-600" : "text-rose-600"
+                      }`}
+                    >
+                      {qrShareFeedback.text}
+                    </p>
+                  )}
                 </>
               )}
             </div>

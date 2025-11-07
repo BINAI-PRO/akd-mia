@@ -80,7 +80,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
     .maybeSingle();
   const tokenValue = (qr as QrTokenRow | null)?.token ?? null;
 
-    const dateLabel = dateFormatter.format(madridDayjs(sj.start_time).toDate()).toLocaleUpperCase("es-ES");
+  const dateLabel = dateFormatter
+    .format(madridDayjs(sj.start_time).toDate())
+    .toLocaleUpperCase("es-ES");
   const timeLabel = timeFormatter.format(madridDayjs(sj.start_time).toDate());
 
   const data: PageData = {
@@ -148,7 +150,7 @@ export default function BookingDetail({
         <main className="container-mobile py-6">
           <h1 className="h1 mb-3">Reserva</h1>
           <div className="card p-4">
-            <p className="text-neutral-600">No se pudo cargar la informaci�n de la reserva.</p>
+            <p className="text-neutral-600">No se pudo cargar la información de la reserva.</p>
           </div>
         </main>
       </>
@@ -169,10 +171,10 @@ export default function BookingDetail({
         <section className="card p-4">
           <h2 className="text-lg font-semibold">{s.classType}</h2>
           <p className="mt-1 text-sm text-neutral-600">
-            {s.dateLabel} � {s.timeLabel}
+            {s.dateLabel} · {s.timeLabel}
           </p>
           <p className="text-sm text-neutral-600">
-            {s.room ? `${s.room} � ` : ""}
+            {s.room ? `${s.room} · ` : ""}
             {s.instructor}
           </p>
         </section>
@@ -196,7 +198,7 @@ export default function BookingDetail({
                 Descargar QR
               </a>
               <p className="text-center text-xs text-neutral-500">
-                Muestra este c�digo al llegar para registrar tu asistencia.
+                Muestra este código al llegar para registrar tu asistencia.
               </p>
             </>
           ) : (
@@ -229,7 +231,7 @@ export default function BookingDetail({
           </div>
 
           {cancelState === "success" && (
-            <p className="text-xs text-green-600">La reserva se cancel� correctamente.</p>
+            <p className="text-xs text-green-600">La reserva se canceló correctamente.</p>
           )}
           {cancelError && cancelState === "error" && (
             <p className="text-xs text-red-600">{cancelError}</p>

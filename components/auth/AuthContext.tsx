@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<AuthProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const performSignOut = useCallback(
     async (options?: { redirect?: boolean; reason?: string }) => {
@@ -128,7 +128,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const reloadProfile = useCallback(async () => {
-    if (!user || typeof window === "undefined") return;
+    if (!user || typeof window === "undefined") {
+      setProfileLoading(false);
+      return;
+    }
     setProfileLoading(true);
     try {
       const response = await fetch("/api/me");
@@ -230,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setProfileLoading(true);
     setProfile(deriveBaseProfile(user));
     void reloadProfile();
   }, [user, reloadProfile]);

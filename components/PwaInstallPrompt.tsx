@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Img from "@/components/Img";
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -115,50 +116,83 @@ const PwaInstallPrompt = () => {
     }
   };
 
+
   const title =
     variant === "install"
       ? "Instala AT Pilates"
-      : "Instala AT Pilates en tu pantalla de inicio";
+      : "Agrega AT Pilates a tu pantalla de inicio";
 
   const description =
     variant === "install"
-      ? "Añade la app a tu dispositivo para tener un acceso más rápido y recibir la mejor experiencia."
-      : "Presiona el ícono de compartir y elige 'Agregar a la pantalla de inicio' para tener la app como si fuera nativa.";
+      ? "Añade la app para abrirla directo desde tu pantalla de inicio y disfrutar la mejor experiencia."
+      : "Sigue estos pasos y tendrás la app como si fuera nativa en tu iPhone o iPad.";
+
+  const iosSteps = [
+    "Toca el ícono de compartir en Safari",
+    "Elige “Agregar a la pantalla de inicio”",
+    "Confirma con “Agregar”",
+  ];
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
-      <div className="pointer-events-auto flex w-full max-w-md flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_40px_-20px_rgba(15,23,42,0.45)]">
-        <div>
-          <p className="text-base font-semibold text-slate-900">{title}</p>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-6">
+      <div className="pointer-events-auto w-full max-w-sm rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)] ring-1 ring-black/5 backdrop-blur">
+        <div className="flex items-start gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
+            <Img
+              src="/logo-icon-192.png"
+              alt="AT Pilates"
+              width={48}
+              height={48}
+              className="h-10 w-10 object-contain"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">{title}</p>
+            <p className="mt-1 text-xs text-slate-600">{description}</p>
+          </div>
+          <button
+            type="button"
+            onClick={hideForSession}
+            aria-label="Cerrar recomendación de instalación"
+            className="ml-1 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+          >
+            &times;
+          </button>
         </div>
+
         {variant === "install" ? (
-          <div className="flex items-center gap-2">
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={handleInstallClick}
-              className="flex-1 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="w-full rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               Instalar
             </button>
             <button
               type="button"
               onClick={hideForSession}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
             >
-              Ahora no
+              Más tarde
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs text-slate-500">
-              Para iPhone/iPad abre el menú compartir y selecciona
-              <span className="font-semibold">{"'Agregar a pantalla de inicio'"}</span>.
+          <div className="mt-4 space-y-3">
+            <div className="rounded-2xl bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                Cómo agregarla en iOS
+              </p>
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-slate-600">
+                {iosSteps.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
             </div>
             <button
               type="button"
               onClick={hideForSession}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:bg-slate-50"
             >
               Entendido
             </button>
@@ -167,6 +201,7 @@ const PwaInstallPrompt = () => {
       </div>
     </div>
   );
+
 };
 
 export default PwaInstallPrompt;
