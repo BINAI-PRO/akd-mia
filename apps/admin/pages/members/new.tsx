@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -11,6 +11,11 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useStudioPhoneCountry } from "@/components/StudioTimezoneContext";
 import { normalizePhoneInput } from "@/lib/phone";
+import {
+  CUSTOM_PHONE_COUNTRY_ISO,
+  PHONE_COUNTRY_OPTIONS,
+  findPhoneCountryOption,
+} from "@/lib/phone-country-options";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -89,8 +94,13 @@ export default function NewMemberPage({
     emergencyContactPhone: "",
     preferredApparatus: [],
   });
+  const [phoneCountryIso, setPhoneCountryIso] = useState<string>(phoneCountry);
+  const [customDialCode, setCustomDialCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [createAppAccess, setCreateAppAccess] = useState(false);
+  const [appPassword, setAppPassword] = useState("");
+  const [appPasswordConfirm, setAppPasswordConfirm] = useState("");
 
   const handleChange =
     (field: keyof FormState) =>
@@ -98,6 +108,23 @@ export default function NewMemberPage({
       const value = event.target.value;
       setForm((prev) => ({ ...prev, [field]: value }));
     };
+
+  const selectedPhoneOption =
+    findPhoneCountryOption(phoneCountryIso) ?? findPhoneCountryOption(phoneCountry);
+  const showCustomDialInput =
+    (selectedPhoneOption?.iso ?? "").toUpperCase() === CUSTOM_PHONE_COUNTRY_ISO;
+  const phonePlaceholder =
+    selectedPhoneOption?.iso === "MX"
+      ? "+52 55 0000 0000"
+      : selectedPhoneOption?.iso === "ES"
+      ? "+34 600 000 000"
+      : "+00 000 000 000";
+  const phoneHint =
+    selectedPhoneOption?.iso === "MX"
+      ? "Formato México: 10 dígitos, admite prefijo +52."
+      : selectedPhoneOption?.iso === "ES"
+      ? "Formato España: 9 dígitos, admite prefijo +34."
+      : "Ingresa el número con el prefijo seleccionado o directamente en formato internacional (+código).";
 
   const toggleApparatus = (name: string) => {
     setForm((prev) => {
@@ -121,10 +148,31 @@ export default function NewMemberPage({
       return;
     }
 
-    const phoneResult = normalizePhoneInput(form.phone, phoneCountry);
+    const effectiveCountry = phoneCountryIso || phoneCountry;
+    const phoneResult = normalizePhoneInput(form.phone, {
+      countryIso: effectiveCountry,
+      customDialCode: showCustomDialInput ? customDialCode : undefined,
+      fallbackCountry: phoneCountry,
+    });
     if (!phoneResult.ok) {
       setError(phoneResult.error);
       return;
+    }
+    const normalizedPhone = phoneResult.value;
+
+    if (createAppAccess) {
+      if (!form.email.trim()) {
+        setError("Para crear acceso a la app captura un correo electrónico.");
+        return;
+      }
+      if (appPassword.length < 8) {
+        setError("La contraseña para la app debe tener al menos 8 caracteres.");
+        return;
+      }
+      if (appPassword !== appPasswordConfirm) {
+        setError("La confirmación de contraseña no coincide.");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -132,7 +180,9 @@ export default function NewMemberPage({
       const payload = {
         fullName,
         email: form.email.trim() ? form.email.trim() : null,
-        phone: phoneResult.value,
+        phone: normalizedPhone,
+        phoneCountryIso: effectiveCountry,
+        customDialCode: showCustomDialInput ? customDialCode : null,
         profileStatus: form.profileStatus,
         avatarUrl: form.avatarUrl.trim() ? form.avatarUrl.trim() : null,
         birthdate: form.birthdate || null,
@@ -145,6 +195,8 @@ export default function NewMemberPage({
           ? form.emergencyContactPhone.trim()
           : null,
         preferredApparatus: form.preferredApparatus,
+        createAuthUser: createAppAccess,
+        authPassword: createAppAccess ? appPassword : null,
       };
 
       const response = await fetch("/api/members", {
@@ -202,9 +254,9 @@ export default function NewMemberPage({
 
         <form
           onSubmit={handleSubmit}
-          className="rounded-xl border border-slate-200 bg-white shadow-sm"
+          className="mx-auto w-full max-w-3xl rounded-xl border border-slate-200 bg-white shadow-sm"
         >
-          <div className="grid gap-6 border-b border-slate-200 p-6 md:grid-cols-2">
+          <div className="grid gap-4 border-b border-slate-200 p-6 sm:grid-cols-2">
             <div className="md:col-span-2">
               <label className="text-sm font-medium text-slate-700">
                 Nombre completo
@@ -229,20 +281,52 @@ export default function NewMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Teléfono
+              {"Pa\u00EDs / prefijo telef\u00F3nico"}
+              <div className="mt-1 flex gap-2">
+                <select
+                  value={phoneCountryIso}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setPhoneCountryIso(value);
+                    if (value !== CUSTOM_PHONE_COUNTRY_ISO) {
+                      setCustomDialCode("");
+                    }
+                  }}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                >
+                  {PHONE_COUNTRY_OPTIONS.map((option) => (
+                    <option key={option.iso} value={option.iso}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {showCustomDialInput && (
+                  <input
+                    type="text"
+                    value={customDialCode}
+                    onChange={(event) => setCustomDialCode(event.target.value.replace(/\D+/g, ""))}
+                    className="w-28 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                    placeholder="Ej. 44"
+                  />
+                )}
+              </div>
+              {showCustomDialInput && (
+                <span className="mt-1 block text-xs text-slate-500">
+                  {"Ingresa solo d\u00EDgitos para la lada internacional (sin el signo +)."}
+                </span>
+              )}
+            </label>
+            <label className="text-sm font-medium text-slate-700">
+              {"Tel\u00E9fono"}
               <input
                 type="tel"
                 value={form.phone}
                 onChange={handleChange("phone")}
                 required
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                placeholder={phoneCountry === "MX" ? "+52 55 0000 0000" : "+34 600 000 000"}
+                placeholder={phonePlaceholder}
               />
-              <span className="mt-1 block text-xs text-slate-500">
-                {phoneCountry === "MX"
-                  ? "Formato México: 10 dígitos, admite prefijo +52."
-                  : "Formato España: 9 dígitos, admite prefijo +34."}
-              </span>
+              <span className="mt-1 block text-xs text-slate-500">{phoneHint}</span>
             </label>
             <label className="text-sm font-medium text-slate-700">
               Estado del perfil
@@ -277,6 +361,43 @@ export default function NewMemberPage({
                 placeholder="Profesión u ocupación"
               />
             </label>
+            <div className="md:col-span-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <label className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={createAppAccess}
+                  onChange={(event) => setCreateAppAccess(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                />
+                Crear acceso inmediato a la app
+              </label>
+              <p className="mt-1 text-xs text-slate-500">
+                Se generará un usuario para la app usando este correo y contraseña.
+              </p>
+              {createAppAccess && (
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    contraseña temporal
+                    <input
+                      type="password"
+                      value={appPassword}
+                      onChange={(event) => setAppPassword(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                  </label>
+                  <label className="text-sm font-medium text-slate-700">
+                    Confirmar contraseña
+                    <input
+                      type="password"
+                      value={appPasswordConfirm}
+                      onChange={(event) => setAppPasswordConfirm(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
             <label className="text-sm font-medium text-slate-700">
               URL de avatar
               <input
@@ -321,7 +442,7 @@ export default function NewMemberPage({
             </label>
           </div>
 
-          <div className="grid gap-6 border-b border-slate-200 p-6 md:grid-cols-2">
+          <div className="grid gap-4 border-b border-slate-200 p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold text-slate-800">
               Contacto de emergencia y notas
             </h2>

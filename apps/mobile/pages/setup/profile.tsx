@@ -64,7 +64,7 @@ export default function SetupProfilePage() {
       return;
     }
 
-    const normalizedPhone = normalizePhoneInput(phone, country);
+    const normalizedPhone = normalizePhoneInput(phone, { countryIso: country });
     if (!normalizedPhone.ok) {
       setError(normalizedPhone.error);
       return;
@@ -77,7 +77,7 @@ export default function SetupProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           fullName: trimmedName,
-          phone,
+          phone: normalizedPhone.value,
           phoneCountry: country,
         }),
       });
