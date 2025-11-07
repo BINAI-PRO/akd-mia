@@ -78,8 +78,23 @@ async function countSessionOccupancy(sessionId: string): Promise<number> {
   return count ?? 0;
 }
 
+const QR_TOKEN_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+const QR_TOKEN_LENGTH = 10;
+
+function buildQrToken(): string {
+  let token = "";
+  while (token.length < QR_TOKEN_LENGTH) {
+    const bytes = crypto.randomBytes(QR_TOKEN_LENGTH);
+    for (const byte of bytes) {
+      if (token.length >= QR_TOKEN_LENGTH) break;
+      token += QR_TOKEN_ALPHABET[byte % QR_TOKEN_ALPHABET.length];
+    }
+  }
+  return token;
+}
+
 async function generateQrToken(bookingId: string, sessionStart: string) {
-  const token = crypto.randomBytes(6).toString("base64url").slice(0, 10).toUpperCase();
+  const token = buildQrToken();
   const expires = madridDayjs(sessionStart).add(6, "hour").toISOString();
 
   const { error } = await supabaseAdmin
