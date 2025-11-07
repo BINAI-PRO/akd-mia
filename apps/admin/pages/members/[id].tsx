@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -12,6 +12,7 @@ import {
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 
@@ -33,6 +34,11 @@ type MemberRow = Tables<"clients"> & {
   memberships: Array<
     Tables<"memberships"> & {
       membership_types: Pick<Tables<"membership_types">, "name"> | null;
+    }
+  > | null;
+  plan_purchases: Array<
+    Tables<"plan_purchases"> & {
+      plan_types: Pick<Tables<"plan_types">, "name" | "privileges"> | null;
     }
   > | null;
 };
@@ -106,6 +112,17 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
           notes,
           start_date,
           membership_types(name)
+        ),
+        plan_purchases(
+          id,
+          status,
+          modality,
+          start_date,
+          expires_at,
+          initial_classes,
+          remaining_classes,
+          purchased_at,
+          plan_types(name, privileges)
         )
       `
       )
@@ -142,13 +159,17 @@ export default function EditMemberPage({
   const sortedMemberships = useMemo(
     () =>
       [...(member.memberships ?? [])].sort(
-        (a, b) => dayjs(b.created_at).valueOf() - dayjs(a.created_at).valueOf()
+        (a, b) =>
+          dayjs(b.created_at ?? b.start_date ?? 0).valueOf() -
+          dayjs(a.created_at ?? a.start_date ?? 0).valueOf()
       ),
     [member.memberships]
   );
   const latestMembership = sortedMemberships[0] ?? null;
   const initialStatus = (profile?.status ?? "ACTIVE").toUpperCase();
   const normalizedStatus = initialStatus === "CANCELLED" ? "CANCELED" : initialStatus;
+  const { profile: authProfile } = useAuth();
+  const isMasterUser = (authProfile?.role ?? "").toUpperCase() === "MASTER";
 
   const [form, setForm] = useState<FormState>({
     fullName: member.full_name,
@@ -164,6 +185,24 @@ export default function EditMemberPage({
     emergencyContactPhone: profile?.emergency_contact_phone ?? "",
     preferredApparatus: profile?.preferred_apparatus ?? [],
   });
+  const [plans, setPlans] = useState(member.plan_purchases ?? []);
+  const [planDeletingId, setPlanDeletingId] = useState<string | null>(null);
+  const [planDeleteError, setPlanDeleteError] = useState<string | null>(null);
+  const sortedPlans = useMemo(
+    () =>
+      [...plans].sort((a, b) => {
+        const aDate = a.start_date ?? a.purchased_at ?? "";
+        const bDate = b.start_date ?? b.purchased_at ?? "";
+        return dayjs(bDate).valueOf() - dayjs(aDate).valueOf();
+      }),
+    [plans]
+  );
+  const activePlans = useMemo(
+    () => sortedPlans.filter((plan) => (plan.status ?? "").toUpperCase() === "ACTIVE"),
+    [sortedPlans]
+  );
+  const formatDate = (value: string | null | undefined) =>
+    value ? dayjs(value).format("DD MMM YYYY") : "Sin fecha";
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(
@@ -195,6 +234,33 @@ export default function EditMemberPage({
       }
       return { ...prev, preferredApparatus: Array.from(set) };
     });
+  };
+
+  const handleDeletePlan = async (planId: string) => {
+    if (!isMasterUser) return;
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("¿Eliminar este plan activo? Esta acción no se puede deshacer.");
+      if (!confirmed) return;
+    }
+    setPlanDeleteError(null);
+    setPlanDeletingId(planId);
+    try {
+      const response = await fetch(`/api/members/${member.id}/plans/${planId}`, {
+        method: "DELETE",
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((body as { error?: string })?.error ?? "No se pudo eliminar el plan");
+      }
+      setPlans((prev) => prev.filter((plan) => plan.id !== planId));
+      setSuccess("Plan eliminado correctamente.");
+    } catch (planError) {
+      setPlanDeleteError(
+        planError instanceof Error ? planError.message : "No se pudo eliminar el plan"
+      );
+    } finally {
+      setPlanDeletingId(null);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -465,6 +531,78 @@ export default function EditMemberPage({
                 <p>No hay membresías registradas para este cliente.</p>
               )}
             </div>
+          </div>
+
+          <div className="grid gap-4 border-b border-slate-200 p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-800">Planes activos</h2>
+              {isMasterUser ? (
+                <span className="text-xs text-slate-400">Solo MASTER puede eliminar planes.</span>
+              ) : null}
+            </div>
+            {planDeleteError && (
+              <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                {planDeleteError}
+              </p>
+            )}
+            {activePlans.length === 0 ? (
+              <p className="text-sm text-slate-500">Sin planes activos para este miembro.</p>
+            ) : (
+              <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-200 text-sm">
+                  <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3">Plan</th>
+                      <th className="px-4 py-3">Modalidad</th>
+                      <th className="px-4 py-3">Vigencia</th>
+                      <th className="px-4 py-3">Créditos</th>
+                      <th className="px-4 py-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {activePlans.map((plan) => {
+                      const planName = plan.plan_types?.name ?? "Plan sin nombre";
+                      const planNotes = plan.plan_types?.privileges ?? null;
+                      const modality = plan.modality === "FIXED" ? "Fijo" : "Flexible";
+                      const remainingLabel =
+                        plan.initial_classes === null
+                          ? "Ilimitado"
+                          : `${plan.remaining_classes ?? 0} de ${plan.initial_classes}`;
+                      return (
+                        <tr key={plan.id}>
+                          <td className="px-4 py-3">
+                            <div className="font-semibold text-slate-900">{planName}</div>
+                            {planNotes && (
+                              <p className="text-xs text-slate-500">{planNotes}</p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{modality}</td>
+                          <td className="px-4 py-3 text-slate-600">
+                            <p>Inicio: {formatDate(plan.start_date)}</p>
+                            <p>Vence: {plan.expires_at ? formatDate(plan.expires_at) : "Sin fecha"}</p>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{remainingLabel}</td>
+                          <td className="px-4 py-3 text-right">
+                            {isMasterUser ? (
+                              <button
+                                type="button"
+                                onClick={() => handleDeletePlan(plan.id)}
+                                disabled={planDeletingId === plan.id}
+                                className="inline-flex items-center rounded-md border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-60"
+                              >
+                                {planDeletingId === plan.id ? "Eliminando..." : "Eliminar plan"}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-slate-400">Solo MASTER</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">

@@ -1,4 +1,5 @@
-﻿"use client";
+"use client";
+/* eslint-disable @next/next/no-img-element */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { studioDayjs } from "@/lib/timezone";
@@ -76,6 +77,16 @@ type EligiblePlanOption = {
   unlimited: boolean;
 };
 
+type QrPreviewState = {
+  bookingId: string;
+  loading: boolean;
+  error: string | null;
+  token?: string;
+  imageUrl?: string;
+  downloadUrl?: string;
+  expiresAt?: string | null;
+};
+
 const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmada",
   CHECKED_IN: "Check-in",
@@ -125,6 +136,8 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   const [manualError, setManualError] = useState<string | null>(null);
   const [manualResults, setManualResults] = useState<EligiblePlanOption[]>([]);
   const [manualAction, setManualAction] = useState<string | null>(null);
+  const [cancelBusyId, setCancelBusyId] = useState<string | null>(null);
+  const [qrPreview, setQrPreview] = useState<QrPreviewState | null>(null);
 
   const fetchSessionDetails = useCallback(
     async (options?: { signal?: AbortSignal; silent?: boolean }) => {
@@ -183,6 +196,8 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       setManualError(null);
       setManualLoading(false);
       setManualAction(null);
+      setCancelBusyId(null);
+      setQrPreview(null);
     }
   }, [open, sessionId]);
 
@@ -363,6 +378,72 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       setManualAction(null);
     }
   };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm("¿Cancelar esta reservación? Se liberará el lugar de inmediato.");
+      if (!confirmed) return;
+    }
+    setCancelBusyId(bookingId);
+    setAttendanceFeedback(null);
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
+        method: "DELETE",
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((body as { error?: string })?.error ?? "No se pudo cancelar la reservación");
+      }
+      await fetchSessionDetails({ silent: true });
+      setAttendanceFeedback({
+        type: "success",
+        text: "Reservación cancelada correctamente.",
+      });
+    } catch (error) {
+      setAttendanceFeedback({
+        type: "error",
+        text: error instanceof Error ? error.message : "No se pudo cancelar la reservación",
+      });
+    } finally {
+      setCancelBusyId(null);
+    }
+  };
+
+  const openQrPreview = async (bookingId: string) => {
+    setQrPreview({ bookingId, loading: true, error: null });
+    try {
+      const response = await fetch(`/api/bookings/${bookingId}/qr-token`);
+      const body = (await response.json().catch(() => ({}))) as
+        | {
+            token?: string;
+            imageUrl?: string;
+            downloadUrl?: string;
+            expiresAt?: string | null;
+            error?: string;
+          }
+        | undefined;
+      if (!response.ok || !body?.token || !body.imageUrl || !body.downloadUrl) {
+        throw new Error(body?.error ?? "No se pudo recuperar el QR");
+      }
+      setQrPreview({
+        bookingId,
+        loading: false,
+        error: null,
+        token: body.token,
+        imageUrl: body.imageUrl,
+        downloadUrl: body.downloadUrl,
+        expiresAt: body.expiresAt ?? null,
+      });
+    } catch (error) {
+      setQrPreview({
+        bookingId,
+        loading: false,
+        error: error instanceof Error ? error.message : "No se pudo recuperar el QR",
+      });
+    }
+  };
+
+  const closeQrPreview = () => setQrPreview(null);
 
   const closeOnOverlay = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -566,6 +647,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                           <th className="px-4 py-3 text-center">Asistencia</th>
                           <th className="px-4 py-3">Estado</th>
                           <th className="px-4 py-3">Reservado</th>
+                          <th className="px-4 py-3 text-right">Acciones</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -619,6 +701,27 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                               <td className="px-4 py-3 text-slate-500">{formatStatus(participant.status)}</td>
                               <td className="px-4 py-3 text-slate-500">
                                 {participant.reservedAt ? formatDateTime(participant.reservedAt) : EMPTY_TEXT}
+                              </td>
+                              <td className="px-4 py-3 text-right">
+                                <div className="flex flex-wrap justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => openQrPreview(participant.bookingId)}
+                                    className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
+                                  >
+                                    Ver QR
+                                  </button>
+                                  {participant.status.toUpperCase() !== "CANCELLED" ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCancelBooking(participant.bookingId)}
+                                      disabled={cancelBusyId === participant.bookingId}
+                                      className="rounded-md border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                                    >
+                                      {cancelBusyId === participant.bookingId ? "Cancelando..." : "Cancelar"}
+                                    </button>
+                                  ) : null}
+                                </div>
                               </td>
                             </tr>
                           );
@@ -695,6 +798,70 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
           </button>
         </footer>
       </div>
+      {qrPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h4 className="text-base font-semibold text-slate-900">QR de reservación</h4>
+              <button
+                type="button"
+                onClick={closeQrPreview}
+                className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Cerrar QR"
+              >
+                <span className="material-icons-outlined text-lg">close</span>
+              </button>
+            </div>
+            <div className="mt-4">
+              {qrPreview.loading ? (
+                <p className="text-sm text-slate-500">Cargando QR...</p>
+              ) : qrPreview.error ? (
+                <p className="text-sm text-rose-600">{qrPreview.error}</p>
+              ) : (
+                <>
+                  {qrPreview.imageUrl && (
+                    <img
+                      src={qrPreview.imageUrl}
+                      alt="QR de reservación"
+                      className="mx-auto h-48 w-48 rounded-lg border border-slate-200 object-contain"
+                    />
+                  )}
+                  <p className="mt-3 text-xs text-slate-500">
+                    Token: <span className="font-semibold">{qrPreview.token}</span>
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {qrPreview.expiresAt
+                      ? `Vence ${studioDayjs(qrPreview.expiresAt).format("DD MMM YYYY HH:mm")}`
+                      : "Sin fecha de expiración"}
+                  </p>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
+                    {qrPreview.downloadUrl && (
+                      <a
+                        href={qrPreview.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex flex-1 items-center justify-center rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                      >
+                        Descargar PNG
+                      </a>
+                    )}
+                    {qrPreview.imageUrl && (
+                      <a
+                        href={qrPreview.imageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex flex-1 items-center justify-center rounded-md border border-brand-500 px-3 py-2 text-sm font-semibold text-brand-600 hover:bg-brand-50"
+                      >
+                        Abrir en pestaña
+                      </a>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
