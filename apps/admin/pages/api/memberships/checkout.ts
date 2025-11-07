@@ -88,7 +88,7 @@ export default async function handler(
             currency: currency.toLowerCase(),
             unit_amount: unitAmount,
             product_data: {
-              name: prepared.membershipType.name ?? "Membresia",
+              name: prepared.membershipType.name ?? "Membresía",
             },
           },
         },

@@ -200,7 +200,7 @@ export default async function handler(
   }
 
   if (!rawPhone) {
-    return res.status(400).json({ error: "El telefono es obligatorio" });
+    return res.status(400).json({ error: "El teléfono es obligatorio" });
   }
 
   const normalizedPhone = normalizePhoneInput(rawPhone, phoneCountry);

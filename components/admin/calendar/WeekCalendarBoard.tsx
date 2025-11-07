@@ -175,7 +175,7 @@ export default function WeekCalendarBoard({
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         console.error(error);
-        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiones");
+        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiónes");
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);
@@ -240,7 +240,7 @@ return (
             <div className="flex flex-wrap items-center gap-6 font-medium">
               <button className="border-b-2 border-brand-500 pb-2 text-brand-600">Calendario completo</button>
               <span className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-brand-400" /> Sesiones
+                <span className="h-2 w-2 rounded-full bg-brand-400" /> Sesiónes
               </span>
               <span className="flex items-center gap-2">
               </span>
@@ -327,7 +327,7 @@ return (
             </span>
           ))}
           {activeFilterChips.length > 0 && <span className="text-slate-400"></span>}
-          <span className="text-slate-500">{totalSessions} sesiones</span>
+          <span className="text-slate-500">{totalSessions} sesiónes</span>
         </div>
         {error && <p className="mt-3 text-sm text-rose-500">{error}</p>}
         {loading && !error && activeFilterChips.length === 0 && (

@@ -102,7 +102,7 @@ export async function fetchMembershipSummary(
 
   return {
     id: selected.id,
-    name: membershipType?.name ?? "Membresia",
+    name: membershipType?.name ?? "Membresía",
     status,
     startDate: selected.start_date ?? null,
     endDate: selected.end_date ?? null,

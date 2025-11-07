@@ -56,7 +56,7 @@ export type CourseRow = {
   Moneda: string; // currency
   durationLabel: string | null; // duration_label
   Nivel: string | null; // level
-  Categoria: string | null; // category
+  Categoría: string | null; // category
   sessionCount: number; // session_count
   sessionDurationMinutes: number; // session_duration_minutes
   leadInstructorId: string | null; // lead_instructor_id
@@ -133,7 +133,7 @@ function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): Cou
     Moneda: row.currency ?? "MXN",
     durationLabel: row.duration_label ?? null,
     Nivel: row.level ?? null,
-    Categoria: row.category ?? null,
+    Categoría: row.category ?? null,
     sessionCount: Number(row.session_count ?? 0),
     sessionDurationMinutes: Number(row.session_duration_minutes ?? 0),
     leadInstructorId: row.lead_instructor_id ?? null,
@@ -361,7 +361,7 @@ export default function CoursesPage(
             course.title,
             course.Descripcion ?? "",
             course.shortDescripcion ?? "",
-            course.Categoria ?? "",
+            course.Categoría ?? "",
             course.Nivel ?? "",
             course.classTypeName ?? "",
             course.defaultRoomName ?? "",
@@ -414,7 +414,7 @@ export default function CoursesPage(
   const handleEditCourse = (course: CourseRow) => {
     const nextLevels = ensureOption(levels, course.Nivel);
     if (nextLevels !== levels) setLevels(nextLevels);
-    const nextCategories = ensureOption(categories, course.Categoria);
+    const nextCategories = ensureOption(categories, course.Categoría);
     if (nextCategories !== categories) setCategories(nextCategories);
 
     setFormState({
@@ -425,7 +425,7 @@ export default function CoursesPage(
       currency: course.Moneda ?? "MXN",
       durationLabel: course.durationLabel ?? "",
       level: course.Nivel ?? "",
-      category: course.Categoria ?? "",
+      category: course.Categoría ?? "",
       sessionCount: String(course.sessionCount ?? ""),
       sessionDurationMinutes: String(course.sessionDurationMinutes ?? ""),
       visibility: course.Visibilidad,
@@ -467,7 +467,7 @@ export default function CoursesPage(
 
       const parsedSessionCount = Number(formState.sessionCount);
       if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
-        throw new Error("La cantidad de sesiones debe ser mayor a cero");
+        throw new Error("La cantidad de sesiónes debe ser mayor a cero");
       }
 
       const parsedSessionDuration = Number(formState.sessionDurationMinutes);
@@ -518,7 +518,7 @@ export default function CoursesPage(
         ? courses.find((course) => course.id === editingCourseId)
         : undefined;
       if (editingCourseId && existingCourse?.hasSessions) {
-        throw new Error("Este horario ya tiene sesiones programadas y no se puede editar");
+        throw new Error("Este horario ya tiene sesiónes programadas y no se puede editar");
       }
 
       const response = await fetch("/api/courses", {
@@ -546,7 +546,7 @@ export default function CoursesPage(
       });
 
       const nextLevels = ensureOption(levels, updatedCourse.Nivel);
-      const nextCategories = ensureOption(categories, updatedCourse.Categoria);
+      const nextCategories = ensureOption(categories, updatedCourse.Categoría);
       if (nextLevels !== levels) setLevels(nextLevels);
       if (nextCategories !== categories) setCategories(nextCategories);
 
@@ -629,7 +629,7 @@ export default function CoursesPage(
               <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Curso</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Sesiones</th>
+                  <th className="px-4 py-3 whitespace-nowrap">Sesiónes</th>
                   <th className="px-4 py-3 whitespace-nowrap">Precio</th>
                   <th className="px-4 py-3 whitespace-nowrap">Estado</th>
                   <th className="px-4 py-3 text-right whitespace-nowrap">Actualizado</th>
@@ -650,7 +650,7 @@ export default function CoursesPage(
                   filteredCourses.map((course) => {
                     const secondaryLines: string[] = [];
                     if (course.classTypeName) secondaryLines.push(course.classTypeName);
-                    const levelCategory = [course.Nivel, course.Categoria ?? "General"].filter(Boolean).join(" · ");
+                    const levelCategory = [course.Nivel, course.Categoría ?? "General"].filter(Boolean).join(" · ");
                     if (levelCategory) secondaryLines.push(levelCategory);
                     if (course.defaultRoomName) secondaryLines.push(`Sala ${course.defaultRoomName}`);
                     if (course.leadInstructorName) secondaryLines.push(`Instructor ${course.leadInstructorName}`);
@@ -692,7 +692,7 @@ export default function CoursesPage(
                         </td>
                         <td className="px-4 py-4 align-top text-sm text-slate-700">
                           <div className="leading-tight">
-                            <div>{course.sessionCount} sesiones</div>
+                            <div>{course.sessionCount} sesiónes</div>
                             <div className="text-xs text-slate-500">
                               {"×"} {course.sessionDurationMinutes} min
                             </div>
@@ -719,7 +719,7 @@ export default function CoursesPage(
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title={
                               course.hasSessions
-                                ? "No disponible: ya tiene sesiones programadas"
+                                ? "No disponible: ya tiene sesiónes programadas"
                                 : "Editar horario"
                             }
                           >
@@ -856,7 +856,7 @@ export default function CoursesPage(
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Sesiones totales
+                    Sesiónes totales
                   </label>
                   <input
                     type="number"
@@ -904,7 +904,7 @@ export default function CoursesPage(
                 <input
                   value={formState.durationLabel}
                   onChange={handleFormChange("durationLabel")}
-                  placeholder="Ej. 8 sesiones (55 min)"
+                  placeholder="Ej. 8 sesiónes (55 min)"
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                 />
               </div>

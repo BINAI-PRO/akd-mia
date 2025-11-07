@@ -330,7 +330,7 @@ export default function StaffManagementPage({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-slate-700">
-              Telefono (opcional)
+              Teléfono (opcional)
               <input
                 type="tel"
                 name="phone"

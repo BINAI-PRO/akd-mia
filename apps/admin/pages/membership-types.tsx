@@ -179,7 +179,7 @@ export default function MembershipTypesPage({
 
     const numericPrice = Number(form.price);
     if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-      setFormError("El precio debe ser un numero valido");
+      setFormError("El precio debe ser un número válido");
       return;
     }
 
@@ -216,7 +216,7 @@ export default function MembershipTypesPage({
 
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(body?.error ?? "No se pudo guardar la membresia");
+        throw new Error(body?.error ?? "No se pudo guardar la membresía");
       }
 
       const updated = body.membershipType as MembershipTypeRow;
@@ -232,7 +232,7 @@ export default function MembershipTypesPage({
 
       closeModal();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo guardar la membresia";
+      const message = error instanceof Error ? error.message : "No se pudo guardar la membresía";
       setFormError(message);
       setFormLoading(false);
     }
@@ -250,31 +250,31 @@ export default function MembershipTypesPage({
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(body?.error ?? "No se pudo eliminar la membresia");
+        throw new Error(body?.error ?? "No se pudo eliminar la membresía");
       }
 
       setRows((prev) => prev.filter((row) => row.id !== deleteTarget.id));
       setDeleteTarget(null);
       setDeleteLoading(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo eliminar la membresia";
+      const message = error instanceof Error ? error.message : "No se pudo eliminar la membresía";
       setDeleteError(message);
       setDeleteLoading(false);
     }
   };
 
   return (
-    <AdminLayoutAny title="Tipos de membresia" active="membershipTypes">
+    <AdminLayoutAny title="Tipos de membresía" active="membershipTypes">
       <Head>
-        <title>Tipos de membresia  Admin</title>
+        <title>Tipos de membresía  Admin</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-800">Tipos de membresia</h1>
+            <h1 className="text-2xl font-semibold text-slate-800">Tipos de membresía</h1>
             <p className="text-sm text-slate-500">
-              Gestiona las membresias anuales que permiten comprar planes y acceder a beneficios.
+              Gestiona las membresías anuales que permiten comprar planes y acceder a beneficios.
             </p>
           </div>
           <button
@@ -283,7 +283,7 @@ export default function MembershipTypesPage({
             className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
           >
             <span className="material-icons-outlined text-base">add</span>
-            Nueva membresia
+            Nueva membresía
           </button>
         </header>
 
@@ -404,10 +404,10 @@ export default function MembershipTypesPage({
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                 <div>
                   <h2 className="text-lg font-semibold text-slate-800">
-                    {editingId ? "Editar membresia" : "Nueva membresia"}
+                    {editingId ? "Editar membresía" : "Nueva membresía"}
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Define cuanto cuesta la membresia anual y sus privilegios.
+                    Define cuanto cuesta la membresía anual y sus privilegios.
                   </p>
                 </div>
                 <button
@@ -427,7 +427,7 @@ export default function MembershipTypesPage({
                     value={form.name}
                     onChange={handleFormChange("name")}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                    placeholder="Membresia anual premium"
+                    placeholder="Membresía anual premium"
                     required
                   />
                 </label>
@@ -524,7 +524,7 @@ export default function MembershipTypesPage({
                   disabled={formLoading}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
                 >
-                  {formLoading ? "Guardando..." : editingId ? "Guardar cambios" : "Crear membresia"}
+                  {formLoading ? "Guardando..." : editingId ? "Guardar cambios" : "Crear membresía"}
                 </button>
               </div>
             </form>
@@ -536,11 +536,11 @@ export default function MembershipTypesPage({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4">
           <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-2xl">
             <div className="border-b border-slate-200 px-6 py-4">
-              <h3 className="text-lg font-semibold text-slate-800">Eliminar membresia</h3>
+              <h3 className="text-lg font-semibold text-slate-800">Eliminar membresía</h3>
             </div>
             <div className="space-y-3 px-6 py-6 text-sm text-slate-600">
               <p>
-                Estas a punto de eliminar <strong>{deleteTarget.name}</strong>. Esta accion es permanente y
+                Estás a punto de eliminar <strong>{deleteTarget.name}</strong>. Esta acción es permanente y
                 solo es posible si no tiene miembros activos asociados.
               </p>
               {deleteError && <p className="text-sm text-rose-600">{deleteError}</p>}

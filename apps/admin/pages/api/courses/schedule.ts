@@ -60,7 +60,7 @@ export default async function handler(
   }
 
   if (!Array.isArray(sessions) || sessions.length === 0) {
-    return res.status(400).json({ error: "Debes indicar al menos una sesion a programar" });
+    return res.status(400).json({ error: "Debes indicar al menos una sesión a programar" });
   }
 
   const { data: course, error: courseError } = await supabaseAdmin
@@ -81,7 +81,7 @@ export default async function handler(
   }
 
   if (!course.default_room_id || !course.rooms) {
-    return res.status(400).json({ error: "El curso requiere una sala predeterminada para programar sesiones" });
+    return res.status(400).json({ error: "El curso requiere una sala predeterminada para programar sesiónes" });
   }
 
   const roomCapacity = course.rooms.capacity ?? 0;
@@ -96,7 +96,7 @@ export default async function handler(
 
   if (countError) {
     console.error("/api/courses/schedule count", countError);
-    return res.status(500).json({ error: "No se pudo verificar las sesiones existentes" });
+    return res.status(500).json({ error: "No se pudo verificar las sesiónes existentes" });
   }
 
   const existing = scheduledCount ?? 0;
@@ -104,13 +104,13 @@ export default async function handler(
   const pending = Math.max(sessionQuota - existing, 0);
 
   if (pending <= 0) {
-    return res.status(400).json({ error: "Este curso ya no tiene sesiones pendientes" });
+    return res.status(400).json({ error: "Este curso ya no tiene sesiónes pendientes" });
   }
 
   if (sessions.length > pending) {
     return res
       .status(400)
-      .json({ error: `Solo puedes programar ${pending} sesiones adicionales para este curso` });
+      .json({ error: `Solo puedes programar ${pending} sesiónes adicionales para este curso` });
   }
 
   const inserts: SessionInsertPayload[] = [];
@@ -121,23 +121,23 @@ export default async function handler(
     const durationMinutes = Number.isFinite(durationSource) ? durationSource : 0;
 
     if (!session.date || !session.startTime) {
-      return res.status(400).json({ error: `Fecha y hora son obligatorias (sesion ${index + 1})` });
+      return res.status(400).json({ error: `Fecha y hora son obligatorias (sesión ${index + 1})` });
     }
 
     if (durationMinutes <= 0) {
-      return res.status(400).json({ error: `La duracion debe ser mayor a cero (sesion ${index + 1})` });
+      return res.status(400).json({ error: `La duracion debe ser mayor a cero (sesión ${index + 1})` });
     }
 
     const start = madridDayjs(`${session.date}T${session.startTime}`, true);
     if (!start.isValid()) {
-      return res.status(400).json({ error: `Fecha u hora invalidas (sesion ${index + 1})` });
+      return res.status(400).json({ error: `Fecha u hora invalidas (sesión ${index + 1})` });
     }
 
     const end = start.add(durationMinutes, "minute");
     const instructorId = session.instructorId ?? course.lead_instructor_id;
 
     if (!instructorId) {
-      return res.status(400).json({ error: `Debes asignar un instructor para la sesion ${index + 1}` });
+      return res.status(400).json({ error: `Debes asignar un instructor para la sesión ${index + 1}` });
     }
 
     const payload: SessionInsertPayload = {
@@ -161,14 +161,14 @@ export default async function handler(
 
   if (insertError || !inserted) {
     console.error("/api/courses/schedule insert", insertError);
-    return res.status(500).json({ error: "No se pudieron crear las sesiones" });
+    return res.status(500).json({ error: "No se pudieron crear las sesiónes" });
   }
 
   const scheduledTotal = existing + inserted.length;
   const pendingRemaining = Math.max(sessionQuota - scheduledTotal, 0);
 
   return res.status(200).json({
-    message: `Se programaron ${inserted.length} sesiones.`,
+    message: `Se programaron ${inserted.length} sesiónes.`,
     created: inserted.length,
     scheduledTotal,
     pendingRemaining,

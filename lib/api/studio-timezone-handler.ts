@@ -56,7 +56,7 @@ export async function studioSettingsApiHandler(
       const phoneCandidate =
         typeof body?.phoneCountry === "string" ? (body.phoneCountry.toUpperCase() as StudioPhoneCountry) : undefined;
       if (phoneCandidate && !PHONE_COUNTRY_OPTIONS.includes(phoneCandidate)) {
-        return res.status(400).json({ error: "El identificador de telefono no es valido" });
+        return res.status(400).json({ error: "El identificador de teléfono no es válido" });
       }
 
       const updated = await updateStudioSettings({

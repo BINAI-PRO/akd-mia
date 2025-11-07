@@ -37,7 +37,7 @@ export default async function handler(
   try {
     const { action, sessionIds, instructorId, roomId } = req.body as BulkBody;
     if (!action || !Array.isArray(sessionIds) || sessionIds.length === 0) {
-      return res.status(400).json({ error: 'Debes seleccionar sesiones para aplicar la accion' });
+      return res.status(400).json({ error: "Debes seleccionar sesiones para aplicar la acción" });
     }
 
     const { data: sessions, error: lookupError } = await supabaseAdmin
@@ -47,16 +47,16 @@ export default async function handler(
 
     if (lookupError) {
       console.error('/api/classes/bulk lookup', lookupError);
-      return res.status(500).json({ error: 'No se pudieron validar las sesiones seleccionadas' });
+      return res.status(500).json({ error: 'No se pudieron validar las sesiónes seleccionadas' });
     }
     if (!sessions || sessions.length !== sessionIds.length) {
-      return res.status(404).json({ error: 'No se encontraron todas las sesiones seleccionadas' });
+      return res.status(404).json({ error: 'No se encontraron todas las sesiónes seleccionadas' });
     }
 
     if (action === 'reschedule') {
       const invalid = sessions.filter((row) => (row.current_occupancy ?? 0) > 0);
       if (invalid.length > 0) {
-        return res.status(400).json({ error: 'No puedes reprogramar sesiones con reservaciones activas' });
+        return res.status(400).json({ error: 'No puedes reprogramar sesiónes con reservaciones activas' });
       }
 
       const { error: deleteError } = await supabaseAdmin
@@ -66,11 +66,11 @@ export default async function handler(
 
       if (deleteError) {
         console.error('/api/classes/bulk delete', deleteError);
-        return res.status(500).json({ error: 'No se pudieron reprogramar las sesiones seleccionadas' });
+        return res.status(500).json({ error: 'No se pudieron reprogramar las sesiónes seleccionadas' });
       }
 
       return res.status(200).json({
-        message: 'Sesiones enviadas a reprogramacion',
+        message: "Sesiónes enviadas a reprogramación",
         removedIds: sessionIds,
       });
     }
@@ -101,10 +101,10 @@ export default async function handler(
 
       if (updateError || !updatedSessions) {
         console.error('/api/classes/bulk update', updateError);
-        return res.status(500).json({ error: 'No se pudieron actualizar las sesiones' });
+        return res.status(500).json({ error: 'No se pudieron actualizar las sesiónes' });
       }
 
-      return res.status(200).json({ message: 'Sesiones actualizadas', sessions: updatedSessions });
+      return res.status(200).json({ message: 'Sesiónes actualizadas', sessions: updatedSessions });
     }
 
     return res.status(400).json({ error: 'Accion no valida' });

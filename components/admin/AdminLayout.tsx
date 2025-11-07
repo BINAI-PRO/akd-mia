@@ -65,17 +65,17 @@ const NAVIGATION: NavItem[] = [
       { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
       { type: "link", key: "courses", label: "Horarios", icon: "school", href: "/courses" },
       { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/courses/scheduler" },
-      { type: "link", key: "classes", label: "Sesiones", icon: "event", href: "/classes" },
+      { type: "link", key: "classes", label: "Sesiónes", icon: "event", href: "/classes" },
     ],
   },
   {
     type: "group",
     key: "memberships",
-    label: "Membresias",
+    label: "Membresías",
     icon: "card_membership",
     children: [
       { type: "link", key: "members", label: "Miembros", icon: "people", href: "/members" },
-      { type: "link", key: "membershipTypes", label: "Tipos de membresia", icon: "badge", href: "/membership-types" },
+      { type: "link", key: "membershipTypes", label: "Tipos de membresía", icon: "badge", href: "/membership-types" },
       { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/memberships" },
     ],
   },
@@ -297,7 +297,7 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
           className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
           disabled={profileLoading}
         >
-          Cerrar sesion
+          Cerrar sesión
         </button>
       </div>
     </div>

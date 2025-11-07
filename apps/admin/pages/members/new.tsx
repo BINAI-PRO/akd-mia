@@ -229,7 +229,7 @@ export default function NewMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Telefono
+              Teléfono
               <input
                 type="tel"
                 value={form.phone}
@@ -240,8 +240,8 @@ export default function NewMemberPage({
               />
               <span className="mt-1 block text-xs text-slate-500">
                 {phoneCountry === "MX"
-                  ? "Formato Mexico: 10 digitos, admite prefijo +52."
-                  : "Formato Espana: 9 digitos, admite prefijo +34."}
+                  ? "Formato México: 10 dígitos, admite prefijo +52."
+                  : "Formato España: 9 dígitos, admite prefijo +34."}
               </span>
             </label>
             <label className="text-sm font-medium text-slate-700">
@@ -268,13 +268,13 @@ export default function NewMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Ocupacion
+              Ocupación
               <input
                 type="text"
                 value={form.occupation}
                 onChange={handleChange("occupation")}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
-                placeholder="Profesion u ocupacion"
+                placeholder="Profesión u ocupación"
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
@@ -335,7 +335,7 @@ export default function NewMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Telefono de contacto
+              Teléfono de contacto
               <input
                 type="tel"
                 value={form.emergencyContactPhone}

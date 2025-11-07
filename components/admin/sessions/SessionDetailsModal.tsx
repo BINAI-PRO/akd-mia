@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { studioDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
 
@@ -65,6 +65,17 @@ type FetchState = {
 
 type AttendanceFeedback = { type: "success" | "error"; text: string };
 
+type EligiblePlanOption = {
+  planPurchaseId: string;
+  clientId: string;
+  clientName: string;
+  clientEmail: string | null;
+  clientPhone: string | null;
+  planName: string | null;
+  remainingClasses: number | null;
+  unlimited: boolean;
+};
+
 const STATUS_LABELS: Record<string, string> = {
   CONFIRMED: "Confirmada",
   CHECKED_IN: "Check-in",
@@ -73,7 +84,7 @@ const STATUS_LABELS: Record<string, string> = {
   WAITING: "En espera",
 };
 
-const EMPTY_TEXT = "â€”";
+const EMPTY_TEXT = "\u2014";
 
 function formatStatus(status: string) {
   const key = status.toUpperCase();
@@ -92,7 +103,7 @@ function formatSchedule(startISO: string | null, endISO: string | null) {
   const end = endISO ? studioDayjs(endISO) : null;
   if (!start || !start.isValid()) return EMPTY_TEXT;
   if (!end || !end.isValid()) return start.format("DD MMM YYYY HH:mm");
-  return `${start.format("DD MMM YYYY HH:mm")} â€“ ${end.format("HH:mm")}`;
+  return `${start.format("DD MMM YYYY HH:mm")} \u2013 ${end.format("HH:mm")}`;
 }
 
 export default function SessionDetailsModal({ sessionId, open, onClose }: Props) {
@@ -107,6 +118,44 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
 
   const [attendanceBusy, setAttendanceBusy] = useState<Record<string, boolean>>({});
   const [attendanceFeedback, setAttendanceFeedback] = useState<AttendanceFeedback | null>(null);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualSearch, setManualSearch] = useState("");
+  const [manualDebounced, setManualDebounced] = useState("");
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [manualResults, setManualResults] = useState<EligiblePlanOption[]>([]);
+  const [manualAction, setManualAction] = useState<string | null>(null);
+
+  const fetchSessionDetails = useCallback(
+    async (options?: { signal?: AbortSignal; silent?: boolean }) => {
+      if (!sessionId) return;
+      if (!options?.silent) {
+        setState({ status: "loading", error: null, data: null });
+        setAttendanceFeedback(null);
+      }
+
+      try {
+        const response = await fetch(`/api/sessions/${sessionId}`, {
+          signal: options?.signal,
+        });
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          const message = (body as { error?: string }).error ?? "No se pudieron obtener los detalles.";
+          throw new Error(message);
+        }
+        const payload = (await response.json()) as SessionDetailsResponse;
+        if (options?.signal?.aborted) return;
+        setState({ status: "success", error: null, data: payload });
+      } catch (fetchError) {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") return;
+        if (options?.signal?.aborted) return;
+        const message =
+          fetchError instanceof Error ? fetchError.message : "No se pudieron obtener los detalles.";
+        setState({ status: "error", error: message, data: null });
+      }
+    },
+    [sessionId]
+  );
 
   useEffect(() => {
     if (!open || !sessionId) {
@@ -119,37 +168,72 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     }
 
     const controller = new AbortController();
-    setState({ status: "loading", error: null, data: null });
-    setAttendanceFeedback(null);
-
-    const fetchDetails = async () => {
-      try {
-        const response = await fetch(`/api/sessions/${sessionId}`, { signal: controller.signal });
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          const message = (body as { error?: string }).error ?? "No se pudieron obtener los detalles.";
-          throw new Error(message);
-        }
-        const payload = (await response.json()) as SessionDetailsResponse;
-        setState({ status: "success", error: null, data: payload });
-      } catch (fetchError) {
-        if (fetchError instanceof DOMException && fetchError.name === "AbortError") return;
-        const message =
-          fetchError instanceof Error ? fetchError.message : "No se pudieron obtener los detalles.";
-        setState({ status: "error", error: message, data: null });
-      }
-    };
-
-    void fetchDetails();
+    void fetchSessionDetails({ signal: controller.signal });
     return () => controller.abort();
-  }, [open, sessionId]);
+  }, [fetchSessionDetails, open, sessionId]);
 
   useEffect(() => {
     if (!open) {
       setAttendanceBusy({});
       setAttendanceFeedback(null);
+      setManualOpen(false);
+      setManualSearch("");
+      setManualDebounced("");
+      setManualResults([]);
+      setManualError(null);
+      setManualLoading(false);
+      setManualAction(null);
     }
   }, [open, sessionId]);
+
+  useEffect(() => {
+    if (!manualOpen) return;
+    const handle = window.setTimeout(() => {
+      setManualDebounced(manualSearch.trim());
+    }, 300);
+    return () => window.clearTimeout(handle);
+  }, [manualOpen, manualSearch]);
+
+  useEffect(() => {
+    if (!manualOpen || !sessionId) return;
+
+    const controller = new AbortController();
+    setManualLoading(true);
+    setManualError(null);
+
+    const query = manualDebounced ? `?q=${encodeURIComponent(manualDebounced)}` : "";
+
+    fetch(`/api/sessions/${sessionId}/eligible-plans${query}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          const message = (body as { error?: string }).error ?? "No se pudo consultar la lista de planes activos.";
+          throw new Error(message);
+        }
+        return response.json() as Promise<{ results: EligiblePlanOption[] }>;
+      })
+      .then((payload) => {
+        if (!controller.signal.aborted) {
+          setManualResults(payload.results ?? []);
+        }
+      })
+      .catch((fetchError) => {
+        if (fetchError instanceof DOMException && fetchError.name === "AbortError") return;
+        if (controller.signal.aborted) return;
+        const message =
+          fetchError instanceof Error
+            ? fetchError.message
+            : "No se pudo consultar la lista de planes activos.";
+        setManualError(message);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setManualLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [manualDebounced, manualOpen, sessionId]);
 
   const showModal = open && sessionId;
 
@@ -169,10 +253,10 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       session.availableSpots !== null ? Math.max(session.availableSpots, 0) : null;
 
     return {
-      headline: session.title ?? "SesiÃ³n",
+      headline: session.title ?? "Sesión",
       schedule,
       instructor: session.instructorName ?? "Sin instructor asignado",
-      room: session.roomName ?? "Sin salÃ³n",
+      room: session.roomName ?? "Sin salón",
       classType: session.classTypeName ?? "Clase general",
       course: session.courseTitle ?? null,
       capacity,
@@ -242,6 +326,44 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     }
   };
 
+  const handleManualBooking = async (planPurchaseId: string) => {
+    if (!sessionId) return;
+    setManualAction(planPurchaseId);
+    setManualError(null);
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/manual-booking`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planPurchaseId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as
+        | { bookingId?: string; planName?: string | null; planPurchaseId?: string | null; error?: string }
+        | { error?: string };
+
+      if (!response.ok) {
+        const message = (payload as { error?: string }).error ?? "No se pudo registrar la reserva";
+        throw new Error(message);
+      }
+
+      await fetchSessionDetails({ silent: true });
+      setAttendanceFeedback({
+        type: "success",
+        text: "Reserva registrada correctamente.",
+      });
+      setManualOpen(false);
+      setManualResults([]);
+      setManualSearch("");
+      setManualDebounced("");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "No se pudo registrar la reserva";
+      setManualError(message);
+    } finally {
+      setManualAction(null);
+    }
+  };
+
   const closeOnOverlay = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
       onClose();
@@ -261,9 +383,9 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
       <div className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
         <header className="flex items-start justify-between border-b border-slate-200 px-6 py-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-brand-600">Detalle de sesiÃ³n</p>
+            <p className="text-xs uppercase tracking-wide text-brand-600">Detalle de sesión</p>
             <h2 id="session-detail-heading" className="mt-1 text-xl font-semibold text-slate-900">
-              {summary?.headline ?? "SesiÃ³n"}
+              {summary?.headline ?? "Sesión"}
             </h2>
             {summary?.course && <p className="text-sm text-slate-500">{summary.course}</p>}
           </div>
@@ -271,7 +393,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
             type="button"
             onClick={onClose}
             className="rounded-full p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
-            aria-label="Cerrar detalles de sesiÃ³n"
+            aria-label="Cerrar detalles de sesión"
           >
             <span className="material-icons-outlined text-xl">close</span>
           </button>
@@ -280,7 +402,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
         <div className="flex-1 overflow-y-auto px-6 py-5 text-sm text-slate-700">
           {status === "loading" && (
             <div className="flex h-48 items-center justify-center text-sm text-slate-500">
-              Cargando detalles de la sesiÃ³nâ€¦
+              Cargando detalles de la sesión\u2026
             </div>
           )}
 
@@ -299,7 +421,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <dd className="mt-1 text-sm text-slate-800">{summary.schedule}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">DuraciÃ³n</dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Duración</dt>
                     <dd className="mt-1 text-sm text-slate-800">{summary.duration}</dd>
                   </div>
                   <div>
@@ -331,9 +453,20 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
               </section>
 
               <section>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-sm font-semibold text-slate-900">Participantes con reserva</h3>
-                  <span className="text-xs text-slate-500">{data.participants.length} registros</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-500">
+                      {data.participants.length} registros
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setManualOpen((prev) => !prev)}
+                      className="rounded-md border border-brand-500 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                    >
+                      {manualOpen ? "Cerrar búsqueda" : "Reservar miembro"}
+                    </button>
+                  </div>
                 </div>
                 {attendanceFeedback ? (
                   <p
@@ -346,9 +479,81 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     {attendanceFeedback.text}
                   </p>
                 ) : null}
+                {manualOpen && (
+                  <div className="mt-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <div>
+                      <label className="text-xs font-medium uppercase tracking-wide text-slate-600">
+                        Buscar miembro
+                      </label>
+                      <input
+                        type="text"
+                        value={manualSearch}
+                        onChange={(event) => setManualSearch(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+                        placeholder="Nombre, correo o teléfono"
+                      />
+                      <p className="mt-1 text-xs text-slate-500">
+                        Muestra miembros con plan flexible activo disponible para esta sesión.
+                      </p>
+                    </div>
+                    <div className="rounded-md border border-slate-200 bg-white p-3">
+                      {manualLoading ? (
+                        <p className="text-sm text-slate-500">Buscando planes activos...</p>
+                      ) : manualError ? (
+                        <p className="text-sm text-rose-600">{manualError}</p>
+                      ) : manualResults.length === 0 ? (
+                        <p className="text-sm text-slate-500">
+                          No se encontraron planes activos disponibles con la búsqueda actual.
+                        </p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {manualResults.map((option) => (
+                            <li
+                              key={option.planPurchaseId}
+                              className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div>
+                                <p className="text-sm font-semibold text-slate-800">
+                                  {option.clientName}
+                                </p>
+                                <div className="mt-1 space-y-0.5 text-xs text-slate-500">
+                                  {option.planName && (
+                                    <p>
+                                      Plan: <span className="font-medium text-slate-700">{option.planName}</span>
+                                    </p>
+                                  )}
+                                  {option.unlimited ? (
+                                    <p>Clases disponibles: Ilimitado</p>
+                                  ) : (
+                                    <p>
+                                      Clases disponibles:{" "}
+                                      <span className="font-medium text-slate-700">
+                                        {option.remainingClasses ?? 0}
+                                      </span>
+                                    </p>
+                                  )}
+                                  {option.clientEmail && <p>{option.clientEmail}</p>}
+                                  {option.clientPhone && <p>{option.clientPhone}</p>}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleManualBooking(option.planPurchaseId)}
+                                disabled={manualAction === option.planPurchaseId}
+                                className="self-start rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300 sm:self-center"
+                              >
+                                {manualAction === option.planPurchaseId ? "Reservando..." : "Reservar"}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                )}
                 {data.participants.length === 0 ? (
                   <p className="mt-3 text-sm text-slate-500">
-                    AÃºn no hay reservaciones registradas.
+                    Aún no hay reservaciones registradas.
                   </p>
                 ) : (
                   <div className="mt-3 overflow-x-auto rounded-lg border border-slate-200">
@@ -436,7 +641,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <table className="min-w-full divide-y divide-slate-200 text-sm">
                       <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                         <tr>
-                          <th className="px-4 py-3">PosiciÃ³n</th>
+                          <th className="px-4 py-3">Posición</th>
                           <th className="px-4 py-3">Cliente</th>
                           <th className="px-4 py-3">Contacto</th>
                           <th className="px-4 py-3">Estado</th>

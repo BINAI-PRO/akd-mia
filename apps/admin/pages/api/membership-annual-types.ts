@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const numericPrice = Number(price);
       if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-        return res.status(400).json({ error: "El precio debe ser un numero valido" });
+        return res.status(400).json({ error: "El precio debe ser un número válido" });
       }
 
       const parsedMaxYears =
@@ -113,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (price !== undefined) {
         const numericPrice = Number(price);
         if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-          return res.status(400).json({ error: "El precio debe ser un numero valido" });
+          return res.status(400).json({ error: "El precio debe ser un número válido" });
         }
         updatePayload.price = numericPrice.toFixed(2);
       }
@@ -169,11 +169,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (error) {
         if (error.code === "23503") {
           return res.status(400).json({
-            error: "No puedes eliminar esta membresia porque tiene registros asociados",
+            error: "No puedes eliminar esta membresía porque tiene registros asociados",
           });
         }
         console.error("/api/membership-annual-types DELETE", error);
-        return res.status(500).json({ error: "No se pudo eliminar la membresia" });
+        return res.status(500).json({ error: "No se pudo eliminar la membresía" });
       }
 
       return res.status(200).json({ ok: true });

@@ -230,7 +230,7 @@ export default async function handler(
       }
 
       if (!instructorRecord || !roomRecord) {
-        throw new Error('Faltan referencias para crear la sesion');
+        throw new Error('Faltan referencias para crear la sesión');
       }
 
       const sessionInsert: TablesInsert<'sessions'> = {
@@ -251,7 +251,7 @@ export default async function handler(
         .single();
 
       if (sessionError || !session) {
-        throw sessionError ?? new Error('No se pudo crear la sesion');
+        throw sessionError ?? new Error('No se pudo crear la sesión');
       }
 
       return res.status(200).json({

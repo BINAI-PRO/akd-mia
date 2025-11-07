@@ -7,8 +7,8 @@ import { useStudioPhoneCountry } from "@/components/StudioTimezoneContext";
 import { useAuth } from "@/components/auth/AuthContext";
 
 const PHONE_OPTIONS: Array<{ value: StudioPhoneCountry; label: string }> = [
-  { value: "MX", label: "Mexico (+52)" },
-  { value: "ES", label: "Espana (+34)" },
+  { value: "MX", label: "México (+52)" },
+  { value: "ES", label: "España (+34)" },
 ];
 
 function guessCountryFromPhone(phone: string | null | undefined): StudioPhoneCountry | null {
@@ -100,8 +100,8 @@ export default function SetupProfilePage() {
 
   const phoneHint =
     country === "MX"
-      ? "Ingresa 10 digitos, con o sin prefijo +52."
-      : "Ingresa 9 digitos, con o sin prefijo +34.";
+      ? "Ingresa 10 dígitos, con o sin prefijo +52."
+      : "Ingresa 9 dígitos, con o sin prefijo +34.";
 
   return (
     <>
@@ -111,9 +111,9 @@ export default function SetupProfilePage() {
       <main className="min-h-screen bg-neutral-50 px-6 py-10">
         <div className="mx-auto w-full max-w-md rounded-3xl bg-white px-6 py-8 shadow-xl">
           <h1 className="text-2xl font-semibold text-neutral-900">Completa tu perfil</h1>
-          <p className="mt-2 text-sm text-neutral-600">
-            Necesitamos tu nombre y telefono para confirmar reservas y enviarte avisos importantes.
-          </p>
+        <p className="mt-2 text-sm text-neutral-600">
+          Necesitamos tu nombre y teléfono para confirmar reservas y enviarte avisos importantes.
+        </p>
 
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-1">
@@ -152,7 +152,7 @@ export default function SetupProfilePage() {
 
             <div className="space-y-1">
               <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                Telefono
+              Teléfono
               </label>
               <input
                 type="tel"

@@ -36,14 +36,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const numericPrice = price === undefined || price === null || price === "" ? 0 : Number(price);
       if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-        return res.status(400).json({ error: "El precio debe ser un numero valido" });
+        return res.status(400).json({ error: "El precio debe ser un número válido" });
       }
 
       let numericClassCount: number | null = null;
       if (classCount !== undefined && classCount !== null && classCount !== "") {
         numericClassCount = Number(classCount);
         if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
-          return res.status(400).json({ error: "Las sesiones deben ser un entero positivo o puedes dejarlo vacio para plan ilimitado" });
+          return res.status(400).json({ error: "Las sesiónes deben ser un entero positivo o puedes dejarlo vacio para plan ilimitado" });
         }
       }
 
@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const normalizedCategory = category?.trim();
       if (!normalizedCategory) {
-        return res.status(400).json({ error: "Debes seleccionar una categoria" });
+        return res.status(400).json({ error: "Debes seleccionar una categoría" });
       }
 
       const payload = {
@@ -139,7 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (price !== undefined) {
         const numericPrice = price === "" || price === null ? 0 : Number(price);
         if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-          return res.status(400).json({ error: "El precio debe ser un numero valido" });
+          return res.status(400).json({ error: "El precio debe ser un número válido" });
         }
         updatePayload.price = numericPrice;
       }
@@ -156,7 +156,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } else {
           const numericClassCount = Number(classCount);
           if (!Number.isInteger(numericClassCount) || numericClassCount <= 0) {
-            return res.status(400).json({ error: "Las sesiones deben ser un entero positivo" });
+            return res.status(400).json({ error: "Las sesiónes deben ser un entero positivo" });
           }
           updatePayload.class_count = numericClassCount;
         }
@@ -181,7 +181,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (category !== undefined) {
         const normalizedCategory = category?.trim();
         if (!normalizedCategory) {
-          return res.status(400).json({ error: "Debes seleccionar una categoria" });
+          return res.status(400).json({ error: "Debes seleccionar una categoría" });
         }
         updatePayload.category = normalizedCategory;
       }

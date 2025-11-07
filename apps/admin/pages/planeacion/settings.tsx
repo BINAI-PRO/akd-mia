@@ -156,7 +156,7 @@ export default function StudioSettingsPage({
             <header className="space-y-2">
               <h1 className="text-2xl font-semibold text-slate-900">Horario de programacion</h1>
               <p className="text-sm text-slate-600">
-                Define la referencia que se utiliza para programar sesiones, reservas y ventanas de cancelacion. Este valor
+                Define la referencia que se utiliza para programar sesiónes, reservas y ventanas de cancelacion. Este valor
                 se aplica en todas las instancias (admin, app y QR) sin conversiones adicionales.
               </p>
             </header>
@@ -204,8 +204,8 @@ export default function StudioSettingsPage({
                   value={phoneCountry}
                   onChange={(event) => setPhoneCountry((event.target.value as PhoneCountry) ?? "MX")}
                 >
-                  <option value="MX">Mexico (+52)</option>
-                  <option value="ES">Espana (+34)</option>
+                  <option value="MX">México (+52)</option>
+                  <option value="ES">España (+34)</option>
                 </select>
                 <p className="text-xs text-slate-500">
                   Los registros nuevos y las apps aplicarán esta regla para exigir el formato correcto del número
@@ -224,11 +224,11 @@ export default function StudioSettingsPage({
                 <p className="mt-1">
                   Formato telefónico:{" "}
                   <span className="font-medium text-slate-900">
-                    {phoneCountry === "MX" ? "Mexico (+52)" : "Espana (+34)"}
+                    {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
                   </span>
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  El horario se aplica a todas las comparaciones (inicio de sesion, ventanas de reserva y cancelacion,
+                  El horario se aplica a todas las comparaciones (inicio de sesión, ventanas de reserva y cancelacion,
                   etiquetas de clase pasada).
                 </p>
               </div>
@@ -253,7 +253,7 @@ export default function StudioSettingsPage({
                       {"  •  "}
                       Teléfono:{" "}
                       <span className="font-medium text-slate-700">
-                        {phoneCountry === "MX" ? "Mexico (+52)" : "Espana (+34)"}
+                        {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
                       </span>
                     </span>
                   )}
@@ -266,7 +266,7 @@ export default function StudioSettingsPage({
             <h2 className="text-lg font-semibold text-slate-900">Notas operativas</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5">
               <li>
-                El valor definido aqui se replica en todas las herramientas (sesiones, reservas, QR, calendario, menu de
+                El valor definido aqui se replica en todas las herramientas (sesiónes, reservas, QR, calendario, menu de
                 inicio).
               </li>
               <li>Para evitar discrepancias, siempre programa nuevas clases despues de ajustar el horario.</li>

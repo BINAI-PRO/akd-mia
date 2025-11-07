@@ -69,7 +69,7 @@ async function fetchMembershipType(id: string): Promise<MembershipTypeRow> {
     .maybeSingle<MembershipTypeRow>();
 
   if (error || !data) {
-    throw Object.assign(new Error("El tipo de membresia seleccionado no existe"), { status: 400 });
+    throw Object.assign(new Error("El tipo de membresía seleccionado no existe"), { status: 400 });
   }
 
   return data;
@@ -95,7 +95,7 @@ export async function prepareMembershipPurchase(
   const { clientId, membershipTypeId, startDate, notes } = payload;
 
   if (!clientId || !membershipTypeId) {
-    throw Object.assign(new Error("Cliente y tipo de membresia son obligatorios"), { status: 400 });
+    throw Object.assign(new Error("Cliente y tipo de membresía son obligatorios"), { status: 400 });
   }
 
   const [membershipType, client] = await Promise.all([
@@ -105,20 +105,20 @@ export async function prepareMembershipPurchase(
 
   const pricePerYear = Number(membershipType.price ?? 0);
   if (!Number.isFinite(pricePerYear) || pricePerYear < 0) {
-    throw Object.assign(new Error("El tipo de membresia no tiene un precio valido"), { status: 400 });
+    throw Object.assign(new Error("El tipo de membresía no tiene un precio valido"), { status: 400 });
   }
 
   const termYears = parseTermYears(payload.termYears);
 
   if (membershipType.max_prepaid_years && termYears > membershipType.max_prepaid_years) {
     throw Object.assign(
-      new Error(`Esta membresia admite hasta ${membershipType.max_prepaid_years} anos por pago`),
+      new Error(`Esta membresía admite hasta ${membershipType.max_prepaid_years} anos por pago`),
       { status: 400 }
     );
   }
 
   if (!membershipType.allow_multi_year && termYears > 1) {
-    throw Object.assign(new Error("Esta membresia solo permite pagar un ano a la vez"), {
+    throw Object.assign(new Error("Esta membresía solo permite pagar un ano a la vez"), {
       status: 400,
     });
   }
@@ -168,7 +168,7 @@ async function fetchMemberSnapshot(clientId: string): Promise<MemberSnapshot> {
     .maybeSingle<MemberSnapshot>();
 
   if (error || !data) {
-    throw Object.assign(new Error("La membresia se registro, pero no pudimos refrescar la informacion"), {
+    throw Object.assign(new Error("La membresía se registro, pero no pudimos refrescar la informacion"), {
       status: 500,
     });
   }
@@ -229,7 +229,7 @@ export async function commitMembershipPurchase(
     .maybeSingle<{ id: string }>();
 
   if (membershipInsertError || !membershipInsert) {
-    throw Object.assign(new Error("No se pudo registrar la membresia"), { status: 500 });
+    throw Object.assign(new Error("No se pudo registrar la membresía"), { status: 500 });
   }
 
   const { error: paymentError } = await supabaseAdmin.from("membership_payments").insert({
@@ -246,7 +246,7 @@ export async function commitMembershipPurchase(
   });
 
   if (paymentError) {
-    throw Object.assign(new Error("La membresia se registro, pero el pago no se guardo correctamente"), {
+    throw Object.assign(new Error("La membresía se registro, pero el pago no se guardo correctamente"), {
       status: 500,
     });
   }

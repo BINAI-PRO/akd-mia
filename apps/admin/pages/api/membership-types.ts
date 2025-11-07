@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const numericPrice = Number(price);
       if (!Number.isFinite(numericPrice) || numericPrice < 0) {
-        return res.status(400).json({ error: "El precio debe ser un numero valido" });
+        return res.status(400).json({ error: "El precio debe ser un número válido" });
       }
 
       const payload = {

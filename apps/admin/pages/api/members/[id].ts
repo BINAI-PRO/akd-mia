@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loadStudioSettings } from "@/lib/studio-settings";
 import { normalizePhoneInput } from "@/lib/phone";
+import type { Tables } from "@/types/database";
 
 type UpdatePayload = {
   fullName?: string;
@@ -44,11 +45,74 @@ async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse): Pr
 
   const slug = staffRow?.staff_roles?.slug ?? null;
   if (!slug || slug.toUpperCase() !== "MASTER") {
-    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta accion" });
+    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta acción" });
     return null;
   }
 
   return session.user.id;
+}
+
+type MemberSnapshotRow = Tables<"clients"> & {
+  client_profiles: Pick<Tables<"client_profiles">, "status"> | null;
+  memberships: Array<
+    Tables<"memberships"> & {
+      membership_types: Pick<Tables<"membership_types">, "name" | "privileges"> | null;
+      membership_payments: Pick<
+        Tables<"membership_payments">,
+        "amount" | "currency" | "paid_at" | "period_start" | "period_end" | "period_years"
+      >[];
+    }
+  > | null;
+  plan_purchases: Array<
+    Tables<"plan_purchases"> & {
+      plan_types: Pick<Tables<"plan_types">, "name" | "privileges"> | null;
+    }
+  > | null;
+};
+
+async function fetchMemberSnapshot(clientId: string): Promise<MemberSnapshotRow | null> {
+  const { data, error } = await supabaseAdmin
+    .from("clients")
+    .select(
+      `
+        id,
+        full_name,
+        email,
+        phone,
+        created_at,
+        client_profiles ( status ),
+        memberships (
+          id,
+          status,
+          start_date,
+          end_date,
+          next_billing_date,
+          privileges_snapshot,
+          membership_type_id,
+          membership_types ( name, privileges ),
+          membership_payments ( amount, currency, paid_at, period_start, period_end, period_years )
+        ),
+        plan_purchases (
+          id,
+          status,
+          start_date,
+          expires_at,
+          initial_classes,
+          remaining_classes,
+          modality,
+          plan_types ( name, privileges )
+        )
+      `
+    )
+    .eq("id", clientId)
+    .maybeSingle<MemberSnapshotRow>();
+
+  if (error) {
+    console.error("/api/members/[id] snapshot", error);
+    throw new Error("No se pudo cargar el miembro solicitado");
+  }
+
+  return data ?? null;
 }
 
 async function handleDeleteMemberRequest(
@@ -92,7 +156,7 @@ async function handleDeleteMemberRequest(
 
   if (membershipsDeleteError) {
     console.error("/api/members/[id] delete memberships", membershipsDeleteError);
-    return res.status(500).json({ error: "No se pudo limpiar las membresias del miembro" });
+    return res.status(500).json({ error: "No se pudo limpiar las membresías del miembro" });
   }
 
   await supabaseAdmin.from("client_profiles").delete().eq("client_id", clientId);
@@ -115,14 +179,27 @@ async function handleDeleteMemberRequest(
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "PATCH" && req.method !== "DELETE") {
-    res.setHeader("Allow", "PATCH,DELETE");
-    return res.status(405).json({ error: "Metodo no permitido" });
-  }
-
   const { id } = req.query;
   if (typeof id !== "string" || id.length === 0) {
     return res.status(400).json({ error: "ID de miembro invalido" });
+  }
+
+  if (req.method === "GET") {
+    try {
+      const member = await fetchMemberSnapshot(id);
+      if (!member) {
+        return res.status(404).json({ error: "Miembro no encontrado" });
+      }
+      return res.status(200).json({ member });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No se pudo obtener la información del miembro";
+      return res.status(500).json({ error: message });
+    }
+  }
+
+  if (req.method !== "PATCH" && req.method !== "DELETE") {
+    res.setHeader("Allow", "GET,PATCH,DELETE");
+    return res.status(405).json({ error: "Metodo no permitido" });
   }
 
   if (req.method === "DELETE") {
@@ -151,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let normalizedPhone: string | null | undefined = undefined;
     if (phone !== undefined) {
       if (!phone) {
-        return res.status(400).json({ error: "El numero telefonico es obligatorio" });
+        return res.status(400).json({ error: "El número telefónico es obligatorio" });
       }
       const result = normalizePhoneInput(phone, settings.phoneCountry);
       if (!result.ok) {
@@ -260,7 +337,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (membershipLookupError) {
         console.error("/api/members/[id] membership lookup", membershipLookupError);
-        return res.status(500).json({ error: "No se pudo recuperar la membresia del miembro" });
+        return res.status(500).json({ error: "No se pudo recuperar la membresía del miembro" });
       }
 
       if (latestMembership?.id) {
@@ -274,7 +351,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (membershipUpdateError) {
           console.error("/api/members/[id] membership update", membershipUpdateError);
-          return res.status(500).json({ error: "No se pudo actualizar la membresia" });
+          return res.status(500).json({ error: "No se pudo actualizar la membresía" });
         }
       }
     }

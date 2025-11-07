@@ -11,8 +11,8 @@ export default function PaymentCancelledPage() {
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
           <h1 className="text-2xl font-semibold text-slate-900">Pago cancelado</h1>
           <p className="mt-4 text-sm text-slate-600">
-            El proceso de pago se cancelO o el cliente cerro la pagina de Stripe. Ningun cargo fue registrado. Si deseas
-            completar la compra mas adelante, vuelve a generar el checkout desde el panel.
+            El proceso de pago se canceló o el cliente cerró la página de Stripe. Ningún cargo fue registrado. Si deseas
+            completar la compra más adelante, vuelve a generar el checkout desde el panel.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">

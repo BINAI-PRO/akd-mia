@@ -163,7 +163,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-slate-800">Clases</h1>
-                <p className="text-sm text-slate-500">Gestiona las clases disponibles para tus horarios y sesiones.</p>
+                <p className="text-sm text-slate-500">Gestiona las clases disponibles para tus horarios y sesiónes.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <input
@@ -247,7 +247,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
         <section className="flex h-max flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <header className="border-b border-slate-200 pb-4">
             <h2 className="text-xl font-semibold text-slate-800">Agregar clase</h2>
-            <p className="text-sm text-slate-500">Define una nueva clase para usar en horarios y sesiones.</p>
+            <p className="text-sm text-slate-500">Define una nueva clase para usar en horarios y sesiónes.</p>
           </header>
 
           <form onSubmit={handleSubmit} className="mt-2 space-y-4 text-sm" noValidate>

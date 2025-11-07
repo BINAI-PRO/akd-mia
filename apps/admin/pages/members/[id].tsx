@@ -321,7 +321,7 @@ export default function EditMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Telefono
+              Teléfono
               <input
                 type="tel"
                 value={form.phone}
@@ -353,7 +353,7 @@ export default function EditMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Ocupacion
+              Ocupación
               <input
                 type="text"
                 value={form.occupation}
@@ -417,7 +417,7 @@ export default function EditMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700">
-              Telefono de contacto
+              Teléfono de contacto
               <input
                 type="tel"
                 value={form.emergencyContactPhone}
@@ -426,7 +426,7 @@ export default function EditMemberPage({
               />
             </label>
             <label className="text-sm font-medium text-slate-700 md:col-span-2">
-              Notas de la membresia
+              Notas de la membresía
               <textarea
                 value={form.membershipNotes}
                 onChange={handleChange("membershipNotes")}
@@ -438,7 +438,7 @@ export default function EditMemberPage({
 
           <div className="grid gap-6 p-6 md:grid-cols-2">
             <h2 className="md:col-span-2 text-lg font-semibold text-slate-800">
-              Resumen de membresia
+              Resumen de membresía
             </h2>
             <div className="rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 md:col-span-2">
               {latestMembership ? (
@@ -462,7 +462,7 @@ export default function EditMemberPage({
                   )}
                 </div>
               ) : (
-                <p>No hay membresias registradas para este cliente.</p>
+                <p>No hay membresías registradas para este cliente.</p>
               )}
             </div>
           </div>

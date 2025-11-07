@@ -184,7 +184,7 @@ async function tryAllocateSpecificPlan(
     sessionCategory === null || !planType.category || planType.category === sessionCategory;
 
   if (!matchesCategory) {
-    return fail("El plan no aplica para esta categoria");
+    return fail("El plan no aplica para esta categoría");
   }
 
   if (planType.app_only && isStaffActor) {
@@ -362,7 +362,7 @@ async function syncSessionOccupancy(sessionId: string) {
     .neq("status", "CANCELLED");
 
   if (error) {
-    throw new Error("No se pudo sincronizar la ocupacion de la sesion");
+    throw new Error("No se pudo sincronizar la ocupacion de la sesión");
   }
 
   const occupancy = count ?? 0;
@@ -372,7 +372,7 @@ async function syncSessionOccupancy(sessionId: string) {
     .eq("id", sessionId);
 
   if (updateError) {
-    throw new Error("No se pudo actualizar la ocupacion de la sesion");
+    throw new Error("No se pudo actualizar la ocupacion de la sesión");
   }
 }
 
@@ -524,14 +524,14 @@ async function createBooking({
     if (fixedPlan?.id) {
       throw Object.assign(
         new Error(
-          "Tu plan fijo ya tiene las clases asignadas. Contacta a recepcion si necesitas cambios."
+          "Tu plan fijo ya tiene las clases asignadas. Contacta a recepción si necesitas cambios."
         ),
         { status: 409 }
       );
     }
 
     throw Object.assign(
-      new Error("Necesitas un plan activo para reservar esta sesion."),
+      new Error("Necesitas un plan activo para reservar esta sesión."),
       { status: 409 }
     );
   }
@@ -723,7 +723,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if ((result as { duplicated?: boolean }).duplicated) {
         const duplicate = result as { bookingId?: string };
         return res.status(409).json({
-          error: "Ya tienes una reserva activa para esta sesion.",
+          error: "Ya tienes una reserva activa para esta sesión.",
           bookingId: duplicate.bookingId,
         });
       }
@@ -799,4 +799,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
+
+export type { ActorInput };
+export { createBooking, cancelBooking };
 

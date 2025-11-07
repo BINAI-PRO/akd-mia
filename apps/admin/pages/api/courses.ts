@@ -61,17 +61,17 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
       ? null
       : Number(input.price);
   if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-    throw new Error("El precio debe ser un numero valido");
+    throw new Error("El precio debe ser un número válido");
   }
 
   const parsedSessionCount = Number(input.sessionCount);
   if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
-    throw new Error("La cantidad de sesiones debe ser mayor a cero");
+    throw new Error("La cantidad de sesiónes debe ser mayor a cero");
   }
 
   const parsedSessionDuration = Number(input.sessionDurationMinutes);
   if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-    throw new Error("La duracion de cada sesion debe ser mayor a cero");
+    throw new Error("La duracion de cada sesión debe ser mayor a cero");
   }
 
   const parsedWindow =
@@ -81,7 +81,7 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
       ? null
       : Number(input.bookingWindowDays);
   if (parsedWindow !== null && (!Number.isFinite(parsedWindow) || parsedWindow < 0)) {
-    throw new Error("La ventana de reserva debe ser un numero mayor o igual a cero");
+    throw new Error("La ventana de reserva debe ser un número mayor o igual a cero");
   }
 
   if (!input.classTypeId || input.classTypeId.trim().length === 0) {
@@ -89,7 +89,7 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
   }
 
   if (!input.category || input.category.trim().length === 0) {
-    throw new Error("Debes seleccionar una categoria");
+    throw new Error("Debes seleccionar una categoría");
   }
 
   return {

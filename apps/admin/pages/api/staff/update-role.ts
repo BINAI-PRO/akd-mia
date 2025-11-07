@@ -35,7 +35,7 @@ async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse) {
 
   const slug = staffRow?.staff_roles?.slug ?? null;
   if (!slug || slug.toUpperCase() !== "MASTER") {
-    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta accion" });
+    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta acción" });
     return null;
   }
 

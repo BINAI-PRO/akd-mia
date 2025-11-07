@@ -223,13 +223,13 @@ export default function AdminMembershipsPage(
 
       const numericPrice = formState.price ? Number(formState.price) : 0;
       if (!Number.isFinite(numericPrice) || numericPrice < 0)
-        throw new Error("El precio debe ser un numero positivo");
+        throw new Error("El precio debe ser un número positivo");
 
       let classCountValue: number | null = null;
       if (formState.classCount.trim()) {
         const parsed = Number(formState.classCount);
         if (!Number.isInteger(parsed) || parsed <= 0) {
-          throw new Error("El numero de sesiones debe ser un entero positivo o deja el campo vacio para plan ilimitado");
+          throw new Error("El número de sesiónes debe ser un entero positivo o deja el campo vacío para plan ilimitado");
         }
         classCountValue = parsed;
       }
@@ -245,7 +245,7 @@ export default function AdminMembershipsPage(
 
       const trimmedCategory = formState.category.trim();
       if (!trimmedCategory) {
-        throw new Error("Debes seleccionar una categoria");
+        throw new Error("Debes seleccionar una categoría");
       }
 
       const payload = {
@@ -328,13 +328,13 @@ export default function AdminMembershipsPage(
         className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
       >
         <span className="material-icons-outlined text-sm">workspace_premium</span>
-        Tipos de membresia
+        Tipos de membresía
       </Link>
     </div>
   );
 
   return (
-    <AdminLayoutAny title="Planes de membresia" active="membershipPlans" headerToolbar={headerToolbar}>
+    <AdminLayoutAny title="Planes de membresía" active="membershipPlans" headerToolbar={headerToolbar}>
       <Head>
         <title>Planes  Admin</title>
       </Head>
@@ -345,7 +345,7 @@ export default function AdminMembershipsPage(
             <div>
               <h2 className="text-xl font-semibold text-slate-800">Planes</h2>
               <p className="text-sm text-slate-500">
-                Controla precio, categoria, vigencia y restricciones de cada plan.
+                Controla precio, categoría, vigencia y restricciones de cada plan.
               </p>
             </div>
             <div className="flex items-center gap-3 text-sm text-slate-500">
@@ -375,11 +375,11 @@ export default function AdminMembershipsPage(
                 ) : (
                   filteredPlanes.map((plan) => {
                     const detailTokens = [
-                      plan.classCount === null ? "Ilimitado" : `${plan.classCount} sesiones`,
+                      plan.classCount === null ? "Ilimitado" : `${plan.classCount} sesiónes`,
                       plan.validityDays ? `${plan.validityDays} dias de vigencia` : null,
-                      `Categoria: ${plan.category}`,
+                      `Categoría: ${plan.category}`,
                       plan.appOnly ? "Solo app" : null,
-                      plan.requiresMembership ? "Requiere membresia" : "Compra sin membresia",
+                      plan.requiresMembership ? "Requiere membresía" : "Compra sin membresía",
                     ].filter((token): token is string => Boolean(token));
 
                     return (
@@ -436,7 +436,7 @@ export default function AdminMembershipsPage(
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-xl font-semibold">Crear plan</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Define precio, vigencia, categoria y si el plan es ilimitado o exclusivo para reservas desde la app.
+            Define precio, vigencia, categoría y si el plan es ilimitado o exclusivo para reservas desde la app.
           </p>
           <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
             <div>
@@ -444,7 +444,7 @@ export default function AdminMembershipsPage(
               <input
                 value={formState.name}
                 onChange={handleChange("name")}
-                placeholder="p. ej., Paquete 10 sesiones"
+                placeholder="p. ej., Paquete 10 sesiónes"
                 className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
               />
             </div>
@@ -482,7 +482,7 @@ export default function AdminMembershipsPage(
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-600">Sesiones incluidas</label>
+                <label className="block text-sm font-medium text-slate-600">Sesiónes incluidas</label>
                 <input
                   value={formState.classCount}
                   onChange={handleChange("classCount")}
@@ -494,7 +494,7 @@ export default function AdminMembershipsPage(
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-600">Categoria</label>
+                <label className="block text-sm font-medium text-slate-600">Categoría</label>
                 <select
                   value={formState.category}
                   onChange={handleChange("category")}
@@ -510,7 +510,7 @@ export default function AdminMembershipsPage(
               <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                 <div>
                   <span className="font-medium text-slate-600">Solo desde la app</span>
-                  <p className="text-xs text-slate-500">La recepcion no podra reservar con este plan.</p>
+                  <p className="text-xs text-slate-500">La recepción no podra reservar con este plan.</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input
@@ -525,8 +525,8 @@ export default function AdminMembershipsPage(
               </div>
               <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
                 <div>
-                  <span className="font-medium text-slate-600">Requiere membresia activa</span>
-                  <p className="text-xs text-slate-500">Desactivalo para permitir la compra sin membresia anual.</p>
+                  <span className="font-medium text-slate-600">Requiere membresía activa</span>
+                  <p className="text-xs text-slate-500">Desactivalo para permitir la compra sin membresía anual.</p>
                 </div>
                 <label className="relative inline-flex cursor-pointer items-center">
                   <input

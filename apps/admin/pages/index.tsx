@@ -289,7 +289,7 @@ export default function AdminDashboardPage({
             helper="Estado ACTIVO"
           />
           <StatCard
-            title="Sesiones próximas (7d)"
+            title="Sesiónes próximas (7d)"
             icon="event_available"
             tone="green"
             value={NUMBER_FORMATTER.format(stats.upcomingClasses)}
@@ -354,11 +354,11 @@ export default function AdminDashboardPage({
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Próximas Sesiones</h2>
+              <h2 className="text-lg font-semibold">Próximas Sesiónes</h2>
               <span className="text-xs text-slate-500">Proximos 5 turnos</span>
             </div>
             {upcomingSessions.length === 0 ? (
-              <p className="text-sm text-slate-500">No hay sesiones programadas en los próximos días.</p>
+              <p className="text-sm text-slate-500">No hay sesiónes programadas en los próximos días.</p>
             ) : (
               <ul className="space-y-4">
                 {upcomingSessions.map((session) => {
@@ -428,7 +428,7 @@ export default function AdminDashboardPage({
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium">{payment.memberName ?? "Cliente"}</p>
-                          <p className="text-xs text-slate-500">{payment.membershipName ?? "Membresia"}</p>
+                          <p className="text-xs text-slate-500">{payment.membershipName ?? "Membresía"}</p>
                         </div>
                         <div className="text-sm font-semibold">
                           {amountFormatter.format(payment.amount)}

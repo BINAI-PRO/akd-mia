@@ -344,7 +344,7 @@ export default function AdminClassesPage({
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudo crear la sesion 1:1');
+        throw new Error(body?.error ?? 'No se pudo crear la sesión 1:1');
       }
 
       const created = body.session as SessionQueryRow;
@@ -355,7 +355,7 @@ export default function AdminClassesPage({
       const newRow: ClassRow = {
         id: created.id,
         courseId: created.course_id ?? null,
-        courseTitle: created.courses?.title ?? 'Sesion 1:1',
+        courseTitle: created.courses?.title ?? "Sesión 1:1",
         className: created.class_types?.name ?? 'Clase',
         classTypeId: created.class_type_id ?? null,
         instructorId: created.instructors?.id ?? null,
@@ -375,7 +375,7 @@ export default function AdminClassesPage({
       setActiveClassId(created.id);
       closeSingleModal();
     } catch (error) {
-      setSingleError(error instanceof Error ? error.message : 'No se pudo crear la sesion 1:1');
+      setSingleError(error instanceof Error ? error.message : 'No se pudo crear la sesión 1:1');
     } finally {
       setSingleSubmitting(false);
     }
@@ -472,7 +472,7 @@ export default function AdminClassesPage({
       });
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudieron actualizar las sesiones seleccionadas');
+        throw new Error(body?.error ?? 'No se pudieron actualizar las sesiónes seleccionadas');
       }
 
       const updatedRows: SessionQueryRow[] = body.sessions ?? [];
@@ -492,12 +492,12 @@ export default function AdminClassesPage({
         )
       );
 
-      setBulkMessage(body?.message ?? 'Sesiones actualizadas');
+      setBulkMessage(body?.message ?? 'Sesiónes actualizadas');
       clearSelection();
       setBulkInstructorId('');
       setBulkRoomId('');
     } catch (error) {
-      setBulkError(error instanceof Error ? error.message : 'No se pudieron actualizar las sesiones');
+      setBulkError(error instanceof Error ? error.message : 'No se pudieron actualizar las sesiónes');
     } finally {
       setBulkProcessing(false);
     }
@@ -507,7 +507,7 @@ export default function AdminClassesPage({
     setBulkError(null);
     setBulkMessage(null);
     if (selectedIds.size === 0) return;
-    if (!globalThis.confirm('Seguro que deseas enviar estas sesiones a reprogramacion? Esta accion las eliminara.')) {
+    if (!globalThis.confirm("¿Seguro que deseas enviar estas sesiónes a reprogramación? Esta acción las eliminará.")) {
       return;
     }
 
@@ -520,7 +520,7 @@ export default function AdminClassesPage({
       });
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudieron reprogramar las sesiones seleccionadas');
+        throw new Error(body?.error ?? 'No se pudieron reprogramar las sesiónes seleccionadas');
       }
 
       const removedIds: string[] = body.removedIds ?? [];
@@ -531,9 +531,9 @@ export default function AdminClassesPage({
         setActiveClassId(null);
       }
       clearSelection();
-      setBulkMessage(body?.message ?? 'Sesiones enviadas a reprogramacion');
+      setBulkMessage(body?.message ?? "Sesiónes enviadas a reprogramación");
     } catch (error) {
-      setBulkError(error instanceof Error ? error.message : 'No se pudieron reprogramar las sesiones');
+      setBulkError(error instanceof Error ? error.message : 'No se pudieron reprogramar las sesiónes');
     } finally {
       setBulkProcessing(false);
     }
@@ -552,9 +552,9 @@ export default function AdminClassesPage({
 
   const occupancyLocks = activeClass ? activeClass.occupancy > 0 : false;
   return (
-    <AdminLayout title="Sesiones" active="classes">
+    <AdminLayout title="Sesiónes" active="classes">
       <Head>
-        <title>PilatesTime Admin - Sesiones</title>
+        <title>PilatesTime Admin - Sesiónes</title>
       </Head>
       {singleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-4 py-10">
@@ -676,7 +676,7 @@ export default function AdminClassesPage({
                   </label>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Las sesiones 1:1 se crean sin horario asociado. Podr�s gestionar reservas y ajustes desde esta misma pantalla.
+                  Las sesiónes 1:1 se crean sin horario asociado. Podr�s gestionar reservas y ajustes desde esta misma pantalla.
                 </p>
                 {singleError && (
                   <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
@@ -716,8 +716,8 @@ export default function AdminClassesPage({
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Sesiones programadas</h2>
-                <p className="text-xs text-slate-500">Gestiona sesiones de horarios y sesiones 1:1 programadas.</p>
+                <h2 className="text-lg font-semibold">Sesiónes programadas</h2>
+                <p className="text-xs text-slate-500">Gestiona sesiónes de horarios y sesiónes 1:1 programadas.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -767,7 +767,7 @@ export default function AdminClassesPage({
             {selectedIds.size > 0 && (
               <div className="mb-4 flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">{selectedIds.size} sesiones seleccionadas</span>
+                  <span className="font-semibold">{selectedIds.size} sesiónes seleccionadas</span>
                   <button
                     type="button"
                     onClick={clearSelection}
@@ -815,7 +815,7 @@ export default function AdminClassesPage({
                     disabled={bulkProcessing}
                     className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   >
-                    {bulkProcessing ? 'Procesando...' : 'Enviar a reprogramacion'}
+                    {bulkProcessing ? "Procesando..." : "Enviar a reprogramación"}
                   </button>
                 </div>
                 {(bulkError || bulkMessage) && (
@@ -859,7 +859,7 @@ export default function AdminClassesPage({
                   {filteredClasses.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-6 text-center text-sm text-slate-500">
-                        No hay sesiones que coincidan con los filtros.
+                        No hay sesiónes que coincidan con los filtros.
                       </td>
                     </tr>
                   ) : (

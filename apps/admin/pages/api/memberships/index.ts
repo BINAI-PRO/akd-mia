@@ -39,7 +39,7 @@ export default async function handler(
     );
 
     return res.status(200).json({
-      message: "Membresia registrada correctamente",
+      message: "Membresía registrada correctamente",
       member: result.memberSnapshot,
     });
   } catch (error) {

@@ -15,7 +15,7 @@ function ensurePrefix(prefix: string, local: string): string {
 export function normalizePhoneInput(value: string, country: StudioPhoneCountry): NormalizeResult {
   const digits = stripDigits(value);
   if (digits.length === 0) {
-    return { ok: false, error: "El numero telefonico es obligatorio" };
+    return { ok: false, error: "El número telefónico es obligatorio" };
   }
 
   if (country === "MX") {
@@ -30,7 +30,7 @@ export function normalizePhoneInput(value: string, country: StudioPhoneCountry):
     }
     return {
       ok: false,
-      error: "Ingresa un numero valido de Mexico (10 digitos, con o sin prefijo +52)",
+      error: "Ingresa un número válido de México (10 dígitos, con o sin prefijo +52)",
     };
   }
 
@@ -43,11 +43,11 @@ export function normalizePhoneInput(value: string, country: StudioPhoneCountry):
     }
     return {
       ok: false,
-      error: "Ingresa un numero valido de Espana (9 digitos, con o sin prefijo +34)",
+      error: "Ingresa un número válido de España (9 dígitos, con o sin prefijo +34)",
     };
   }
 
-  return { ok: false, error: "Formato de telefono no soportado" };
+  return { ok: false, error: "Formato de teléfono no soportado" };
 }
 
 export function maskPhoneForDisplay(value: string): string {

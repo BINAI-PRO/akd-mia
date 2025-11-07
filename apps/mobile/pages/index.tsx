@@ -57,7 +57,7 @@ export default function Home() {
       .then(async (response) => {
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload?.error ?? "No se pudo cargar la membresia");
+          throw new Error(payload?.error ?? "No se pudo cargar la membresía");
         }
         return response.json() as Promise<{ membership: MembershipSummary | null }>;
       })
@@ -67,7 +67,7 @@ export default function Home() {
       })
       .catch((error: unknown) => {
         if (!active || controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "No se pudo cargar la membresia";
+        const message = error instanceof Error ? error.message : "No se pudo cargar la membresía";
     setMembershipState({ status: "error", membership: null, error: message });
   });
 
@@ -110,7 +110,7 @@ export default function Home() {
     if (membershipState.status === "error") {
       return (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-4 text-sm text-rose-700 shadow-sm">
-          {membershipState.error ?? "No se pudo obtener informacion de la membresia."}
+          {membershipState.error ?? "No se pudo obtener informacion de la membresía."}
         </div>
       );
     }
@@ -121,7 +121,7 @@ export default function Home() {
       ? isActive
         ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
         : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
-      : "Membresia inactiva";
+      : "Membresía inactiva";
 
     return (
       <div
@@ -134,7 +134,7 @@ export default function Home() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-sm font-semibold text-neutral-900">
-              {membership?.name ?? "Membresia"}
+              {membership?.name ?? "Membresía"}
             </p>
             <p className="text-xs text-neutral-600">{statusLabel}</p>
             {membership?.autoRenew && (
@@ -160,13 +160,13 @@ export default function Home() {
             onClick={() => router.push("/membership")}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
           >
-            Gestionar membresia
+            Gestionar membresía
           </button>
           <a
-            href={`mailto:${RECEPTION_EMAIL}?subject=Consulta%20sobre%20membresia`}
+            href={`mailto:${RECEPTION_EMAIL}?subject=Consulta%20sobre%20membresía`}
             className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100"
           >
-            Escribir a recepcion
+            Escribir a recepción
           </a>
         </div>
       </div>
@@ -195,7 +195,7 @@ export default function Home() {
           Hola{firstName ? `, ${firstName}` : ""}
         </h1>
         <p className="max-w-xs text-sm text-stone-700">
-          Reserva y gestiona tus sesiones en un solo lugar. Estamos listos para tu proxima clase.
+          Reserva y gestiona tus sesiónes en un solo lugar. Estamos listos para tu proxima clase.
         </p>
 
         <Link href="/schedule" className="btn max-w-xs">

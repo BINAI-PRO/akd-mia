@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { id } = req.query;
   if (typeof id !== "string" || !id) {
-    return res.status(400).json({ error: "Identificador de sesion invalido" });
+    return res.status(400).json({ error: "Identificador de sesión invalido" });
   }
 
   const { data: sessionRow, error: sessionError } = await supabaseAdmin

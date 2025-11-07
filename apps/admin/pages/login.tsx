@@ -33,7 +33,7 @@ export default function AdminLoginPage() {
           "Tu cuenta no tiene acceso administrativo. Solicita una invitacion al administrador."
         );
       } else if (errorParam === "auth_required") {
-        setFormError("Tu sesion expiro. Vuelve a iniciar sesion para continuar.");
+        setFormError("Tu sesión expiró. Vuelve a iniciar sesión para continuar.");
       }
     }
   }, [router.isReady, router.query.error]);

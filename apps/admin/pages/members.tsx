@@ -147,7 +147,12 @@ function mapMember(row: MemberQueryRow): MemberRow {
   const lastMembershipTypeId = activeMembership?.membership_type_id ?? latestMembership?.membership_type_id ?? null;
 
   const planPurchases = row.plan_purchases ?? [];
-  const planActiveCount = planPurchases.filter((plan) => plan.status === "ACTIVE").length;
+  const planActiveCount = planPurchases.filter((plan) => {
+    const status = typeof plan.status === "string" ? plan.status.trim().toUpperCase() : "";
+    if (status !== "ACTIVE") return false;
+    if (plan.expires_at && dayjs(plan.expires_at).isBefore(now, "day")) return false;
+    return true;
+  }).length;
 
   const hasActiveMembership = membershipStatus === "ACTIVE";
   const Estado: MiembroEstado = hasActiveMembership ? "ACTIVE" : "ON_HOLD";
@@ -519,6 +524,20 @@ type PlanFormState = {
     [planModalMember, getEligiblePlanOptions]
   );
 
+  const fetchMemberSnapshot = async (memberId: string): Promise<MemberQueryRow | null> => {
+    try {
+      const response = await fetch(`/api/members/${memberId}`);
+      if (!response.ok) {
+        return null;
+      }
+      const payload = (await response.json().catch(() => ({}))) as { member?: MemberQueryRow };
+      return (payload?.member as MemberQueryRow | undefined) ?? null;
+    } catch (error) {
+      console.error("fetchMemberSnapshot", error);
+      return null;
+    }
+  };
+
   const upsertMemberRow = (memberData: MemberQueryRow) => {
     const mapped = mapMember(memberData);
     setRows((prev) => {
@@ -597,18 +616,18 @@ type PlanFormState = {
     if (!membershipModalMember) return;
 
     if (!membershipForm.membershipTypeId) {
-      setMembershipError("Selecciona un tipo de membresia");
+      setMembershipError("Selecciona un tipo de membresía");
       return;
     }
 
     const selectedOption = getMembershipOption(membershipForm.membershipTypeId);
     if (!selectedOption) {
-      setMembershipError("El tipo de membresia seleccionado no es valido");
+      setMembershipError("El tipo de membresía seleccionado no es valido");
       return;
     }
 
     if (!selectedOption.allowMultiYear && membershipForm.termYears !== 1) {
-      setMembershipError("Esta membresia solo permite pagar un anio a la vez");
+      setMembershipError("Esta membresía solo permite pagar un anio a la vez");
       return;
     }
 
@@ -616,7 +635,7 @@ type PlanFormState = {
       selectedOption.maxPrepaidYears &&
       membershipForm.termYears > selectedOption.maxPrepaidYears
     ) {
-      setMembershipError(`Esta membresia admite hasta ${selectedOption.maxPrepaidYears} anios por pago`);
+      setMembershipError(`Esta membresía admite hasta ${selectedOption.maxPrepaidYears} anios por pago`);
       return;
     }
 
@@ -650,7 +669,7 @@ type PlanFormState = {
           throw new Error(body?.error ?? "No se pudo iniciar el pago con tarjeta");
         }
         window.open(body.url, "_blank", "noopener");
-        setMembershipSuccess("Abrimos Stripe en una nueva pestana. La membresia se activara cuando el pago sea confirmado.");
+        setMembershipSuccess("Abrimos Stripe en una nueva pestana. La membresía se activará cuando el pago sea confirmado.");
         setMembershipLoading(false);
         return;
       }
@@ -663,13 +682,19 @@ type PlanFormState = {
 
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(body?.error ?? "No se pudo registrar la membresia");
+        throw new Error(body?.error ?? "No se pudo registrar la membresía");
       }
 
-      upsertMemberRow(body.member as MemberQueryRow);
+      const snapshot =
+        (body?.member as MemberQueryRow | undefined) ?? (await fetchMemberSnapshot(membershipModalMember.id));
+      if (snapshot) {
+        upsertMemberRow(snapshot);
+      } else {
+        setMembershipError("La membresía se registró, pero no pudimos refrescar la lista. Recarga para ver los cambios.");
+      }
       closeMembershipModal();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo registrar la membresia";
+      const message = error instanceof Error ? error.message : "No se pudo registrar la membresía";
       setMembershipError(message);
       setMembershipLoading(false);
     } finally {
@@ -698,7 +723,7 @@ type PlanFormState = {
       return;
     }
     if (selectedPlan.requiresMembership && !planModalMember.hasActiveMembership) {
-      setPlanError("Este plan requiere una membresia activa");
+      setPlanError("Este plan requiere una membresía activa");
       return;
     }
 
@@ -741,7 +766,7 @@ type PlanFormState = {
 
         window.open(body.url, "_blank", "noopener");
         setPlanSuccess(
-          "Abrimos Stripe en una nueva pestana. El plan se activara automaticamente cuando el pago sea confirmado."
+          "Abrimos Stripe en una nueva pestana. El plan se activará automaticamente cuando el pago sea confirmado."
         );
         setPlanLoading(false);
         return;
@@ -758,7 +783,13 @@ type PlanFormState = {
         throw new Error(body?.error ?? "No se pudo registrar el plan");
       }
 
-      upsertMemberRow(body.member as MemberQueryRow);
+      const snapshot =
+        (body?.member as MemberQueryRow | undefined) ?? (await fetchMemberSnapshot(planModalMember.id));
+      if (snapshot) {
+        upsertMemberRow(snapshot);
+      } else {
+        setPlanError("El plan se registró, pero no pudimos refrescar la lista. Recarga para ver los cambios.");
+      }
       closePlanModal();
     } catch (error) {
       const message = error instanceof Error ? error.message : "No se pudo registrar el plan";
@@ -784,7 +815,7 @@ type PlanFormState = {
     typeof rawPlanPrice === "number" && Number.isFinite(rawPlanPrice) && rawPlanPrice >= 0;
   const planPriceLabel = hasPlanPrice
     ? getCurrencyFormatter(planCurrency).format(rawPlanPrice)
-    : "Consultar en recepcion";
+    : "Consultar en recepción";
   const planSupportsCard = Boolean(hasPlanPrice && (rawPlanPrice ?? 0) > 0);
   const selectedPlanClassCount = selectedPlanOption
     ? selectedPlanOption.classCount === null
@@ -811,7 +842,7 @@ type PlanFormState = {
             <div>
               <h2 className="text-xl font-semibold text-slate-800">Miembros</h2>
               <p className="text-sm text-slate-500">
-                Supervisa membresias activas, problemas de cobro y asignacion de planes.
+                Supervisa membresías activas, problemas de cobro y asignacion de planes.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -860,7 +891,7 @@ type PlanFormState = {
                       onClick={() => handleSort("MEMBERSHIP")}
                       className="flex items-center gap-1 font-semibold tracking-wide text-slate-500"
                     >
-                      Membresia
+                      Membresía
                       <span className="material-icons-outlined text-base">{getSortIcon("MEMBERSHIP")}</span>
                     </button>
                   </th>
@@ -914,7 +945,7 @@ type PlanFormState = {
                           : "Activa"
                         : row.membershipStatus === "EXPIRED" && row.membershipEnd
                           ? `Vencida ${dayjs(row.membershipEnd).format("DD MMM YYYY")}`
-                          : "Sin membresia";
+                          : "Sin membresía";
                     return (
                       <tr key={row.id} className="border-t border-slate-200 hover:bg-slate-50">
                         <td className="px-6 py-4">
@@ -926,10 +957,10 @@ type PlanFormState = {
                         <td className="px-6 py-4 text-slate-700">
                           <div className="font-medium">
                             {row.membershipStatus === "ACTIVE"
-                              ? row.membershipName ?? "Membresia activa"
+                              ? row.membershipName ?? "Membresía activa"
                               : row.membershipStatus === "EXPIRED"
-                              ? row.membershipName ?? "Membresia expirada"
-                              : "Sin membresia"}
+                              ? row.membershipName ?? "Membresía expirada"
+                              : "Sin membresía"}
                           </div>
                           <div className="text-xs text-slate-500">{membershipDetails}</div>
                           {row.membershipPrivileges && (
@@ -953,7 +984,7 @@ type PlanFormState = {
                               className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                             >
                               <span className="material-icons-outlined text-sm">credit_score</span>
-                              Membresia
+                              Membresía
                             </button>
                             <button
                               type="button"
@@ -1023,7 +1054,7 @@ type PlanFormState = {
               </p>
             </div>
             <div className="space-y-3 px-6 py-5 text-sm text-slate-600">
-              <p>Esta accion elimina al miembro y sus registros relacionados. No se puede deshacer.</p>
+                  <p>Esta acción elimina al miembro y sus registros relacionados. No se puede deshacer.</p>
               {deleteError && (
                 <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
                   {deleteError}
@@ -1058,7 +1089,7 @@ type PlanFormState = {
             <form onSubmit={handleMembershipSubmit}>
               <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800">Registrar membresia</h3>
+                  <h3 className="text-lg font-semibold text-slate-800">Registrar membresía</h3>
                   <p className="text-xs text-slate-500">{membershipModalMember.name}</p>
                 </div>
                 <button
@@ -1108,7 +1139,7 @@ type PlanFormState = {
                   <p className="mt-2 text-[11px] text-slate-500">
                     {membershipPaymentMode === "CARD"
                       ? "Generaremos un checkout de Stripe en una nueva pestana para que el cliente pague con tarjeta."
-                      : "Registra aqui los pagos confirmados en recepcion o efectivo. La membresia se activara al guardar."}
+                      : "Registra aqui los pagos confirmados en recepción o efectivo. La membresía se activará al guardar."}
                   </p>
                 </div>
 
@@ -1119,7 +1150,7 @@ type PlanFormState = {
                 ) : null}
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600">Tipo de membresia</label>
+                  <label className="block text-xs font-medium text-slate-600">Tipo de membresía</label>
                   <select
                     value={membershipForm.membershipTypeId}
                     onChange={(event) =>
@@ -1284,7 +1315,7 @@ type PlanFormState = {
                   <p className="mt-2 text-[11px] text-slate-500">
                     {planPaymentMode === "CARD"
                       ? "Generaremos un checkout de Stripe en una nueva pestana para que el cliente pague con tarjeta."
-                      : "Registra aqui los pagos confirmados en recepcion o efectivo. El plan se activara al guardar."}
+                      : "Registra aqui los pagos confirmados en recepción o efectivo. El plan se activará al guardar."}
                   </p>
                   {planPaymentMode === "CARD" && !planSupportsCard ? (
                     <p className="mt-2 text-[11px] text-amber-600">
@@ -1316,13 +1347,13 @@ type PlanFormState = {
                       <option key={option.id} value={option.id}>
                         {option.name}{" "}
                         {getCurrencyFormatter(option.currency).format(option.price)}
-                        {!option.requiresMembership ? " - sin membresia" : ""}
+                        {!option.requiresMembership ? " - sin membresía" : ""}
                       </option>
                     ))}
                   </select>
                   {availablePlanOptions.length === 0 && (
                     <p className="mt-1 text-xs text-amber-600">
-                      No hay planes disponibles. Activa una membresia o habilita planes sin requisito de membresia.
+                      No hay planes disponibles. Activa una membresía o habilita planes sin requisito de membresía.
                     </p>
                   )}
                 </div>
@@ -1396,7 +1427,7 @@ type PlanFormState = {
                           <>
                             <p>
                               Se asignaran{" "}
-                              <span className="font-semibold">{selectedPlanClassCount}</span> sesiones del horario.
+                              <span className="font-semibold">{selectedPlanClassCount}</span> sesiónes del horario.
                             </p>
                             <p>El alumno no necesita reservar de forma manual.</p>
                           </>
@@ -1406,8 +1437,8 @@ type PlanFormState = {
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
                           {selectedPlanOption.requiresMembership
-                            ? "Requiere membresia activa para asignarse."
-                            : "Disponible para clientes sin membresia activa."}
+                            ? "Requiere membresía activa para asignarse."
+                            : "Disponible para clientes sin membresía activa."}
                         </p>
                       </>
                     ) : (

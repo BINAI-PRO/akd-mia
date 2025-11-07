@@ -25,11 +25,11 @@ type PageProps = {
 };
 
 function startOfWeekSunday(date: dayjs.Dayjs) {
-  return date.startOf("week");
+  return date.locale("en").startOf("week");
 }
 
 function endOfWeekSunday(date: dayjs.Dayjs) {
-  return date.endOf("week");
+  return date.locale("en").endOf("week");
 }
 
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {

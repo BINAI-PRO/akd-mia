@@ -186,7 +186,7 @@ function SessionsSummary({
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <MetricCard label="Sesiones programadas" value={NUMBER_FORMATTER.format(scheduled)} />
+      <MetricCard label="Sesiónes programadas" value={NUMBER_FORMATTER.format(scheduled)} />
       <MetricCard
         label="Reservas confirmadas"
         value={NUMBER_FORMATTER.format(reserved)}
@@ -198,7 +198,7 @@ function SessionsSummary({
         helper={`${attendanceRate}% de asistencia`}
       />
       <MetricCard
-        label="Sesiones perdidas por vencimiento"
+        label="Sesiónes perdidas por vencimiento"
         value={NUMBER_FORMATTER.format(lost)}
         helper="Créditos que expiraron con saldo"
       />
@@ -268,7 +268,7 @@ export default function ReportsPage() {
             value={NUMBER_FORMATTER.format(data.metrics.activePlans)}
           />
           <MetricCard
-            label="Sesiones próximas (7 días)"
+            label="Sesiónes próximas (7 días)"
             value={NUMBER_FORMATTER.format(data.metrics.upcomingSessions)}
           />
         </section>
@@ -303,7 +303,7 @@ export default function ReportsPage() {
 
         <section className="space-y-4">
           <header className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-slate-900">{"Sesiones y asistencia"}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">{"Sesiónes y asistencia"}</h2>
             <p className="text-xs text-slate-500">
               {"Actividades para los siguientes 30 días y créditos expirados."}
             </p>

@@ -176,7 +176,7 @@ export default function PlansPage() {
       return;
     }
     if (selectedPlan.requiresMembership && !hasActiveMembership) {
-      setCheckoutError("Debes tener una membresia activa para adquirir este plan");
+      setCheckoutError("Debes tener una membresía activa para adquirir este plan");
       setCheckoutLoading(null);
       return;
     }
@@ -225,7 +225,7 @@ export default function PlansPage() {
       ? isActive
         ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
         : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
-      : "Membresia inactiva";
+      : "Membresía inactiva";
 
     membershipBanner = (
       <div
@@ -236,11 +236,11 @@ export default function PlansPage() {
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-neutral-900">
-              {membership?.name ?? "Membresia"}
+              {membership?.name ?? "Membresía"}
             </p>
             <p className="text-xs text-neutral-600">{statusLabel}</p>
             {membership?.category && (
-              <p className="text-[11px] text-neutral-500">Categoria: {membership.category}</p>
+              <p className="text-[11px] text-neutral-500">Categoría: {membership.category}</p>
             )}
           </div>
           <button
@@ -248,7 +248,7 @@ export default function PlansPage() {
             onClick={() => router.push("/membership")}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
           >
-            Gestionar membresia
+            Gestionar membresía
           </button>
         </div>
       </div>
@@ -256,7 +256,7 @@ export default function PlansPage() {
   } else if (state.status === "error") {
     membershipBanner = (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
-        No se pudo cargar la informacion de la membresia. {state.message}
+        No se pudo cargar la informacion de la membresía. {state.message}
       </div>
     );
   }
@@ -351,19 +351,19 @@ export default function PlansPage() {
                     <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-600 font-medium">Categoria</dt>
-                    <dd>{activePlan.category ?? "Sin categoria"}</dd>
+                    <dt className="text-brand-600 font-medium">Categoría</dt>
+                    <dd>{activePlan.category ?? "Sin categoría"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu plan actual, contacta a recepcion para recibir apoyo.
+                  Si necesitas ajustar tu plan actual, contacta a recepción para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
                 <h2 className="text-base font-semibold text-brand-800">Aun no tienes un plan activo</h2>
                 <p className="mt-1 text-sm text-neutral-600">
-                  Elige uno de los paquetes flexibles para reservar sesiones y asegurar tu lugar en clase.
+                  Elige uno de los paquetes flexibles para reservar sesiónes y asegurar tu lugar en clase.
                 </p>
               </section>
             )}
@@ -384,7 +384,7 @@ export default function PlansPage() {
 
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-5">
                     <div>
-                      <dt className="font-medium text-neutral-500">Sesiones</dt>
+                      <dt className="font-medium text-neutral-500">Sesiónes</dt>
                       <dd>{plan.isUnlimited ? "Ilimitado" : (plan.classCount ?? 0)}</dd>
                     </div>
                     <div>
@@ -396,15 +396,15 @@ export default function PlansPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Categoria</dt>
-                      <dd>{plan.category ?? "Sin categoria"}</dd>
+                      <dt className="font-medium text-neutral-500">Categoría</dt>
+                      <dd>{plan.category ?? "Sin categoría"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
-                      <dd>{plan.appOnly ? "Solo app" : "App y recepcion"}</dd>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepción"}</dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Membresia</dt>
+                      <dt className="font-medium text-neutral-500">Membresía</dt>
                       <dd>{plan.requiresMembership ? "Requerida" : "No requerida"}</dd>
                     </div>
                   </dl>
@@ -435,10 +435,10 @@ export default function PlansPage() {
                       <span className="material-icons-outlined text-base" aria-hidden="true">
                         support_agent
                       </span>
-                      Pagar en recepcion
+                      Pagar en recepción
                     </button>
                     <p className="text-[11px] text-neutral-500">
-                      Nota: Realiza el pago en recepcion y solicita la activacion del plan.
+                      Nota: Realiza el pago en recepción y solicita la activación del plan.
                     </p>
                   </div>
                 </article>
@@ -447,21 +447,21 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Activa tu membresia anual para acceder a los planes disponibles."
-                    : "No hay planes disponibles en este momento. Consulta mas tarde o contacta a recepcion."}
+                    ? "Activa tu membresía anual para acceder a los planes disponibles."
+                    : "No hay planes disponibles en este momento. Consulta más tarde o contacta a recepción."}
                 </p>
               )}
 
               {lockedPlanCount > 0 && availablePlanTypes.length > 0 && (
                 <p className="text-xs text-neutral-500">
-                  Activa tu membresia anual para desbloquear {lockedPlanCount === 1 ? "un plan adicional" : `${lockedPlanCount} planes adicionales`}.
+                  Activa tu membresía anual para desbloquear {lockedPlanCount === 1 ? "un plan adicional" : `${lockedPlanCount} planes adicionales`}.
                 </p>
               )}
             </section>
 
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
               <p>
-                Los pagos en efectivo o transferencia deben confirmarse con recepcion para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
+                Los pagos en efectivo o transferencia deben confirmarse con recepción para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
               </p>
             </section>
           </div>

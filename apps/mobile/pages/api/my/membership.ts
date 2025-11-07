@@ -90,7 +90,7 @@ export default async function handler(
     return res.status(200).json({ membership });
   } catch (membershipError) {
     const message =
-      membershipError instanceof Error ? membershipError.message : "No se pudo consultar la membresia";
+      membershipError instanceof Error ? membershipError.message : "No se pudo consultar la membresía";
     return res.status(500).json({ error: message });
   }
 }

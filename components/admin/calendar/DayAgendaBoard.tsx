@@ -112,7 +112,7 @@ export default function DayAgendaBoard({
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         console.error(error);
-        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiones");
+        setError(error instanceof Error ? error.message : "No se pudieron cargar las sesiónes");
       } finally {
         if (!controller.signal.aborted) {
           setLoading(false);

@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const payment: PlanPaymentPayload = {
       status: "SUCCESS",
-      providerRef: "MANUAL_ADMIN",
+      providerRef: null,
       notes: notes ?? null,
       paidAt: madridDayjs().toISOString(),
     };

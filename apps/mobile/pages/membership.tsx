@@ -56,7 +56,7 @@ export default function MembershipPage() {
       .then(async (response) => {
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          throw new Error(payload?.error ?? "No se pudo cargar la membresia");
+          throw new Error(payload?.error ?? "No se pudo cargar la membresía");
         }
         return response.json() as Promise<{ membership: MembershipSummary | null }>;
       })
@@ -66,7 +66,7 @@ export default function MembershipPage() {
       })
       .catch((error: unknown) => {
         if (!active || controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "No se pudo cargar la membresia";
+        const message = error instanceof Error ? error.message : "No se pudo cargar la membresía";
         setState({ status: "error", membership: null, error: message });
       });
 
@@ -104,7 +104,7 @@ export default function MembershipPage() {
       ? isActive
         ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
         : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
-      : "Aun no tienes una membresia registrada";
+      : "Aun no tienes una membresía registrada";
 
     content = (
       <div className="space-y-6">
@@ -117,12 +117,12 @@ export default function MembershipPage() {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-base font-semibold text-neutral-900">
-                  {membership?.name ?? "Membresia"}
+                  {membership?.name ?? "Membresía"}
                 </p>
                 <p className="text-sm text-neutral-600">{statusLabel}</p>
                 {membership?.category && (
                   <p className="text-[11px] text-neutral-500">
-                    Categoria: {membership.category}
+                    Categoría: {membership.category}
                   </p>
                 )}
               </div>
@@ -159,14 +159,14 @@ export default function MembershipPage() {
                         currency: membership.currency,
                         maximumFractionDigits: 0,
                       }).format(membership.price)
-                    : "Consultar en recepcion"}
+                    : "Consultar en recepción"}
                 </dd>
               </div>
             </dl>
 
             <p className="text-[11px] text-neutral-500">
-              El pago con tarjeta redirige al bio oficial para completar la transaccion. Tambien puedes
-              acudir a recepcion para realizar el pago y activar tu membresia manualmente.
+              El pago con tarjeta redirige al bio oficial para completar la transacción. También puedes
+              acudir a recepción para realizar el pago y activar tu membresía manualmente.
             </p>
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">
@@ -183,16 +183,16 @@ export default function MembershipPage() {
                 Pagar con tarjeta
               </button>
               <a
-                href={`mailto:${RECEPTION_EMAIL}?subject=Renovacion de membresia`}
+                href={`mailto:${RECEPTION_EMAIL}?subject=Renovacion de membresía`}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-neutral-300 px-4 py-2 text-sm font-semibold text-neutral-700 transition hover:bg-neutral-100"
               >
-                Pagar en recepcion
+                Pagar en recepción
               </a>
             </div>
 
             {RECEPTION_PHONE && (
               <p className="text-[11px] text-neutral-500">
-                Tambien puedes llamar al{" "}
+                También puedes llamar al{" "}
                 <a className="font-semibold text-brand-700" href={`tel:${RECEPTION_PHONE}`}>
                   {RECEPTION_PHONE}
                 </a>{" "}
@@ -204,7 +204,7 @@ export default function MembershipPage() {
 
         <section className="space-y-2 rounded-2xl border border-neutral-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
           <p>
-            Una membresia activa te permite reservar clases en cualquier momento. Si tu membresia
+            Una membresía activa te permite reservar clases en cualquier momento. Si tu membresía
             expira, aun podras acceder a la app, pero necesitaras renovarla antes de reservar nuevas
             clases.
           </p>
@@ -220,7 +220,7 @@ export default function MembershipPage() {
         <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-600 shadow-sm">
           <p>
             ¿Buscas un paquete de clases flexible? Revisa los planes disponibles y combina tu
-            membresia con paquetes adicionales.
+            membresía con paquetes adicionales.
           </p>
           <Link
             href="/plans"
@@ -236,13 +236,13 @@ export default function MembershipPage() {
   return (
     <>
       <Head>
-        <title>Mi membresia | ATP Pilates</title>
+        <title>Mi membresía | ATP Pilates</title>
       </Head>
       <main className="container-mobile space-y-6 pb-24 pt-6">
         <header className="space-y-1">
-          <h1 className="text-2xl font-bold text-neutral-900">Mi membresia</h1>
+          <h1 className="text-2xl font-bold text-neutral-900">Mi membresía</h1>
           <p className="text-sm text-neutral-500">
-            Consulta la vigencia de tu membresia y elige como renovarla.
+            Consulta la vigencia de tu membresía y elige como renovarla.
           </p>
         </header>
         {content}

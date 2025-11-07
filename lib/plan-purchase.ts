@@ -72,7 +72,7 @@ async function countSessionOccupancy(sessionId: string): Promise<number> {
     .neq("status", "CANCELLED");
 
   if (error) {
-    throw new Error("No se pudo validar la disponibilidad de una sesion del curso");
+    throw new Error("No se pudo validar la disponibilidad de una sesión del curso");
   }
 
   return count ?? 0;
@@ -111,7 +111,7 @@ async function generateFixedPlanBookings(params: {
     .limit(classCount * 5);
 
   if (sessionsError) {
-    throw new Error("No se pudieron consultar las sesiones del curso seleccionado");
+    throw new Error("No se pudieron consultar las sesiónes del curso seleccionado");
   }
 
   const eligible = (sessions ?? []).slice(0, classCount) as Array<{
@@ -121,7 +121,7 @@ async function generateFixedPlanBookings(params: {
   }>;
 
   if (eligible.length < classCount) {
-    throw new Error("El curso no tiene suficientes sesiones futuras para cubrir todas las clases del plan");
+    throw new Error("El curso no tiene suficientes sesiónes futuras para cubrir todas las clases del plan");
   }
 
   for (const session of eligible) {
@@ -133,12 +133,12 @@ async function generateFixedPlanBookings(params: {
       .maybeSingle();
 
     if (dup?.id && dup.status !== "CANCELLED") {
-      throw new Error("El cliente ya tiene una reserva en alguna de las sesiones del curso");
+      throw new Error("El cliente ya tiene una reserva en alguna de las sesiónes del curso");
     }
 
     const occupied = await countSessionOccupancy(session.id);
     if (occupied >= session.capacity) {
-      throw new Error("Una de las sesiones del curso ya no tiene lugares disponibles");
+      throw new Error("Una de las sesiónes del curso ya no tiene lugares disponibles");
     }
   }
 
@@ -206,15 +206,15 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
       .maybeSingle<MembershipRow>();
 
     if (membershipError) {
-      throw Object.assign(new Error("No se pudo verificar la membresia del cliente"), { status: 500 });
+      throw Object.assign(new Error("No se pudo verificar la membresía del cliente"), { status: 500 });
     }
 
     if (!membershipRow) {
-      throw Object.assign(new Error("El cliente no tiene una membresia activa"), { status: 400 });
+      throw Object.assign(new Error("El cliente no tiene una membresía activa"), { status: 400 });
     }
 
     if (membershipRow.end_date && madridDayjs(membershipRow.end_date).isBefore(madridDayjs(), "day")) {
-      throw Object.assign(new Error("La membresia del cliente esta vencida"), { status: 400 });
+      throw Object.assign(new Error("La membresía del cliente esta vencida"), { status: 400 });
     }
 
     membership = membershipRow;

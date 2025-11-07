@@ -98,11 +98,11 @@ export default async function handler(
       console.error("/api/classes/single insert", error);
       return res
         .status(500)
-        .json({ error: "No se pudo crear la sesion 1:1, intenta nuevamente." });
+        .json({ error: "No se pudo crear la sesión 1:1, intenta nuevamente." });
     }
 
     return res.status(200).json({
-      message: "Sesion 1:1 creada",
+      message: "Sesión 1:1 creada",
       session: data,
     });
   } catch (error) {

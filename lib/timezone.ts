@@ -1,6 +1,7 @@
 import dayjs, { type ConfigType, type Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
+import "dayjs/locale/es";
 
 export const DEFAULT_STUDIO_TIMEZONE = "Etc/GMT-1";
 
@@ -15,6 +16,7 @@ function ensureConfigured() {
   if (configured) return;
   dayjs.extend(utc);
   dayjs.extend(timezone);
+  dayjs.locale("es");
   configured = true;
   if (dayjs.tz) {
     dayjs.tz.setDefault(studioTimezone);
