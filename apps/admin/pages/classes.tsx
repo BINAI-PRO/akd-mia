@@ -414,7 +414,7 @@ export default function AdminClassesPage({
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudo actualizar la sesi�n');
+      throw new Error(body?.error ?? "No se pudo actualizar la sesión");
       }
 
       const updated = body.session as SessionQueryRow;
@@ -442,9 +442,9 @@ export default function AdminClassesPage({
         )
       );
 
-      setDetailMessage(body?.message ?? 'Sesi�n actualizada');
+      setDetailMessage(body?.message ?? "Sesión actualizada");
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : 'Error al actualizar la sesi�n');
+      setDetailError(error instanceof Error ? error.message : "Error al actualizar la sesión");
     } finally {
       setUpdatingDetail(false);
     }
@@ -472,7 +472,7 @@ export default function AdminClassesPage({
       });
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudieron actualizar las sesiónes seleccionadas');
+        throw new Error(body?.error ?? "No se pudieron actualizar las sesiones seleccionadas");
       }
 
       const updatedRows: SessionQueryRow[] = body.sessions ?? [];
@@ -492,12 +492,12 @@ export default function AdminClassesPage({
         )
       );
 
-      setBulkMessage(body?.message ?? 'Sesiónes actualizadas');
+      setBulkMessage(body?.message ?? "Sesiones actualizadas");
       clearSelection();
       setBulkInstructorId('');
       setBulkRoomId('');
     } catch (error) {
-      setBulkError(error instanceof Error ? error.message : 'No se pudieron actualizar las sesiónes');
+      setBulkError(error instanceof Error ? error.message : "No se pudieron actualizar las sesiones");
     } finally {
       setBulkProcessing(false);
     }
@@ -507,7 +507,7 @@ export default function AdminClassesPage({
     setBulkError(null);
     setBulkMessage(null);
     if (selectedIds.size === 0) return;
-    if (!globalThis.confirm("¿Seguro que deseas enviar estas sesiónes a reprogramación? Esta acción las eliminará.")) {
+    if (!globalThis.confirm("¿Seguro que deseas enviar estas sesiones a reprogramación? Esta acción las eliminará.")) {
       return;
     }
 
@@ -520,7 +520,7 @@ export default function AdminClassesPage({
       });
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudieron reprogramar las sesiónes seleccionadas');
+        throw new Error(body?.error ?? "No se pudieron reprogramar las sesiones seleccionadas");
       }
 
       const removedIds: string[] = body.removedIds ?? [];
@@ -531,9 +531,9 @@ export default function AdminClassesPage({
         setActiveClassId(null);
       }
       clearSelection();
-      setBulkMessage(body?.message ?? "Sesiónes enviadas a reprogramación");
+      setBulkMessage(body?.message ?? "Sesiones enviadas a reprogramación");
     } catch (error) {
-      setBulkError(error instanceof Error ? error.message : 'No se pudieron reprogramar las sesiónes');
+      setBulkError(error instanceof Error ? error.message : "No se pudieron reprogramar las sesiones");
     } finally {
       setBulkProcessing(false);
     }
@@ -552,9 +552,9 @@ export default function AdminClassesPage({
 
   const occupancyLocks = activeClass ? activeClass.occupancy > 0 : false;
   return (
-    <AdminLayout title="Sesiónes" active="classes">
+    <AdminLayout title="Sesiones" active="classes">
       <Head>
-        <title>PilatesTime Admin - Sesiónes</title>
+        <title>PilatesTime Admin - Sesiones</title>
       </Head>
       {singleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-4 py-10">
@@ -566,8 +566,8 @@ export default function AdminClassesPage({
           <div className="relative z-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Programar sesi�n 1:1</h2>
-                <p className="text-xs text-slate-500">Crea una sesi�n individual sin vincularla a un horario.</p>
+                <h2 className="text-lg font-semibold text-slate-900">Programar sesión 1:1</h2>
+                <p className="text-xs text-slate-500">Crea una sesión individual sin vincularla a un horario.</p>
               </div>
               <button
                 type="button"
@@ -616,7 +616,7 @@ export default function AdminClassesPage({
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Sal�n</span>
+                    <span className="text-xs font-medium text-slate-600">Salón</span>
                     <select
                       value={singleForm.roomId}
                       onChange={handleSingleChange('roomId')}
@@ -652,7 +652,7 @@ export default function AdminClassesPage({
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Duraci�n (minutos)</span>
+                    <span className="text-xs font-medium text-slate-600">Duración (minutos)</span>
                     <input
                       type="number"
                       min={15}
@@ -676,7 +676,7 @@ export default function AdminClassesPage({
                   </label>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Las sesiónes 1:1 se crean sin horario asociado. Podr�s gestionar reservas y ajustes desde esta misma pantalla.
+                  Las sesiones 1:1 se crean sin horario asociado. Podrás gestionar reservas y ajustes desde esta misma pantalla.
                 </p>
                 {singleError && (
                   <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
@@ -699,13 +699,13 @@ export default function AdminClassesPage({
                     <span className="material-icons-outlined text-base" aria-hidden="true">
                       {singleSubmitting ? 'hourglass_top' : 'check_circle'}
                     </span>
-                    {singleSubmitting ? 'Guardando�' : 'Crear sesi�n'}
+                    {singleSubmitting ? 'Guardando...' : 'Crear sesión'}
                   </button>
                 </div>
               </form>
             ) : (
               <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                Para programar una sesi�n 1:1 necesitas tener al menos un tipo de clase, un instructor y un sal�n registrados.
+                Para programar una sesión 1:1 necesitas tener al menos un tipo de clase, un instructor y un salón registrados.
               </div>
             )}
           </div>
@@ -716,8 +716,8 @@ export default function AdminClassesPage({
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold">Sesiónes programadas</h2>
-                <p className="text-xs text-slate-500">Gestiona sesiónes de horarios y sesiónes 1:1 programadas.</p>
+                <h2 className="text-lg font-semibold">Sesiones programadas</h2>
+                <p className="text-xs text-slate-500">Gestiona sesiones de horarios y sesiones 1:1 programadas.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <select
@@ -767,7 +767,7 @@ export default function AdminClassesPage({
             {selectedIds.size > 0 && (
               <div className="mb-4 flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">{selectedIds.size} sesiónes seleccionadas</span>
+                  <span className="font-semibold">{selectedIds.size} sesiones seleccionadas</span>
                   <button
                     type="button"
                     onClick={clearSelection}
@@ -848,7 +848,7 @@ export default function AdminClassesPage({
                       />
                     </th>
                     <th className="px-4 py-3">Curso</th>
-                    <th className="px-4 py-3">Sesi�n</th>
+                    <th className="px-4 py-3">Sesión</th>
                     <th className="px-4 py-3">Horario</th>
                     <th className="px-4 py-3">Cupo</th>
                     <th className="px-4 py-3">Estado</th>
@@ -859,7 +859,7 @@ export default function AdminClassesPage({
                   {filteredClasses.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-6 py-6 text-center text-sm text-slate-500">
-                        No hay sesiónes que coincidan con los filtros.
+                        No hay sesiones que coincidan con los filtros.
                       </td>
                     </tr>
                   ) : (
@@ -919,7 +919,7 @@ export default function AdminClassesPage({
 
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold">Detalles de la sesi�n</h3>
+            <h3 className="text-xl font-semibold">Detalles de la sesión</h3>
             {activeClass && detailState ? (
               <div className="mt-4 space-y-4 text-sm">
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -1020,7 +1020,7 @@ export default function AdminClassesPage({
                 </button>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">Selecciona una sesi�n en el listado para editarla.</p>
+              <p className="mt-4 text-sm text-slate-500">Selecciona una sesión en el listado para editarla.</p>
             )}
           </div>
         </section>
