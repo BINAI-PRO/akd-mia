@@ -129,13 +129,26 @@ const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
     "planningRooms",
     "planningStaff",
   ],
-  RECEPTIONIST: ["dashboard", "calendar", "reports", "attendanceScanner", "classes", "members", "membershipPlans"],
-  INSTRUCTOR: ["calendar"],
+  RECEPTIONIST: [
+    "dashboard",
+    "calendar",
+    "reports",
+    "attendanceScanner",
+    "classes",
+    "members",
+    "membershipPlans",
+    "planningInstructors",
+    "planningRooms",
+    "planningStaff",
+    "settings",
+  ],
+  INSTRUCTOR: ["dashboard", "calendar", "attendanceScanner", "classTypes"],
 };
 
 function filterNavigation(role: string | null | undefined): NavItem[] {
-  const config = role ? ROLE_NAV_CONFIG[role] : "ALL";
-  if (!role || config === "ALL") {
+  const normalizedRole = typeof role === "string" ? role.toUpperCase() : null;
+  const config = normalizedRole ? ROLE_NAV_CONFIG[normalizedRole] : "ALL";
+  if (!normalizedRole || !config || config === "ALL") {
     return NAVIGATION;
   }
 

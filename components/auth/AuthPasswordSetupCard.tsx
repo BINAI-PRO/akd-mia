@@ -20,11 +20,11 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
 
   const heading =
-    flow === "invite" ? "Configura tu contraseA�a" : "Actualiza tu contraseA�a";
+    flow === "invite" ? "Configura tu contraseña" : "Actualiza tu contraseña";
   const description =
     flow === "invite"
-      ? "Define una contraseA�a segura para acceder al panel administrativo."
-      : "Ingresa una nueva contraseA�a para recuperar el acceso a tu cuenta.";
+      ? "Define una contraseña segura para acceder al panel administrativo."
+      : "Ingresa una nueva contraseña para recuperar el acceso a tu cuenta.";
 
   if (!user) {
     return (
@@ -35,7 +35,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
           </p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">Validando enlace...</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Espera un momento mientras confirmamos tu invitaciA3n o recuperaciA3n.
+            Espera un momento mientras confirmamos tu invitación o recuperación.
           </p>
         </header>
       </section>
@@ -47,12 +47,12 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
     if (submitting) return;
 
     if (password.length < 8) {
-      setFormError("La contraseA�a debe tener al menos 8 caracteres.");
+      setFormError("La contraseña debe tener al menos 8 caracteres.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setFormError("Las contraseA�as no coinciden.");
+      setFormError("Las contraseñas no coinciden.");
       return;
     }
 
@@ -85,9 +85,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
       await onCompleted(flow === "invite" ? "invite-complete" : "password-updated");
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo actualizar la contraseA�a.";
+        error instanceof Error ? error.message : "No se pudo actualizar la contraseña.";
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -115,7 +113,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="new-password">
-            Nueva contraseA�a
+            Nueva contraseña
           </label>
           <div className="relative">
             <input
@@ -133,7 +131,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
-              aria-label={showPassword ? "Ocultar contraseA�a" : "Mostrar contraseA�a"}
+              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
             >
               <span className="material-icons-outlined text-base">
                 {showPassword ? "visibility_off" : "visibility"}
@@ -144,7 +142,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
 
         <div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="confirm-password">
-            Confirmar contraseA�a
+            Confirmar contraseña
           </label>
           <input
             id="confirm-password"
@@ -175,11 +173,10 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
               ? "Guardando..."
               : "Actualizando..."
             : flow === "invite"
-            ? "Guardar contraseA�a"
-            : "Actualizar contraseA�a"}
+            ? "Guardar contraseña"
+            : "Actualizar contraseña"}
         </button>
       </form>
     </section>
   );
 }
-

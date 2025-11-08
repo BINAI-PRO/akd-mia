@@ -108,9 +108,7 @@ export default function MobileLoginPage() {
               height={70}
               className="h-14 w-auto"
             />
-            <h1 className="text-2xl font-bold text-neutral-900">
-              Bienvenida de nuevo
-            </h1>
+            <h1 className="text-2xl font-bold text-neutral-900">Acceso Miembros</h1>
             <p className="text-sm text-neutral-500">
               Accede para reservar y gestionar tus clases.
             </p>
