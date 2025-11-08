@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { AuthApiError } from "@supabase/supabase-js";
+import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
@@ -14,6 +14,35 @@ type StaffRow = {
 };
 
 type RoleRow = { id: string; slug: string; name: string | null };
+
+async function findAuthUserByEmail(normalizedEmail: string): Promise<User | null> {
+  const perPage = 200;
+  let page = 1;
+
+  while (true) {
+    const listResult = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+
+    if (listResult.error) {
+      throw listResult.error;
+    }
+
+    const match =
+      listResult.data?.users?.find((user) => user.email?.toLowerCase() === normalizedEmail) ?? null;
+
+    if (match) return match;
+
+    const nextPage = listResult.data?.nextPage ?? null;
+    const lastPage = listResult.data?.lastPage ?? null;
+
+    if (!nextPage || nextPage === page || (lastPage !== null && page >= lastPage)) {
+      break;
+    }
+
+    page = nextPage;
+  }
+
+  return null;
+}
 
 async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse) {
   const supabase = createSupabaseServerClient({ req, res });
@@ -93,15 +122,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let authUserId: string | null = null;
 
-    const existingLookup = await supabaseAdmin.auth.admin.getUserByEmail(normalizedEmail).catch((error) => {
-      if (error instanceof AuthApiError && error.status === 404) {
-        return { data: { user: null }, error: null };
-      }
-      throw error;
-    });
+    const existingLookup = await findAuthUserByEmail(normalizedEmail);
 
-    if (existingLookup?.data?.user) {
-      authUserId = existingLookup.data.user.id;
+    if (existingLookup) {
+      authUserId = existingLookup.id;
       await supabaseAdmin.auth.admin.updateUserById(authUserId, {
         user_metadata: { full_name: fullName },
       });
