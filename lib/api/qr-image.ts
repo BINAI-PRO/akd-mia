@@ -4,19 +4,6 @@ import path from "path";
 import fs from "fs";
 import Jimp from "jimp";
 
-function resolveBaseUrl(req: NextApiRequest) {
-  const forwardedProto = req.headers["x-forwarded-proto"];
-  const forwardedHost = req.headers["x-forwarded-host"];
-  const host = typeof forwardedHost === "string" ? forwardedHost : req.headers.host;
-  const protocol =
-    typeof forwardedProto === "string"
-      ? forwardedProto
-      : host && host.includes("localhost")
-      ? "http"
-      : "https";
-  return `${protocol}://${host ?? "localhost:3000"}`;
-}
-
 function resolveLogoPath() {
   const root = process.cwd();
   const candidates = [
@@ -41,10 +28,9 @@ export async function renderQrImage(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: "Token de QR requerido" });
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || resolveBaseUrl(req);
-    const qrTargetUrl = `${baseUrl}/qr/${token}`;
+    const qrPayload = token.toString().trim();
 
-    const qrPng: Buffer = await QRCode.toBuffer(qrTargetUrl, {
+    const qrPng: Buffer = await QRCode.toBuffer(qrPayload, {
       errorCorrectionLevel: "H",
       margin: 2,
       scale: 10,
@@ -80,4 +66,3 @@ export async function renderQrImage(req: NextApiRequest, res: NextApiResponse) {
     }
   }
 }
-
