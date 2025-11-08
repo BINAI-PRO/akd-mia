@@ -166,7 +166,8 @@ const FALLBACK_COURSE_LEVELS = [
 
 const FALLBACK_COURSE_CATEGORIES = [
   "Grupal",
-  "Individual",
+  "Privada",
+  "Semi-Privada",
   "Promoción",
   "Evento",
 ];

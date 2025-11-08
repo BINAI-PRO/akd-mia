@@ -877,6 +877,7 @@ export type Database = {
           updated_at: string | null
           category: string
           app_only: boolean
+          mem_req: boolean | null
         }
         Insert: {
           id?: string
@@ -892,6 +893,7 @@ export type Database = {
           updated_at?: string | null
           category: string
           app_only?: boolean
+          mem_req?: boolean | null
         }
         Update: {
           id?: string
@@ -907,6 +909,7 @@ export type Database = {
           updated_at?: string | null
           category?: string
           app_only?: boolean
+          mem_req?: boolean | null
         }
         Relationships: []
       }

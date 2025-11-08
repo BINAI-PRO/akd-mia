@@ -80,6 +80,20 @@ const collectRoleCandidates = (source: unknown): string[] => {
   return roles;
 };
 
+async function parseJsonResponse<T>(
+  response: Response
+): Promise<{ payload: T | null; raw: string }> {
+  const raw = await response.text();
+  if (!raw) {
+    return { payload: {} as T, raw: "" };
+  }
+  try {
+    return { payload: JSON.parse(raw) as T, raw };
+  } catch {
+    return { payload: null, raw };
+  }
+}
+
 export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => {
   const supabase = createSupabaseServerClient(ctx);
   const {
@@ -205,20 +219,21 @@ export default function StaffManagementPage({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ staffId: memberId, roleSlug: nextSlug }),
         });
-        const payload = (await response.json()) as {
+        const { payload, raw } = await parseJsonResponse<{
           error?: string;
           staff?: { id: string; roleSlug: string | null; roleName: string | null };
-        };
-        if (!response.ok || !payload.staff) {
-          throw new Error(payload.error ?? "No se pudo actualizar el rol");
+        }>(response);
+        const parsed = payload ?? { error: raw || "Respuesta inválida del servidor" };
+        if (!response.ok || !parsed.staff) {
+          throw new Error(parsed.error ?? "No se pudo actualizar el rol");
         }
         setStaff((prev) =>
           prev.map((member) =>
             member.id === memberId
               ? {
                   ...member,
-                  roleSlug: payload.staff?.roleSlug ?? null,
-                  roleName: payload.staff?.roleName ?? null,
+                  roleSlug: parsed.staff?.roleSlug ?? null,
+                  roleName: parsed.staff?.roleName ?? null,
                 }
               : member
           )
@@ -258,21 +273,19 @@ export default function StaffManagementPage({
           phone: formState.phone || null,
         }),
       });
-      const payload = (await response.json()) as {
-        error?: string;
-        staff?: StaffMember;
-      };
-      if (!response.ok || !payload.staff) {
-        throw new Error(payload.error ?? "No se pudo registrar al staff");
+      const { payload, raw } = await parseJsonResponse<{ error?: string; staff?: StaffMember }>(response);
+      const parsed = payload ?? { error: raw || "Respuesta inválida del servidor" };
+      if (!response.ok || !parsed.staff) {
+        throw new Error(parsed.error ?? "No se pudo registrar al staff");
       }
       setStaff((prev) => {
-        const existingIndex = prev.findIndex((entry) => entry.id === payload.staff?.id);
+        const existingIndex = prev.findIndex((entry) => entry.id === parsed.staff?.id);
         if (existingIndex >= 0) {
           const copy = [...prev];
-          copy[existingIndex] = { ...copy[existingIndex], ...payload.staff };
+          copy[existingIndex] = { ...copy[existingIndex], ...parsed.staff };
           return copy;
         }
-        return [...prev, payload.staff].sort((a, b) => (a.fullName ?? "").localeCompare(b.fullName ?? ""));
+        return [...prev, parsed.staff].sort((a, b) => (a.fullName ?? "").localeCompare(b.fullName ?? ""));
       });
       setMessage({
         type: "success",
