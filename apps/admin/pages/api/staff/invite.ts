@@ -53,107 +53,122 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Metodo no permitido" });
   }
 
-  const masterUserId = await assertMasterAccess(req, res);
-  if (!masterUserId) return;
+  try {
+    const masterUserId = await assertMasterAccess(req, res);
+    if (!masterUserId) return;
 
-  const { email, fullName, roleSlug, phone } = req.body as {
-    email?: string;
-    fullName?: string;
-    roleSlug?: string;
-    phone?: string | null;
-  };
+    const { email, fullName, roleSlug, phone } = req.body as {
+      email?: string;
+      fullName?: string;
+      roleSlug?: string;
+      phone?: string | null;
+    };
 
-  if (!email || typeof email !== "string") {
-    return res.status(400).json({ error: "Email requerido" });
-  }
-  if (!fullName || typeof fullName !== "string") {
-    return res.status(400).json({ error: "Nombre requerido" });
-  }
-  if (!roleSlug || typeof roleSlug !== "string") {
-    return res.status(400).json({ error: "Rol requerido" });
-  }
-
-  const normalizedEmail = email.trim().toLowerCase();
-  const normalizedSlug = roleSlug.trim().toUpperCase();
-
-  const { data: role, error: roleError } = await supabaseAdmin
-    .from("staff_roles")
-    .select("id, slug, name")
-    .eq("slug", normalizedSlug)
-    .maybeSingle<RoleRow>();
-
-  if (roleError) {
-    return res.status(500).json({ error: roleError.message });
-  }
-
-  if (!role) {
-    return res.status(404).json({ error: "Rol no encontrado" });
-  }
-
-  let authUserId: string | null = null;
-
-  const existingLookup = await supabaseAdmin.auth.admin.getUserByEmail(normalizedEmail).catch((error) => {
-    if (error instanceof AuthApiError && error.status === 404) {
-      return { data: { user: null }, error: null };
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ error: "Email requerido" });
     }
-    throw error;
-  });
+    if (!fullName || typeof fullName !== "string") {
+      return res.status(400).json({ error: "Nombre requerido" });
+    }
+    if (!roleSlug || typeof roleSlug !== "string") {
+      return res.status(400).json({ error: "Rol requerido" });
+    }
 
-  if (existingLookup?.data?.user) {
-    authUserId = existingLookup.data.user.id;
-    await supabaseAdmin.auth.admin.updateUserById(authUserId, {
-      user_metadata: { full_name: fullName },
-    });
-  } else {
-    const inviteResponse = await supabaseAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
-      data: { full_name: fullName },
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedSlug = roleSlug.trim().toUpperCase();
+
+    const { data: role, error: roleError } = await supabaseAdmin
+      .from("staff_roles")
+      .select("id, slug, name")
+      .eq("slug", normalizedSlug)
+      .maybeSingle<RoleRow>();
+
+    if (roleError) {
+      return res.status(500).json({ error: roleError.message });
+    }
+
+    if (!role) {
+      return res.status(404).json({ error: "Rol no encontrado" });
+    }
+
+    let authUserId: string | null = null;
+
+    const existingLookup = await supabaseAdmin.auth.admin.getUserByEmail(normalizedEmail).catch((error) => {
+      if (error instanceof AuthApiError && error.status === 404) {
+        return { data: { user: null }, error: null };
+      }
+      throw error;
     });
 
-    if (inviteResponse.error || !inviteResponse.data?.user) {
-      return res.status(500).json({
-        error: inviteResponse.error?.message ?? "No se pudo invitar al usuario",
+    if (existingLookup?.data?.user) {
+      authUserId = existingLookup.data.user.id;
+      await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+        user_metadata: { full_name: fullName },
       });
+    } else {
+      const inviteResponse = await supabaseAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
+        data: { full_name: fullName },
+      });
+
+      if (inviteResponse.error || !inviteResponse.data?.user) {
+        return res.status(500).json({
+          error: inviteResponse.error?.message ?? "No se pudo invitar al usuario",
+        });
+      }
+      authUserId = inviteResponse.data.user.id;
     }
-    authUserId = inviteResponse.data.user.id;
+
+    if (!authUserId) {
+      return res.status(500).json({ error: "No se pudo resolver el usuario" });
+    }
+
+    const payload = {
+      auth_user_id: authUserId,
+      full_name: fullName.trim(),
+      email: normalizedEmail,
+      phone: phone ? String(phone).trim() : null,
+      role_id: role.id,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: upserted, error: upsertError } = await supabaseAdmin
+      .from("staff")
+      .upsert(payload, { onConflict: "auth_user_id" })
+      .select("id, full_name, email, phone, created_at, last_login_at, staff_roles ( slug, name )")
+      .maybeSingle<StaffRow>();
+
+    if (upsertError) {
+      return res.status(500).json({ error: upsertError.message });
+    }
+
+    if (!upserted) {
+      return res.status(500).json({ error: "No se pudo registrar al staff" });
+    }
+
+    return res.status(200).json({
+      staff: {
+        id: upserted.id,
+        fullName: upserted.full_name,
+        email: upserted.email,
+        phone: upserted.phone,
+        createdAt: upserted.created_at,
+        lastLoginAt: upserted.last_login_at,
+        roleSlug: upserted.staff_roles?.slug ?? role.slug,
+        roleName: upserted.staff_roles?.name ?? role.name,
+      },
+    });
+  } catch (error) {
+    console.error("/api/staff/invite", error);
+    const status =
+      typeof error === "object" && error && "status" in error && typeof (error as { status?: number }).status === "number"
+        ? ((error as { status?: number }).status ?? 500)
+        : 500;
+    const message =
+      error instanceof Error
+        ? error.message
+        : typeof error === "string"
+        ? error
+        : "Error interno al procesar la invitación";
+    return res.status(status).json({ error: message });
   }
-
-  if (!authUserId) {
-    return res.status(500).json({ error: "No se pudo resolver el usuario" });
-  }
-
-  const payload = {
-    auth_user_id: authUserId,
-    full_name: fullName.trim(),
-    email: normalizedEmail,
-    phone: phone ? String(phone).trim() : null,
-    role_id: role.id,
-    updated_at: new Date().toISOString(),
-  };
-
-  const { data: upserted, error: upsertError } = await supabaseAdmin
-    .from("staff")
-    .upsert(payload, { onConflict: "auth_user_id" })
-    .select("id, full_name, email, phone, created_at, last_login_at, staff_roles ( slug, name )")
-    .maybeSingle<StaffRow>();
-
-  if (upsertError) {
-    return res.status(500).json({ error: upsertError.message });
-  }
-
-  if (!upserted) {
-    return res.status(500).json({ error: "No se pudo registrar al staff" });
-  }
-
-  return res.status(200).json({
-    staff: {
-      id: upserted.id,
-      fullName: upserted.full_name,
-      email: upserted.email,
-      phone: upserted.phone,
-      createdAt: upserted.created_at,
-      lastLoginAt: upserted.last_login_at,
-      roleSlug: upserted.staff_roles?.slug ?? role.slug,
-      roleName: upserted.staff_roles?.name ?? role.name,
-    },
-  });
 }
