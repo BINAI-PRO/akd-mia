@@ -15,6 +15,52 @@ type StaffRow = {
 
 type RoleRow = { id: string; slug: string; name: string | null };
 
+function resolveAdminBaseUrl(req: NextApiRequest): string {
+  const envCandidates = [
+    process.env.ADMIN_APP_URL,
+    process.env.ADMIN_BASE_URL,
+    process.env.NEXT_PUBLIC_ADMIN_BASE_URL,
+    process.env.NEXT_PUBLIC_BASE_URL,
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXTAUTH_URL,
+  ].filter((value): value is string => Boolean(value && value.trim().length > 0));
+
+  if (envCandidates.length > 0) {
+    const candidate = envCandidates[0]!.trim();
+    if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
+      return candidate.replace(/\/$/, "");
+    }
+    return `https://${candidate.replace(/\/$/, "")}`;
+  }
+
+  const forwardedProto = req.headers["x-forwarded-proto"];
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const host =
+    typeof forwardedHost === "string" && forwardedHost.length > 0
+      ? forwardedHost
+      : req.headers.host;
+  const protocol =
+    typeof forwardedProto === "string"
+      ? forwardedProto
+      : host && host.includes("localhost")
+      ? "http"
+      : "https";
+
+  return `${protocol}://${host ?? "localhost:3000"}`;
+}
+
+function buildInviteRedirectUrl(req: NextApiRequest): string {
+  const baseUrl = resolveAdminBaseUrl(req);
+  try {
+    const target = new URL("/login", baseUrl);
+    target.searchParams.set("flow", "invite");
+    return target.toString();
+  } catch {
+    const normalized = baseUrl.replace(/\/$/, "");
+    return `${normalized}/login?flow=invite`;
+  }
+}
+
 async function findAuthUserByEmail(normalizedEmail: string): Promise<User | null> {
   const perPage = 200;
   let page = 1;
@@ -121,6 +167,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let authUserId: string | null = null;
+    const inviteRedirectTo = buildInviteRedirectUrl(req);
 
     const existingLookup = await findAuthUserByEmail(normalizedEmail);
 
@@ -132,6 +179,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       const inviteResponse = await supabaseAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
         data: { full_name: fullName },
+        redirectTo: inviteRedirectTo,
       });
 
       if (inviteResponse.error || !inviteResponse.data?.user) {
