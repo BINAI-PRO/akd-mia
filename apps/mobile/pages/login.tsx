@@ -5,7 +5,6 @@ import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/auth/AuthContext";
 import {
   PASSWORD_REQUIREMENT_SUMMARY,
-  PASSWORD_RULES,
   isPasswordValid,
 } from "@/lib/password-policy";
 
@@ -184,11 +183,6 @@ export default function MobileLoginPage() {
                 </button>
               </div>
               <p className="text-xs text-neutral-500">{PASSWORD_REQUIREMENT_SUMMARY}</p>
-              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-neutral-500">
-                {PASSWORD_RULES.map((rule) => (
-                  <li key={rule}>{rule}</li>
-                ))}
-              </ul>
               {passwordTouched && !passwordIsValid && (
                 <p className="text-xs text-rose-600">
                   Revisa los requisitos de la contraseña antes de continuar.

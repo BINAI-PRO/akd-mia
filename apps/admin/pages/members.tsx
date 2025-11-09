@@ -565,10 +565,17 @@ type PlanFormState = {
         ? membershipOptions.find((option) => option.id === member.lastMembershipTypeId && option.isActive)
         : null) ??
       membershipDefaultType;
+    const defaultStartDate =
+      member.membershipStatus === "ACTIVE" && member.membershipEnd
+        ? (() => {
+            const afterEnd = dayjs(member.membershipEnd).add(1, "day");
+            return afterEnd.isValid() ? afterEnd.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD");
+          })()
+        : dayjs().format("YYYY-MM-DD");
 
     setMembershipForm({
       membershipTypeId: preferredOption?.id ?? "",
-      startDate: dayjs().format("YYYY-MM-DD"),
+      startDate: defaultStartDate,
       termYears: 1,
       notes: "",
     });

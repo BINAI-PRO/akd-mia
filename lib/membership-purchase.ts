@@ -8,6 +8,7 @@ type MembershipTypeRow = Pick<
 >;
 
 type ClientRow = Pick<Tables<"clients">, "id" | "full_name" | "email">;
+type ActiveMembershipRow = Pick<Tables<"memberships">, "id" | "status" | "start_date" | "end_date">;
 
 export type MembershipPurchasePayload = {
   clientId: string;
@@ -89,6 +90,23 @@ async function fetchClient(id: string): Promise<ClientRow> {
   return data;
 }
 
+async function fetchActiveMembership(clientId: string): Promise<ActiveMembershipRow | null> {
+  const { data, error } = await supabaseAdmin
+    .from("memberships")
+    .select("id, status, start_date, end_date")
+    .eq("client_id", clientId)
+    .eq("status", "ACTIVE")
+    .order("end_date", { ascending: false })
+    .limit(1)
+    .maybeSingle<ActiveMembershipRow>();
+
+  if (error) {
+    throw Object.assign(new Error("No se pudo consultar la membresA-a activa del cliente"), { status: 500 });
+  }
+
+  return data ?? null;
+}
+
 export async function prepareMembershipPurchase(
   payload: MembershipPurchasePayload
 ): Promise<MembershipPurchasePrepared> {
@@ -98,9 +116,10 @@ export async function prepareMembershipPurchase(
     throw Object.assign(new Error("Cliente y tipo de membresía son obligatorios"), { status: 400 });
   }
 
-  const [membershipType, client] = await Promise.all([
+  const [membershipType, client, activeMembership] = await Promise.all([
     fetchMembershipType(membershipTypeId),
     fetchClient(clientId),
+    fetchActiveMembership(clientId),
   ]);
 
   const pricePerYear = Number(membershipType.price ?? 0);
@@ -129,6 +148,25 @@ export async function prepareMembershipPurchase(
   }
 
   const startOfDay = start.startOf("day");
+  const today = madridDayjs().startOf("day");
+
+  if (activeMembership) {
+    if (!activeMembership.end_date) {
+      throw Object.assign(
+        new Error("La membresA-a activa no tiene fecha de vencimiento. ActualA-zala antes de registrar otra."),
+        { status: 400 }
+      );
+    }
+    const activeEnd = madridDayjs(activeMembership.end_date, true).startOf("day");
+    if (!startOfDay.isAfter(activeEnd, "day")) {
+      throw Object.assign(
+        new Error(`La nueva membresA-a debe iniciar despuA-s del ${activeEnd.format("DD [de] MMMM [de] YYYY")}.`),
+        { status: 400 }
+      );
+    }
+  } else if (startOfDay.isBefore(today, "day")) {
+    throw Object.assign(new Error("La fecha de inicio debe ser hoy o una fecha futura."), { status: 400 });
+  }
   const endOfPeriod = startOfDay.add(termYears, "year").subtract(1, "day");
 
   const amount = Number(pricePerYear * termYears);
@@ -183,6 +221,10 @@ export async function commitMembershipPurchase(
 ): Promise<{ membershipId: string; memberSnapshot: MemberSnapshot | null }> {
   const includeSnapshot = options?.includeSnapshot ?? false;
   const providerRef = payment.providerRef?.trim();
+  const startDay = madridDayjs(prepared.startIso, true).startOf("day");
+  const today = madridDayjs().startOf("day");
+  const shouldActivateNow = !startDay.isAfter(today, "day");
+  const resolvedStatus = payment.status === "SUCCESS" ? (shouldActivateNow ? "ACTIVE" : "PENDING") : payment.status;
 
   if (providerRef) {
     const { data: existing } = await supabaseAdmin
@@ -204,18 +246,20 @@ export async function commitMembershipPurchase(
     }
   }
 
-  await supabaseAdmin
-    .from("memberships")
-    .update({ status: "INACTIVE" })
-    .eq("client_id", prepared.client.id)
-    .eq("status", "ACTIVE");
+  if (shouldActivateNow) {
+    await supabaseAdmin
+      .from("memberships")
+      .update({ status: "INACTIVE" })
+      .eq("client_id", prepared.client.id)
+      .eq("status", "ACTIVE");
+  }
 
   const { data: membershipInsert, error: membershipInsertError } = await supabaseAdmin
     .from("memberships")
     .insert({
       client_id: prepared.client.id,
       membership_type_id: prepared.membershipType.id,
-      status: payment.status === "SUCCESS" ? "ACTIVE" : payment.status,
+      status: resolvedStatus,
       start_date: prepared.startIso,
       end_date: prepared.endIso,
       next_billing_date: prepared.endIso,
