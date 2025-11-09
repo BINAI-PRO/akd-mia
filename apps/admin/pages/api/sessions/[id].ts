@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { madridDayjs } from "@/lib/timezone";
 import { loadStudioSettings } from "@/lib/studio-settings";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type SessionRow = Tables<"sessions"> & {
   class_types: Pick<Tables<"class_types">, "id" | "name"> | null;
@@ -82,6 +83,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  const access = await requireAdminFeature(req, res, "classes", "READ");
+  if (!access) return;
 
   await loadStudioSettings();
 

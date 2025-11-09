@@ -1,7 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST" && req.method !== "PATCH") {
+    res.setHeader("Allow", "POST, PATCH");
+    return res.status(405).json({ error: "Metodo no permitido" });
+  }
+
+  const access = await requireAdminFeature(req, res, "membershipTypes", "EDIT");
+  if (!access) return;
+
   if (req.method === "POST") {
     try {
       const {
@@ -128,6 +137,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  res.setHeader("Allow", "POST, PATCH");
   return res.status(405).json({ error: "Metodo no permitido" });
 }

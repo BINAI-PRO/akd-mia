@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type ApparatusRow = Tables<"apparatus">;
 
@@ -9,6 +10,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method Not Allowed" });
   }
+
+  const access = await requireAdminFeature(req, res, "planningRooms", "READ");
+  if (!access) return;
 
   try {
     const { data, error } = await supabaseAdmin

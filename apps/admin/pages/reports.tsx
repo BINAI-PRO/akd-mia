@@ -324,7 +324,7 @@ export default function ReportsPage() {
       <Head>
         <title>Reportes | Panel Admin</title>
       </Head>
-      <AdminLayout title="Reportes" active="reports">
+      <AdminLayout title="Reportes" active="reports" featureKey="reports">
         <div className="mx-auto max-w-6xl space-y-6">{renderContent()}</div>
       </AdminLayout>
     </>

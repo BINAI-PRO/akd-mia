@@ -7,6 +7,8 @@ import SessionDetailsModal from "@/components/admin/sessions/SessionDetailsModal
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { studioDayjs } from "@/lib/timezone";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 type ScheduledSession = {
   id: string;
@@ -260,6 +262,9 @@ export default function CourseSchedulerPage({
   const [isPlanning, setIsPlanning] = useState(false);
   const [sessionDetailId, setSessionDetailId] = useState<string | null>(null);
   const [sessionDetailOpen, setSessionDetailOpen] = useState(false);
+  const featureKey: AdminFeatureKey = "courseScheduler";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
 
   useEffect(() => {
     setCoursesState(courses);
@@ -519,13 +524,15 @@ export default function CourseSchedulerPage({
   const missingInstructor = draftSessions.some((session) => !(session.instructorId ?? defaultInstructorId));
 
   const canPlan =
+    !readOnly &&
     Boolean(
       selectedCourse &&
         hasValidDrafts &&
         pendingSessionsForSelectedCourse > 0 &&
         selectedCourse.defaultRoomId &&
         !missingInstructor
-    ) && !isPlanning;
+    ) &&
+    !isPlanning;
 
   const planButtonLabel = isPlanning
     ? "Programando..."
@@ -535,6 +542,10 @@ export default function CourseSchedulerPage({
 
   const handlePlanSessions = async () => {
     if (!selectedCourse) return;
+    if (readOnly) {
+      setPlanError("Tu rol no tiene permisos para programar sesiónes.");
+      return;
+    }
     setPlanError(null);
     setPlanStatus("idle");
 
@@ -642,10 +653,15 @@ export default function CourseSchedulerPage({
     }
   };
   return (
-    <AdminLayout title="Programador de sesiónes" active="courseScheduler">
+    <AdminLayout title="Programador de sesiónes" active="courseScheduler" featureKey="courseScheduler">
       <Head>
         <title>PilatesTime Admin - Programador de sesiónes</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol solo permite consultar este programador. No podrás generar nuevas sesiónes.
+        </div>
+      )}
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">

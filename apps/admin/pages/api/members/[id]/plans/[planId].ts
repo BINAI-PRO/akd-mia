@@ -1,38 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-
-async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse): Promise<boolean> {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.user) {
-    res.status(401).json({ error: "No autenticado" });
-    return false;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("staff_roles ( slug )")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle<{ staff_roles: { slug: string | null } | null }>();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return false;
-  }
-
-  const slug = staffRow?.staff_roles?.slug ?? null;
-  if (!slug || slug.toUpperCase() !== "MASTER") {
-    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta acción" });
-    return false;
-  }
-
-  return true;
-}
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
@@ -46,8 +14,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Identificadores inválidos" });
   }
 
-  const hasAccess = await assertMasterAccess(req, res);
-  if (!hasAccess) return;
+  const access = await requireAdminFeature(req, res, "memberDetail", "FULL");
+  if (!access) return;
 
   const { data: planRecord, error: planError } = await supabaseAdmin
     .from("plan_purchases")

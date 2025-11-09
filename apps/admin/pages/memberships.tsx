@@ -14,6 +14,8 @@ import type {
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 // Bridge tipado por si AdminLayout exige props particulares
 const AdminLayoutAny = AdminLayout as unknown as ComponentType<
@@ -147,6 +149,9 @@ export default function AdminMembershipsPage(
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const featureKey: AdminFeatureKey = "membershipPlans";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
 
   type FormState = {
     name: string;
@@ -214,6 +219,10 @@ export default function AdminMembershipsPage(
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (readOnly) {
+      setError("Tu rol no tiene permisos para crear o editar planes.");
+      return;
+    }
     setSaving(true);
     setMessage(null);
     setError(null);
@@ -286,6 +295,10 @@ export default function AdminMembershipsPage(
   }
 
   async function togglePlanEstatus(plan: PlanListRow) {
+    if (readOnly) {
+      setError("Tu rol no puede modificar el estado de los planes.");
+      return;
+    }
     try {
       const res = await fetch("/api/plan-types", {
         method: "PATCH",
@@ -334,10 +347,20 @@ export default function AdminMembershipsPage(
   );
 
   return (
-    <AdminLayoutAny title="Planes de membresÃ­a" active="membershipPlans" headerToolbar={headerToolbar}>
+    <AdminLayoutAny
+      title="Planes de membresÃ­a"
+      active="membershipPlans"
+      headerToolbar={headerToolbar}
+      featureKey="membershipPlans"
+    >
       <Head>
         <title>Planes  Admin</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol solo permite consulta en este módulo. No podrás crear ni editar planes.
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -409,12 +432,18 @@ export default function AdminMembershipsPage(
                                 Inactivo
                               </span>
                             )}
-                            <label className="relative inline-flex cursor-pointer items-center">
+                            <label
+                              className={`relative inline-flex items-center ${
+                                readOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+                              }`}
+                            >
                               <input
                                 type="checkbox"
                                 className="peer sr-only"
                                 checked={plan.status === "Activo"}
                                 onChange={() => togglePlanEstatus(plan)}
+                                disabled={readOnly}
+                                aria-disabled={readOnly}
                               />
                               <div className="h-5 w-10 rounded-full bg-slate-200 transition peer-checked:bg-brand-600" />
                               <span className="absolute left-0 top-0 ml-1 mt-0.5 h-4 w-4 rounded-full bg-white transition peer-checked:translate-x-5" />
@@ -438,7 +467,8 @@ export default function AdminMembershipsPage(
           <p className="mt-1 text-xs text-slate-500">
             Define precio, vigencia, categorÃ­a y si el plan es ilimitado o exclusivo para reservas desde la app.
           </p>
-          <form className="mt-4 space-y-4" onSubmit={handleSubmit}>
+          <form className="mt-4" onSubmit={handleSubmit}>
+            <fieldset className="space-y-4" disabled={readOnly || saving}>
             <div>
               <label className="block text-sm font-medium text-slate-600">Nombre del plan</label>
               <input
@@ -592,6 +622,7 @@ export default function AdminMembershipsPage(
                 {saving ? "Guardando..." : "Guardar plan"}
               </button>
             </div>
+            </fieldset>
           </form>
         </section>
       </div>

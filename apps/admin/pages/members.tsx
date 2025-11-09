@@ -13,8 +13,9 @@ import type {
   InferGetServerSidePropsType,
 } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 import type { Tables } from "@/types/database";
 
 dayjs.extend(isSameOrAfter);
@@ -318,6 +319,10 @@ export default function AdminMiembrosPage(
   const [planLoading, setPlanLoading] = useState(false);
   const [planPaymentMode, setPlanPaymentMode] = useState<PlanPaymentMode>("CASH");
   const [planSuccess, setPlanSuccess] = useState<string | null>(null);
+  const featureKey: AdminFeatureKey = "members";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
+  const allowDelete = pageAccess.canDelete;
 
   const membershipDefaultType = useMemo(
     () => membershipOptions.find((option) => option.isActive) ?? membershipOptions[0] ?? null,
@@ -370,8 +375,6 @@ type PlanFormState = {
   const [deleteTarget, setDeleteTarget] = useState<MemberRow | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const { profile } = useAuth();
-  const isMaster = (profile?.role ?? "").toUpperCase() === "MASTER";
 
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -466,6 +469,10 @@ type PlanFormState = {
 
   const handleDeleteMember = async () => {
     if (!deleteTarget) return;
+    if (!allowDelete) {
+      setDeleteError("No tienes permisos para eliminar miembros.");
+      return;
+    }
     setDeleteLoading(true);
     setDeleteError(null);
     try {
@@ -552,6 +559,7 @@ type PlanFormState = {
   };
 
   const openMembershipModalFor = (member: MemberRow) => {
+    if (readOnly) return;
     const preferredOption =
       (member.lastMembershipTypeId
         ? membershipOptions.find((option) => option.id === member.lastMembershipTypeId && option.isActive)
@@ -581,6 +589,7 @@ type PlanFormState = {
   };
 
   const openPlanModalFor = (member: MemberRow) => {
+    if (readOnly) return;
     const eligible = getEligiblePlanOptions(member);
     const defaultPlan =
       eligible[0] ??
@@ -613,6 +622,10 @@ type PlanFormState = {
 
   async function handleMembershipSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) {
+      setMembershipError("No tienes permisos para registrar membresías.");
+      return;
+    }
     if (!membershipModalMember) return;
 
     if (!membershipForm.membershipTypeId) {
@@ -706,6 +719,10 @@ type PlanFormState = {
 
   async function handlePlanSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) {
+      setPlanError("No tienes permisos para registrar planes.");
+      return;
+    }
     if (!planModalMember) return;
 
     if (!planForm.planTypeId) {
@@ -831,10 +848,21 @@ type PlanFormState = {
   const hasFixedCourses = courseOptions.length > 0;
 
   return (
-    <AdminLayoutAny title="Miembros" active="Miembros" headerToolbar={headerToolbar}>
+    <AdminLayoutAny
+      title="Miembros"
+      active="Miembros"
+      headerToolbar={headerToolbar}
+      featureKey="members"
+    >
       <Head>
         <title>Miembros  Admin</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol tiene acceso de solo lectura en esta sección. Puedes revisar la información pero no crear ni modificar
+          registros.
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6">
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -861,13 +889,24 @@ type PlanFormState = {
                 <option value="ON_HOLD">Inactivo</option>
                 <option value="CANCELED">Cancelado</option>
               </select>
-              <Link
-                href="/members/new"
-                className="flex items-center rounded-md border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
-              >
-                <span className="material-icons-outlined mr-2 text-base">person_add</span>
-                Nuevo miembro
-              </Link>
+              {readOnly ? (
+                <button
+                  type="button"
+                  className="flex items-center rounded-md border border-brand-200 px-4 py-2 text-sm font-semibold text-brand-300"
+                  disabled
+                >
+                  <span className="material-icons-outlined mr-2 text-base">person_add</span>
+                  Nuevo miembro
+                </button>
+              ) : (
+                <Link
+                  href="/members/new"
+                  className="flex items-center rounded-md border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-600 shadow-sm hover:bg-brand-50"
+                >
+                  <span className="material-icons-outlined mr-2 text-base">person_add</span>
+                  Nuevo miembro
+                </Link>
+              )}
             </div>
           </div>
 
@@ -980,7 +1019,7 @@ type PlanFormState = {
                             <button
                               type="button"
                               onClick={() => openMembershipModalFor(row)}
-                              disabled={membershipOptions.length === 0}
+                              disabled={readOnly || membershipOptions.length === 0}
                               className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                             >
                               <span className="material-icons-outlined text-sm">credit_score</span>
@@ -989,7 +1028,7 @@ type PlanFormState = {
                             <button
                               type="button"
                               onClick={() => openPlanModalFor(row)}
-                              disabled={getEligiblePlanOptions(row).length === 0}
+                              disabled={readOnly || getEligiblePlanOptions(row).length === 0}
                               className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                             >
                               <span className="material-icons-outlined text-sm">shopping_cart</span>
@@ -1002,7 +1041,7 @@ type PlanFormState = {
                               <span className="material-icons-outlined text-sm">edit</span>
                               Editar
                             </Link>
-                            {isMaster && (
+                            {allowDelete && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1101,6 +1140,11 @@ type PlanFormState = {
                   <span className="material-icons-outlined">close</span>
                 </button>
               </div>
+              {readOnly && (
+                <p className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-700">
+                  Tu rol no permite registrar nuevas membresías.
+                </p>
+              )}
               <div className="space-y-4 px-6 py-6 text-sm">
                 <div>
                   <span className="block text-xs font-medium text-slate-600">Metodo de pago</span>
@@ -1240,7 +1284,7 @@ type PlanFormState = {
                 </button>
                 <button
                   type="submit"
-                  disabled={membershipLoading}
+                  disabled={readOnly || membershipLoading}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   {membershipLoading
@@ -1275,6 +1319,11 @@ type PlanFormState = {
                   <span className="material-icons-outlined">close</span>
                 </button>
               </div>
+              {readOnly && (
+                <p className="border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-700">
+                  Tu rol no permite asignar nuevos planes.
+                </p>
+              )}
               <div className="space-y-4 px-6 py-6 text-sm">
                 <div>
                   <span className="block text-xs font-medium text-slate-600">Metodo de pago</span>
@@ -1502,7 +1551,7 @@ type PlanFormState = {
                 </button>
                 <button
                   type="submit"
-                  disabled={planLoading || availablePlanOptions.length === 0}
+                  disabled={readOnly || planLoading || availablePlanOptions.length === 0}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   {planLoading

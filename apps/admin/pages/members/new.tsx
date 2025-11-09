@@ -232,7 +232,7 @@ export default function NewMemberPage({
   };
 
   return (
-    <AdminLayoutAny title="Nuevo miembro" active="Miembros">
+    <AdminLayoutAny title="Nuevo miembro" active="Miembros" featureKey="memberNew">
       <Head>
         <title>Registrar miembro  Admin</title>
       </Head>

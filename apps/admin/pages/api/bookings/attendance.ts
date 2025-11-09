@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
 import { loadStudioSettings } from "@/lib/studio-settings";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type SuccessResponse = {
   bookingId: string;
@@ -134,10 +135,13 @@ export default async function handler(
     return res.status(405).json({ error: "Metodo no permitido" });
   }
 
+  const access = await requireAdminFeature(req, res, "attendance", "EDIT");
+  if (!access) return;
+
   try {
     await loadStudioSettings();
 
-    const { bookingId: rawBookingId, token, present: rawPresent, actorStaffId } =
+    const { bookingId: rawBookingId, token, present: rawPresent } =
       (req.body ?? {}) as Record<string, unknown>;
 
     let bookingId =
@@ -171,7 +175,7 @@ export default async function handler(
     const result = await updateAttendance({
       bookingId,
       present,
-      actorStaffId: typeof actorStaffId === "string" ? actorStaffId : null,
+      actorStaffId: access.staffId,
       source: hasToken ? "qr-scan" : "manual",
     });
 

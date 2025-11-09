@@ -151,6 +151,7 @@ export default function DayCalendarPage({
           </Link>
         </div>
       )}
+      featureKey="calendarDay"
     >
       <DayAgendaBoard
         selectedDateISO={selectedDateISO}

@@ -4,7 +4,9 @@ import dayjs from "dayjs";
 import { useMemo, useState, type ComponentType, type PropsWithChildren } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 import type { Tables } from "@/types/database";
 
 const AdminLayoutAny = AdminLayout as unknown as ComponentType<PropsWithChildren<Record<string, unknown>>>;
@@ -119,6 +121,11 @@ export default function MembershipTypesPage({
   const [deleteTarget, setDeleteTarget] = useState<MembershipListRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const featureKey: AdminFeatureKey = "membershipTypes";
+  const pageAccess = useAdminAccess(featureKey);
+  const canEdit = pageAccess.canEdit;
+  const canDelete = pageAccess.canDelete;
+  const readOnly = !canEdit;
 
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -130,6 +137,7 @@ export default function MembershipTypesPage({
   }, [rows, search]);
 
   const handleOpenCreate = () => {
+    if (readOnly) return;
     setEditingId(null);
     setForm(DEFAULT_FORM);
     setFormError(null);
@@ -137,6 +145,7 @@ export default function MembershipTypesPage({
   };
 
   const handleOpenEdit = (row: MembershipListRow) => {
+    if (readOnly) return;
     setEditingId(row.id);
     setForm({
       name: row.name,
@@ -169,6 +178,10 @@ export default function MembershipTypesPage({
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (readOnly) {
+      setFormError("No tienes permisos de edición para esta sección.");
+      return;
+    }
     setFormError(null);
 
     const trimmedName = form.name.trim();
@@ -240,6 +253,10 @@ export default function MembershipTypesPage({
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
+    if (!canDelete) {
+      setDeleteError("No tienes permisos para eliminar tipos de membresía.");
+      return;
+    }
     setDeleteError(null);
     setDeleteLoading(true);
     try {
@@ -264,10 +281,16 @@ export default function MembershipTypesPage({
   };
 
   return (
-    <AdminLayoutAny title="Tipos de membresía" active="membershipTypes">
+    <AdminLayoutAny title="Tipos de membresía" active="membershipTypes" featureKey="membershipTypes">
       <Head>
         <title>Tipos de membresía  Admin</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol tiene acceso de solo lectura: revisa la información pero solicita ayuda a un administrador para crear o
+          actualizar tipos de membresía.
+        </div>
+      )}
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -280,7 +303,8 @@ export default function MembershipTypesPage({
           <button
             type="button"
             onClick={handleOpenCreate}
-            className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700"
+            disabled={readOnly}
+            className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
           >
             <span className="material-icons-outlined text-base">add</span>
             Nueva membresía
@@ -372,7 +396,8 @@ export default function MembershipTypesPage({
                           <button
                             type="button"
                             onClick={() => handleOpenEdit(row)}
-                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                            disabled={readOnly}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
                           >
                             <span className="material-icons-outlined text-sm">edit</span>
                             Editar
@@ -380,8 +405,8 @@ export default function MembershipTypesPage({
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(row)}
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
-                            disabled={row.activeMembers > 0}
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                            disabled={row.activeMembers > 0 || !canDelete}
                           >
                             <span className="material-icons-outlined text-sm">delete</span>
                             Borrar
@@ -521,7 +546,7 @@ export default function MembershipTypesPage({
                 </button>
                 <button
                   type="submit"
-                  disabled={formLoading}
+                  disabled={readOnly || formLoading}
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
                 >
                   {formLoading ? "Guardando..." : editingId ? "Guardar cambios" : "Crear membresía"}
@@ -562,7 +587,7 @@ export default function MembershipTypesPage({
                 type="button"
                 onClick={handleDelete}
                 className="rounded-md bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
-                disabled={deleteLoading}
+                disabled={deleteLoading || !canDelete}
               >
                 {deleteLoading ? "Eliminando..." : "Eliminar"}
               </button>

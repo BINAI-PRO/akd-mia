@@ -4,6 +4,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { studioDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 type SessionDetailsResponse = {
   session: {
@@ -58,6 +60,7 @@ type Props = {
   sessionId: string | null;
   open: boolean;
   onClose: () => void;
+  featureKey?: AdminFeatureKey;
 };
 
 type FetchState = {
@@ -123,9 +126,12 @@ function formatSchedule(startISO: string | null, endISO: string | null) {
   return `${start.format("DD MMM YYYY HH:mm")} \u2013 ${end.format("HH:mm")}`;
 }
 
-export default function SessionDetailsModal({ sessionId, open, onClose }: Props) {
+export default function SessionDetailsModal({ sessionId, open, onClose, featureKey }: Props) {
   const { profile } = useAuth();
   const staffId = profile?.staffId ?? null;
+  const resolvedFeature: AdminFeatureKey = featureKey ?? "classes";
+  const access = useAdminAccess(resolvedFeature);
+  const readOnly = !access.canEdit;
 
   const [{ status, error, data }, setState] = useState<FetchState>({
     status: "idle",
@@ -151,6 +157,12 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
     setQrShareFeedback(null);
     setQrShareBusy(null);
   };
+
+  useEffect(() => {
+    if (readOnly && manualOpen) {
+      setManualOpen(false);
+    }
+  }, [manualOpen, readOnly]);
 
   const fetchSessionDetails = useCallback(
     async (options?: { signal?: AbortSignal; silent?: boolean }) => {
@@ -296,6 +308,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   }, [data]);
 
   const handleToggleAttendance = async (bookingId: string, shouldMarkPresent: boolean) => {
+    if (readOnly) {
+      setAttendanceFeedback({
+        type: "error",
+        text: "Tu rol no puede actualizar la asistencia de esta sesión.",
+      });
+      return;
+    }
     setAttendanceFeedback(null);
     setAttendanceBusy((prev) => ({ ...prev, [bookingId]: true }));
 
@@ -357,6 +376,10 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const handleManualBooking = async (planPurchaseId: string) => {
+    if (readOnly) {
+      setManualError("Tu rol no tiene permisos para registrar reservas manuales.");
+      return;
+    }
     if (!sessionId) return;
     setManualAction(planPurchaseId);
     setManualError(null);
@@ -395,6 +418,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    if (readOnly) {
+      setAttendanceFeedback({
+        type: "error",
+        text: "Tu rol no puede cancelar reservaciones desde esta pantalla.",
+      });
+      return;
+    }
     if (typeof window !== "undefined") {
       const confirmed = window.confirm("¿Cancelar esta reservación? Se liberará el lugar de inmediato.");
       if (!confirmed) return;
@@ -425,6 +455,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const openQrPreview = async (participant: Participant) => {
+    if (readOnly) {
+      setAttendanceFeedback({
+        type: "error",
+        text: "Tu rol no puede generar o compartir códigos QR.",
+      });
+      return;
+    }
     const { bookingId, client } = participant;
     const clientName = client.fullName;
     const clientEmail = client.email ?? null;
@@ -492,6 +529,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const copyQrLink = async () => {
+    if (readOnly) {
+      setQrShareFeedback({
+        type: "error",
+        text: "Tu rol no puede copiar o reenviar códigos QR.",
+      });
+      return;
+    }
     if (!qrPreview?.imageUrl) return;
     setQrShareBusy("copy");
     setQrShareFeedback(null);
@@ -509,6 +553,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const shareQrLink = async () => {
+    if (readOnly) {
+      setQrShareFeedback({
+        type: "error",
+        text: "Tu rol no puede compartir códigos QR.",
+      });
+      return;
+    }
     if (!qrPreview?.imageUrl) return;
     setQrShareBusy("share");
     setQrShareFeedback(null);
@@ -545,6 +596,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
   };
 
   const emailQrToClient = () => {
+    if (readOnly) {
+      setQrShareFeedback({
+        type: "error",
+        text: "Tu rol no puede enviar códigos QR.",
+      });
+      return;
+    }
     if (!qrPreview?.imageUrl) return;
     if (!qrPreview.clientEmail) {
       setQrShareFeedback({
@@ -667,8 +725,13 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     </span>
                     <button
                       type="button"
-                      onClick={() => setManualOpen((prev) => !prev)}
-                      className="rounded-md border border-brand-500 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                      onClick={() => {
+                        if (readOnly) return;
+                        setManualOpen((prev) => !prev);
+                      }}
+                      className="rounded-md border border-brand-500 px-3 py-1 text-xs font-semibold text-brand-600 transition hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={readOnly}
+                      aria-disabled={readOnly}
                     >
                       {manualOpen ? "Cerrar búsqueda" : "Reservar miembro"}
                     </button>
@@ -697,6 +760,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                         onChange={(event) => setManualSearch(event.target.value)}
                         className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
                         placeholder="Nombre, correo o teléfono"
+                        disabled={readOnly}
                       />
                       <p className="mt-1 text-xs text-slate-500">
                         Muestra miembros con plan flexible activo disponible para esta sesión.
@@ -745,7 +809,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                               <button
                                 type="button"
                                 onClick={() => handleManualBooking(option.planPurchaseId)}
-                                disabled={manualAction === option.planPurchaseId}
+                                disabled={readOnly || manualAction === option.planPurchaseId}
                                 className="self-start rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300 sm:self-center"
                               >
                                 {manualAction === option.planPurchaseId ? "Reservando..." : "Reservar"}
@@ -820,7 +884,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                                   onChange={(event) =>
                                     void handleToggleAttendance(participant.bookingId, event.target.checked)
                                   }
-                                  disabled={attendanceBusy[participant.bookingId]}
+                                  disabled={readOnly || attendanceBusy[participant.bookingId]}
                                 />
                               </td>
                               <td className="px-4 py-3 text-slate-500">{formatStatus(participant.status)}</td>
@@ -832,7 +896,8 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                                   <button
                                     type="button"
                                     onClick={() => openQrPreview(participant)}
-                                    className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-100"
+                                    className="rounded-md border border-slate-300 px-3 py-1 text-xs text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    disabled={readOnly}
                                   >
                                     Ver QR
                                   </button>
@@ -840,8 +905,8 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                                     <button
                                       type="button"
                                       onClick={() => handleCancelBooking(participant.bookingId)}
-                                      disabled={cancelBusyId === participant.bookingId}
-                                      className="rounded-md border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                                      disabled={readOnly || cancelBusyId === participant.bookingId}
+                                      className="rounded-md border border-rose-200 px-3 py-1 text-xs text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                       {cancelBusyId === participant.bookingId ? "Cancelando..." : "Cancelar"}
                                     </button>
@@ -993,7 +1058,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <button
                       type="button"
                       onClick={shareQrLink}
-                      disabled={qrShareBusy === "share" || !qrPreview.imageUrl}
+                      disabled={readOnly || qrShareBusy === "share" || !qrPreview.imageUrl}
                       className="w-full rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {qrShareBusy === "share" ? "Abriendo opciones..." : "Compartir QR"}
@@ -1001,7 +1066,7 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <button
                       type="button"
                       onClick={copyQrLink}
-                      disabled={qrShareBusy === "copy" || !qrPreview.imageUrl}
+                      disabled={readOnly || qrShareBusy === "copy" || !qrPreview.imageUrl}
                       className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {qrShareBusy === "copy" ? "Copiando..." : "Copiar enlace"}
@@ -1009,7 +1074,9 @@ export default function SessionDetailsModal({ sessionId, open, onClose }: Props)
                     <button
                       type="button"
                       onClick={emailQrToClient}
-                      disabled={qrShareBusy === "email" || !qrPreview.clientEmail || !qrPreview.imageUrl}
+                      disabled={
+                        readOnly || qrShareBusy === "email" || !qrPreview.clientEmail || !qrPreview.imageUrl
+                      }
                       className="w-full rounded-md border border-emerald-400 px-3 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {qrPreview.clientEmail

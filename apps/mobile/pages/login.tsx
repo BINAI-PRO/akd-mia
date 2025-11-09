@@ -3,8 +3,11 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/auth/AuthContext";
-
-const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+import {
+  PASSWORD_REQUIREMENT_SUMMARY,
+  PASSWORD_RULES,
+  isPasswordValid,
+} from "@/lib/password-policy";
 
 export default function MobileLoginPage() {
   const router = useRouter();
@@ -27,7 +30,7 @@ export default function MobileLoginPage() {
     }
   }, [loading, redirectTarget, router, user]);
 
-  const passwordIsValid = PASSWORD_REGEX.test(password);
+  const passwordIsValid = isPasswordValid(password);
 
   const handleGoogleLogin = async () => {
     if (submitting) return;
@@ -62,9 +65,7 @@ export default function MobileLoginPage() {
     setPasswordTouched(true);
 
     if (!passwordIsValid) {
-      setFormError(
-        "La contraseña debe tener entre 8 y 64 caracteres e incluir letras, números y al menos un símbolo."
-      );
+      setFormError("Revisa los requisitos de la contraseña antes de continuar.");
       setSubmitting(false);
       return;
     }
@@ -182,9 +183,12 @@ export default function MobileLoginPage() {
                   </span>
                 </button>
               </div>
-              <p className="text-xs text-neutral-500">
-                Usa entre 8 y 64 caracteres con letras, números y al menos un símbolo.
-              </p>
+              <p className="text-xs text-neutral-500">{PASSWORD_REQUIREMENT_SUMMARY}</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs text-neutral-500">
+                {PASSWORD_RULES.map((rule) => (
+                  <li key={rule}>{rule}</li>
+                ))}
+              </ul>
               {passwordTouched && !passwordIsValid && (
                 <p className="text-xs text-rose-600">
                   Revisa los requisitos de la contraseña antes de continuar.

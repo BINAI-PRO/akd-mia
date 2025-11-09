@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { randomBytes } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ensureClientAppAccess } from "@/lib/supabase-client-auth";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type SuccessResponse = {
   password: string;
@@ -13,37 +13,6 @@ type SuccessResponse = {
 };
 
 type ErrorResponse = { error: string };
-
-async function assertStaffAccess(req: NextApiRequest, res: NextApiResponse<ErrorResponse>) {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.user) {
-    res.status(401).json({ error: "No autenticado" });
-    return null;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle<{ id: string }>();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return null;
-  }
-
-  if (!staffRow?.id) {
-    res.status(403).json({ error: "Acceso restringido al personal autorizado" });
-    return null;
-  }
-
-  return staffRow.id;
-}
 
 function extractProviders(user: User | null): string[] {
   if (!user) return [];
@@ -75,7 +44,8 @@ export default async function handler(
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  if (!(await assertStaffAccess(req, res))) return;
+  const access = await requireAdminFeature(req, res, "memberDetail", "EDIT");
+  if (!access) return;
 
   const memberId = typeof req.query.id === "string" ? req.query.id : null;
   if (!memberId) {

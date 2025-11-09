@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type QrTokenResponse = {
   token: string;
@@ -9,47 +9,13 @@ type QrTokenResponse = {
   expiresAt: string | null;
 };
 
-async function requireStaffAccess(
-  req: NextApiRequest,
-  res: NextApiResponse
-): Promise<boolean> {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.user) {
-    res.status(401).json({ error: "No autenticado" });
-    return false;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return false;
-  }
-
-  if (!staffRow?.id) {
-    res.status(403).json({ error: "Acceso restringido al personal autorizado" });
-    return false;
-  }
-
-  return true;
-}
-
 function resolveBaseUrl(req: NextApiRequest): string {
   const forwardedProto = req.headers["x-forwarded-proto"];
   const host = req.headers["x-forwarded-host"] ?? req.headers.host;
   const protocol =
     typeof forwardedProto === "string"
       ? forwardedProto
-      : host && host.includes("localhost")
+      : host && host?.includes("localhost")
       ? "http"
       : "https";
   return `${protocol}://${host ?? "localhost:3000"}`;
@@ -64,8 +30,8 @@ export default async function handler(
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const hasAccess = await requireStaffAccess(req, res);
-  if (!hasAccess) return;
+  const access = await requireAdminFeature(req, res, "classes", "EDIT");
+  if (!access) return;
 
   const { bookingId } = req.query;
   if (typeof bookingId !== "string" || bookingId.length === 0) {
@@ -113,4 +79,3 @@ export default async function handler(
     expiresAt: tokenRow.expires_at ?? null,
   });
 }
-

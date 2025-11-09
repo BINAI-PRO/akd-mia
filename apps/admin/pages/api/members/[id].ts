@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { loadStudioSettings } from "@/lib/studio-settings";
 import { normalizePhoneInput } from "@/lib/phone";
 import type { Tables } from "@/types/database";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type UpdatePayload = {
   fullName?: string;
@@ -19,38 +19,6 @@ type UpdatePayload = {
   preferredApparatus?: string[] | null;
   membershipNotes?: string | null;
 };
-
-async function assertMasterAccess(req: NextApiRequest, res: NextApiResponse): Promise<string | null> {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return null;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("staff_roles ( slug )")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle<{ staff_roles: { slug: string | null } | null }>();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return null;
-  }
-
-  const slug = staffRow?.staff_roles?.slug ?? null;
-  if (!slug || slug.toUpperCase() !== "MASTER") {
-    res.status(403).json({ error: "Solo un usuario MASTER puede realizar esta acción" });
-    return null;
-  }
-
-  return session.user.id;
-}
 
 type MemberSnapshotRow = Tables<"clients"> & {
   client_profiles: Pick<Tables<"client_profiles">, "status"> | null;
@@ -120,9 +88,6 @@ async function handleDeleteMemberRequest(
   res: NextApiResponse,
   clientId: string
 ) {
-  const masterUserId = await assertMasterAccess(req, res);
-  if (!masterUserId) return;
-
   const { count: bookingCount, error: bookingError } = await supabaseAdmin
     .from("bookings")
     .select("id", { head: true, count: "exact" })
@@ -183,6 +148,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (typeof id !== "string" || id.length === 0) {
     return res.status(400).json({ error: "ID de miembro invalido" });
   }
+
+  const method = req.method ?? "GET";
+  const requiredLevel = method === "DELETE" ? "FULL" : method === "PATCH" ? "EDIT" : "READ";
+  const access = await requireAdminFeature(req, res, "memberDetail", requiredLevel);
+  if (!access) return;
 
   if (req.method === "GET") {
     try {

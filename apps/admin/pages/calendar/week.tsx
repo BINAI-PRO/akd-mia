@@ -128,6 +128,7 @@ export default function WeeklyCalendarPage({
           </Link>
         </div>
       )}
+      featureKey="calendarWeek"
     >
       <WeekCalendarBoard
         anchorDateISO={anchorDateISO}

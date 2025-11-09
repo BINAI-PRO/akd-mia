@@ -1,0 +1,20 @@
+﻿PAGINA,FUNCION,INSTRUCTOR,RECEPTIONIST,LOCATION_MANAGER,MASTER ,SUPPORT
+/admin,Panel principal (dashboard),Lectura,Lectura,Total,Total,Total
+/admin/attendance,Control de asistencias,Editar,Editar,Total,Total,Total
+/admin/calendar,Calendario (vista general),Lectura,Editar,Total,Total,Total
+/admin/calendar/day,Calendario por día,Lectura,Editar,Total,Total,Total
+/admin/calendar/week,Calendario por semana,Lectura,Editar,Total,Total,Total
+/admin/reports,Reportes y métricas,Lectura,Lectura,Lectura,Total,Total
+/admin/class-types,Catálogo de tipos de clase,Sin acceso,Lectura,Lectura,Total,Total
+/admin/courses,Horarios (Cursos),Lectura,Editar,Total,Total,Total
+/admin/courses/scheduler,Programador de cursos,Lectura,Editar,Total,Total,Total
+/admin/classes,Sesiones Planeadas,Lectura,Editar,Total,Total,Total
+/admin/members,Gestión de miembros,Sin acceso,Editar,Total,Total,Total
+/admin/members/new,Alta rápida de miembro,Sin acceso,Editar,Total,Total,Total
+/admin/members/[id],Detalle/edición de miembro,Sin acceso,Editar,Total,Total,Total
+/admin/membership-types,Tipos de membresía,Lectura,Lectura,Editar,Total,Total
+/admin/memberships,Planes activos,Sin acceso,Lectura,Lectura,Total,Total
+/admin/planeacion/instructores,Datos y disponibilidad de instructor,Sin acceso,Editar,Total,Total,Total
+/admin/planeacion/salas,Bloqueos/planeación de salas,Sin acceso,Lectura,Editar,Total,Total
+/admin/planeacion/staff,Gestión de staff (roles/invites),Sin acceso,Sin acceso,Editar,Total,Total
+/admin/planeacion/settings,Parámetros de planeación,Sin acceso,Sin acceso,Sin acceso,Sin acceso,Total

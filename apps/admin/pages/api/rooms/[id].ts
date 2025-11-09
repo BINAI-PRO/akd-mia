@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert, TablesUpdate } from "@/types/database";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type RoomRow = Tables<"rooms">;
 type RoomWithMaybeLocation = RoomRow & { location?: string | null };
@@ -121,6 +122,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!id) {
     return res.status(400).json({ error: "El id es obligatorio" });
   }
+
+  const minLevel = req.method === "GET" ? "READ" : "EDIT";
+  const access = await requireAdminFeature(req, res, "planningRooms", minLevel);
+  if (!access) return;
 
   try {
     if (req.method === "GET") {

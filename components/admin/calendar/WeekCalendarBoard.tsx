@@ -411,7 +411,12 @@ return (
         </div>
       </section>
       </div>
-      <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
+      <SessionDetailsModal
+        sessionId={detailSessionId}
+        open={detailOpen}
+        onClose={closeDetails}
+        featureKey="calendarWeek"
+      />
     </>
   );
 }

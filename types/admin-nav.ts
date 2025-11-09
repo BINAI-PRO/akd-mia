@@ -1,0 +1,22 @@
+export type AdminNavKey =
+  | "dashboard"
+  | "calendar"
+  | "reports"
+  | "attendanceScanner"
+  | "courses"
+  | "courseScheduler"
+  | "classTypes"
+  | "classes"
+  | "appointments"
+  | "videos"
+  | "members"
+  | "membershipTypes"
+  | "membershipPlans"
+  | "planningInstructors"
+  | "planningRooms"
+  | "planningStaff"
+  | "contacts"
+  | "marketing"
+  | "analytics"
+  | "settings";
+

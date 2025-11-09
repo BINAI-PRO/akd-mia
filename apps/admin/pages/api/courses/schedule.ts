@@ -3,6 +3,7 @@ import { madridDayjs } from "@/lib/timezone";
 import { loadStudioSettings } from "@/lib/studio-settings";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables, TablesInsert } from "@/types/database";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type ScheduleSessionInput = {
   date?: string;
@@ -50,6 +51,9 @@ export default async function handler(
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  const access = await requireAdminFeature(req, res, "courseScheduler", "EDIT");
+  if (!access) return;
 
   const { courseId, sessions } = req.body as ScheduleRequestBody;
 

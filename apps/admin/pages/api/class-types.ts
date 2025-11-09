@@ -1,11 +1,15 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  const access = await requireAdminFeature(req, res, "classTypes", "FULL");
+  if (!access) return;
 
   try {
     const { name, description, intensity, targetAudience } = req.body as {

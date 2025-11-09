@@ -150,7 +150,7 @@ export default function StudioSettingsPage({
       <Head>
         <title>Configuracion de recursos | AT Pilates Time</title>
       </Head>
-      <AdminLayout title="Configuracion de recursos" active="settings">
+      <AdminLayout title="Configuracion de recursos" active="settings" featureKey="planningSettings">
         <div className="mx-auto max-w-3xl space-y-8">
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <header className="space-y-2">

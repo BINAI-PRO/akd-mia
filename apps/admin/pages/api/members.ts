@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { loadStudioSettings } from "@/lib/studio-settings";
 import { normalizePhoneInput } from "@/lib/phone";
 import { ensureClientAppAccess } from "@/lib/supabase-client-auth";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 type LookupFilter = { column: "email" | "phone"; value: string };
 
@@ -11,6 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Metodo no permitido" });
   }
+
+  const access = await requireAdminFeature(req, res, "members", "EDIT");
+  if (!access) return;
 
   try {
     const {

@@ -8,6 +8,8 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { fetchSessionOccupancy } from "@/lib/session-occupancy";
 import type { Tables } from "@/types/database";
 import { studioDayjs } from "@/lib/timezone";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 type CourseOption = {
   id: string;
@@ -187,6 +189,9 @@ export default function AdminClassesPage({
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [sessionDetailId, setSessionDetailId] = useState<string | null>(null);
   const [sessionDetailOpen, setSessionDetailOpen] = useState(false);
+  const featureKey: AdminFeatureKey = "classes";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
 
   const instructorOptions = instructors;
   const roomOptions = rooms;
@@ -209,7 +214,8 @@ export default function AdminClassesPage({
   const [singleForm, setSingleForm] = useState<SingleSessionForm>(() => buildSingleDefaults());
   const [singleError, setSingleError] = useState<string | null>(null);
   const [singleSubmitting, setSingleSubmitting] = useState(false);
-  const canCreateSingle = classTypeOptions.length > 0 && instructorOptions.length > 0 && roomOptions.length > 0;
+  const canCreateSingle =
+    !readOnly && classTypeOptions.length > 0 && instructorOptions.length > 0 && roomOptions.length > 0;
 
   const activeClass = useMemo(
     () => classes.find((row) => row.id === activeClassId) ?? null,
@@ -267,6 +273,7 @@ export default function AdminClassesPage({
   }, [classes, courseFilter, dateFilter, statusFilter]);
 
   const toggleSelection = (sessionId: string) => {
+    if (readOnly) return;
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(sessionId)) {
@@ -280,7 +287,10 @@ export default function AdminClassesPage({
 
   const clearSelection = () => setSelectedIds(new Set());
 
-  const openSingleModal = () => setSingleModalOpen(true);
+  const openSingleModal = () => {
+    if (!canCreateSingle) return;
+    setSingleModalOpen(true);
+  };
   const closeSingleModal = () => {
     setSingleModalOpen(false);
     setSingleError(null);
@@ -295,6 +305,10 @@ export default function AdminClassesPage({
 
   const handleCreateSingleSession = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (readOnly) {
+      setSingleError("Tu rol no puede programar sesiónes individuales.");
+      return;
+    }
     setSingleError(null);
 
     if (!singleForm.classTypeId) {
@@ -390,6 +404,10 @@ export default function AdminClassesPage({
 
   const handleDetailSave = async () => {
     if (!activeClass || !detailState) return;
+    if (readOnly) {
+      setDetailError("Tu rol no tiene permisos para actualizar la sesión.");
+      return;
+    }
     setUpdatingDetail(true);
     setDetailMessage(null);
     setDetailError(null);
@@ -450,6 +468,10 @@ export default function AdminClassesPage({
     }
   };
   const handleBulkUpdate = async () => {
+    if (readOnly) {
+      setBulkError("Tu rol no puede aplicar cambios masivos.");
+      return;
+    }
     setBulkError(null);
     setBulkMessage(null);
     if (selectedIds.size === 0) return;
@@ -504,6 +526,10 @@ export default function AdminClassesPage({
   };
 
   const handleBulkReschedule = async () => {
+    if (readOnly) {
+      setBulkError("Tu rol no puede enviar sesiones a reprogramación.");
+      return;
+    }
     setBulkError(null);
     setBulkMessage(null);
     if (selectedIds.size === 0) return;
@@ -552,10 +578,15 @@ export default function AdminClassesPage({
 
   const occupancyLocks = activeClass ? activeClass.occupancy > 0 : false;
   return (
-    <AdminLayout title="Sesiones" active="classes">
+    <AdminLayout title="Sesiones" active="classes" featureKey="classes">
       <Head>
         <title>PilatesTime Admin - Sesiones</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol tiene acceso de solo lectura en esta sección. Puedes consultar las sesiónes pero no crear ni editar.
+        </div>
+      )}
       {singleModalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 px-4 py-10">
           <div
@@ -693,7 +724,7 @@ export default function AdminClassesPage({
                   </button>
                   <button
                     type="submit"
-                    disabled={singleSubmitting}
+                    disabled={readOnly || singleSubmitting}
                     className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <span className="material-icons-outlined text-base" aria-hidden="true">
@@ -750,10 +781,11 @@ export default function AdminClassesPage({
                 <button
                   type="button"
                   onClick={openSingleModal}
+                  disabled={!canCreateSingle}
                   className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition ${
                     canCreateSingle
-                      ? 'bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500'
-                      : 'bg-slate-200 text-slate-500'
+                      ? "bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                      : "bg-slate-200 text-slate-500 cursor-not-allowed"
                   }`}
                 >
                   <span className="material-icons-outlined text-base" aria-hidden="true">
@@ -804,7 +836,7 @@ export default function AdminClassesPage({
                   <button
                     type="button"
                     onClick={handleBulkUpdate}
-                    disabled={bulkProcessing}
+                    disabled={readOnly || bulkProcessing}
                     className="rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
                   >
                     {bulkProcessing ? 'Aplicando...' : 'Actualizar sala o instructor'}
@@ -812,7 +844,7 @@ export default function AdminClassesPage({
                   <button
                     type="button"
                     onClick={handleBulkReschedule}
-                    disabled={bulkProcessing}
+                    disabled={readOnly || bulkProcessing}
                     className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   >
                     {bulkProcessing ? "Procesando..." : "Enviar a reprogramación"}
@@ -835,6 +867,7 @@ export default function AdminClassesPage({
                         type="checkbox"
                         checked={selectedIds.size > 0 && filteredClasses.every((row) => selectedIds.has(row.id))}
                         onChange={(event) => {
+                          if (readOnly) return;
                           if (event.target.checked) {
                             const next = new Set(selectedIds);
                             filteredClasses.forEach((row) => next.add(row.id));
@@ -845,6 +878,8 @@ export default function AdminClassesPage({
                             setSelectedIds(next);
                           }
                         }}
+                        disabled={readOnly}
+                        aria-disabled={readOnly}
                       />
                     </th>
                     <th className="px-4 py-3">Curso</th>
@@ -880,6 +915,8 @@ export default function AdminClassesPage({
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelection(row.id)}
+                              disabled={readOnly}
+                              aria-disabled={readOnly}
                             />
                           </td>
                           <td className="px-4 py-3 text-slate-700">{row.courseTitle}</td>
@@ -955,6 +992,7 @@ export default function AdminClassesPage({
                       value={detailState.instructorId}
                       onChange={handleDetailChange('instructorId')}
                       className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                      disabled={readOnly}
                     >
                       <option value="">Sin instructor</option>
                       {instructorOptions.map((option) => (
@@ -970,7 +1008,7 @@ export default function AdminClassesPage({
                       value={detailState.roomId}
                       onChange={handleDetailChange('roomId')}
                       className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                      disabled={occupancyLocks}
+                      disabled={readOnly || occupancyLocks}
                     >
                       <option value="">Sin salon asignado</option>
                       {roomOptions.map((option) => (
@@ -991,7 +1029,7 @@ export default function AdminClassesPage({
                         value={detailState.startDate}
                         onChange={handleDetailChange('startDate')}
                         className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                        disabled={occupancyLocks}
+                        disabled={readOnly || occupancyLocks}
                       />
                     </div>
                     <div>
@@ -1001,7 +1039,7 @@ export default function AdminClassesPage({
                         value={detailState.startTime}
                         onChange={handleDetailChange('startTime')}
                         className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
-                        disabled={occupancyLocks}
+                        disabled={readOnly || occupancyLocks}
                       />
                     </div>
                   </div>
@@ -1013,7 +1051,7 @@ export default function AdminClassesPage({
                 <button
                   type="button"
                   onClick={handleDetailSave}
-                  disabled={updatingDetail}
+                  disabled={readOnly || updatingDetail}
                   className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
                 >
                   {updatingDetail ? 'Guardando...' : 'Guardar cambios'}
@@ -1029,6 +1067,7 @@ export default function AdminClassesPage({
         sessionId={sessionDetailId}
         open={sessionDetailOpen}
         onClose={closeSessionDetails}
+        featureKey="classes"
       />
     </AdminLayout>
   );

@@ -1,6 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "./AuthContext";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_REQUIREMENT_SUMMARY,
+  PASSWORD_RULES,
+  isPasswordValid,
+} from "@/lib/password-policy";
 
 export type PasswordFlowType = "invite" | "recovery";
 export type PasswordFlowCompletionStatus = "invite-complete" | "password-updated";
@@ -46,8 +53,8 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
     event.preventDefault();
     if (submitting) return;
 
-    if (password.length < 8) {
-      setFormError("La contraseña debe tener al menos 8 caracteres.");
+    if (!isPasswordValid(password)) {
+      setFormError("La contraseña debe cumplir todos los requisitos de seguridad.");
       return;
     }
 
@@ -121,7 +128,8 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
+              maxLength={PASSWORD_MAX_LENGTH}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-11 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
@@ -149,12 +157,22 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
             type="password"
             autoComplete="new-password"
             required
-            minLength={8}
+            minLength={PASSWORD_MIN_LENGTH}
+            maxLength={PASSWORD_MAX_LENGTH}
             value={confirmPassword}
             onChange={(event) => setConfirmPassword(event.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             placeholder="********"
           />
+        </div>
+
+        <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
+          <p>{PASSWORD_REQUIREMENT_SUMMARY}</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4">
+            {PASSWORD_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
         </div>
 
         {formError && (

@@ -2,7 +2,9 @@
 import { useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 import dayjs from "dayjs";
 
 type ClassTypeItem = {
@@ -72,6 +74,9 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState({ search: "", intensity: "all", target: "all" });
+  const featureKey: AdminFeatureKey = "classTypes";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
 
   const intensityOptions = useMemo(() => {
     const values = new Set<string>();
@@ -105,10 +110,14 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
       setFormState((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
-  const canSubmit = formState.name.trim().length > 0 && !saving;
+  const canSubmit = !readOnly && formState.name.trim().length > 0 && !saving;
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (readOnly) {
+      setError("No tienes permisos de edición para crear o actualizar clases.");
+      return;
+    }
     if (!canSubmit) return;
 
     setSaving(true);
@@ -152,7 +161,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   };
 
   return (
-    <AdminLayout title="Clases" active="classTypes">
+    <AdminLayout title="Clases" active="classTypes" featureKey="classTypes">
       <Head>
         <title>PilatesTime Admin - Clases</title>
       </Head>
@@ -250,6 +259,12 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
             <p className="text-sm text-slate-500">Define una nueva clase para usar en horarios y sesiónes.</p>
           </header>
 
+          {readOnly && (
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+              Tu rol actual solo permite lectura. Solicita permisos de edición para administrar el catálogo.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-2 space-y-4 text-sm" noValidate>
             <div className="grid grid-cols-1 gap-4">
               <label className="flex flex-col gap-1">
@@ -261,6 +276,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   placeholder="Ej. Reformer Básico"
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   required
+                  disabled={readOnly}
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -269,6 +285,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   value={formState.intensity}
                   onChange={handleFormChange("intensity")}
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  disabled={readOnly}
                 >
                   {INTENSITY_OPTIONS.map((option) => (
                     <option key={option} value={option}>
@@ -285,6 +302,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   rows={3}
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   placeholder="Describe los objetivos o el enfoque de la clase"
+                  disabled={readOnly}
                 />
               </label>
               <label className="flex flex-col gap-1">
@@ -295,6 +313,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   rows={2}
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   placeholder="Ej. Principiantes, intermedios, adultos mayores"
+                  disabled={readOnly}
                 />
               </label>
             </div>

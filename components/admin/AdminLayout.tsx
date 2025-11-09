@@ -5,34 +5,29 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { useRouter } from "next/router";
 import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
+import type { AdminNavKey } from "@/types/admin-nav";
+import {
+  ADMIN_FEATURES,
+  NAV_FEATURE_BY_KEY,
+  getAccessLevelForRole,
+  normalizeAdminRole,
+  type AccessLevel,
+  type AdminFeatureKey,
+  type AdminRole,
+} from "@/lib/admin-access";
+import { AdminAccessBlock } from "@/components/admin/AdminAccessBlock";
+import { useAdminAccess, type AdminAccessInfo } from "@/hooks/useAdminAccess";
 
-export type NavKey =
-  | "dashboard"
-  | "calendar"
-  | "reports"
-  | "attendanceScanner"
-  | "courses"
-  | "courseScheduler"
-  | "classTypes"
-  | "classes"
-  | "appointments"
-  | "videos"
-  | "members"
-  | "membershipTypes"
-  | "membershipPlans"
-  | "planningInstructors"
-  | "planningRooms"
-  | "planningStaff"
-  | "contacts"
-  | "marketing"
-  | "analytics"
-  | "settings";
+export type NavKey = AdminNavKey;
 
 type AdminLayoutProps = {
   title: string;
   active: NavKey;
   headerToolbar?: ReactNode;
   children: ReactNode;
+  featureKey?: AdminFeatureKey;
+  featureLabel?: string;
+  minFeatureLevel?: AccessLevel;
 };
 
 type NavLink = {
@@ -95,72 +90,40 @@ const NAVIGATION: NavItem[] = [
   { type: "link", key: "attendanceScanner", label: "Asistencia", icon: "qr_code_scanner", href: "/attendance" },
 ];
 
-const ROLE_NAV_CONFIG: Record<string, "ALL" | NavKey[]> = {
-  MASTER: "ALL",
-  LOCATION_MANAGER: [
-    "dashboard",
-    "calendar",
-    "reports",
-    "attendanceScanner",
-    "courses",
-    "courseScheduler",
-    "classTypes",
-    "classes",
-    "members",
-    "membershipTypes",
-    "membershipPlans",
-    "planningInstructors",
-    "planningRooms",
-    "planningStaff",
-  ],
-  SUPPORT: [
-    "dashboard",
-    "calendar",
-    "reports",
-    "attendanceScanner",
-    "courses",
-    "courseScheduler",
-    "classTypes",
-    "classes",
-    "members",
-    "membershipTypes",
-    "membershipPlans",
-    "planningInstructors",
-    "planningRooms",
-    "planningStaff",
-  ],
-  RECEPTIONIST: [
-    "dashboard",
-    "calendar",
-    "reports",
-    "attendanceScanner",
-    "classes",
-    "members",
-    "membershipPlans",
-    "planningInstructors",
-    "planningRooms",
-    "planningStaff",
-    "settings",
-  ],
-  INSTRUCTOR: ["dashboard", "calendar", "attendanceScanner", "classTypes"],
+const ROLE_NAV_BLOCKLIST: Partial<Record<AdminRole, readonly NavKey[]>> = {
+  INSTRUCTOR: ["planningStaff", "settings"],
+};
+
+function hasNavAccess(navKey: NavKey, role: string | null | undefined): boolean {
+  const normalizedRole = normalizeAdminRole(role);
+  if (normalizedRole) {
+    const blocked = ROLE_NAV_BLOCKLIST[normalizedRole];
+    if (blocked?.includes(navKey)) {
+      return false;
+    }
+  }
+  const feature = NAV_FEATURE_BY_KEY[navKey];
+  if (!feature) return true;
+  return getAccessLevelForRole(role, feature) !== "NONE";
+}
+
+const satisfiesLevel = (access: AdminAccessInfo, level: AccessLevel) => {
+  if (level === "READ") return access.canView;
+  if (level === "EDIT") return access.canEdit;
+  if (level === "FULL") return access.canDelete;
+  return true;
 };
 
 function filterNavigation(role: string | null | undefined): NavItem[] {
-  const normalizedRole = typeof role === "string" ? role.toUpperCase() : null;
-  const config = normalizedRole ? ROLE_NAV_CONFIG[normalizedRole] : "ALL";
-  if (!normalizedRole || !config || config === "ALL") {
-    return NAVIGATION;
-  }
-
-  const allowed = new Set(config);
-
   return NAVIGATION.reduce<NavItem[]>((acc, item) => {
     if (item.type === "link") {
-      if (allowed.has(item.key)) acc.push(item);
+      if (hasNavAccess(item.key, role)) {
+        acc.push(item);
+      }
       return acc;
     }
 
-    const children = item.children.filter((child) => allowed.has(child.key));
+    const children = item.children.filter((child) => hasNavAccess(child.key, role));
     if (children.length > 0) {
       acc.push({ ...item, children });
     }
@@ -168,10 +131,19 @@ function filterNavigation(role: string | null | undefined): NavItem[] {
   }, []);
 }
 
-export default function AdminLayout({ title, active, headerToolbar, children }: AdminLayoutProps) {
+export default function AdminLayout({
+  title,
+  active,
+  headerToolbar,
+  children,
+  featureKey,
+  featureLabel,
+  minFeatureLevel = "READ",
+}: AdminLayoutProps) {
   const router = useRouter();
   const { profile, profileLoading, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const access = useAdminAccess(featureKey);
 
   const filteredNavigation = useMemo(() => filterNavigation(profile?.role), [profile?.role]);
 
@@ -365,7 +337,24 @@ export default function AdminLayout({ title, active, headerToolbar, children }: 
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-slate-100 p-6 lg:p-8">{children}</main>
+          <main className="flex-1 overflow-y-auto bg-slate-100 p-6 lg:p-8">
+            {featureKey ? (
+              access.loading ? (
+                <div className="rounded-lg border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                  Cargando permisos...
+                </div>
+              ) : satisfiesLevel(access, minFeatureLevel) ? (
+                children
+              ) : (
+                <AdminAccessBlock
+                  feature={featureLabel ?? ADMIN_FEATURES[featureKey]?.label ?? title}
+                  requiredLevel={minFeatureLevel}
+                />
+              )
+            ) : (
+              children
+            )}
+          </main>
         </div>
       </div>
     </div>

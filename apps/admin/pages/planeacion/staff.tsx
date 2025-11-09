@@ -306,7 +306,7 @@ export default function StaffManagementPage({
   };
 
   return (
-    <AdminLayout title="Administrar staff" active="planningStaff">
+    <AdminLayout title="Administrar staff" active="planningStaff" featureKey="planningStaff">
       <Head>
         <title>Equipo | ATP Pilates Admin</title>
       </Head>

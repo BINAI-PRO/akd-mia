@@ -384,7 +384,11 @@ export default function InstructorsPage({
   };
 
   return (
-    <AdminLayout title="Planeación · Instructores" active="planningInstructors">
+    <AdminLayout
+      title="Planeación · Instructores"
+      active="planningInstructors"
+      featureKey="planningInstructors"
+    >
       <Head>
         <title>PilatesTime · Planeación · Instructores</title>
       </Head>

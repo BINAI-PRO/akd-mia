@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 function slugify(value: string) {
   return value
@@ -146,6 +147,16 @@ const selectColumns =
   "*, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const method = req.method ?? "";
+  if (!["GET", "POST", "PATCH"].includes(method)) {
+    res.setHeader("Allow", "GET, POST, PATCH");
+    return res.status(405).json({ error: "Metodo no permitido" });
+  }
+
+  const requiredLevel = method === "GET" ? "READ" : "EDIT";
+  const access = await requireAdminFeature(req, res, "courses", requiredLevel);
+  if (!access) return;
+
   if (req.method === "POST") {
     try {
       const normalized = normalizePayload(req.body as CoursePayload);

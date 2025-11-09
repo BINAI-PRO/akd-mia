@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
+import type { AccessLevel } from "@/lib/admin-access";
 
 type EligiblePlanResult = {
   planPurchaseId: string;
@@ -26,41 +27,12 @@ type StaffContext = {
 
 async function requireStaffContext(
   req: NextApiRequest,
-  res: NextApiResponse<ErrorResponse>
+  res: NextApiResponse<ErrorResponse>,
+  minLevel: AccessLevel
 ): Promise<StaffContext | null> {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return null;
-  }
-
-  if (!session?.user) {
-    res.status(401).json({ error: "No autenticado" });
-    return null;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle<{ id: string }>();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return null;
-  }
-
-  if (!staffRow?.id) {
-    res.status(403).json({ error: "Acceso restringido al equipo autorizado" });
-    return null;
-  }
-
-  return { staffId: staffRow.id };
+  const access = await requireAdminFeature(req, res, "classes", minLevel);
+  if (!access) return null;
+  return { staffId: access.staffId };
 }
 
 function normalizeQuery(raw: unknown): string | null {
@@ -84,7 +56,7 @@ export default async function handler(
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  if (!(await requireStaffContext(req, res))) return;
+  if (!(await requireStaffContext(req, res, "EDIT"))) return;
 
   const { id } = req.query;
   if (typeof id !== "string" || !id) {

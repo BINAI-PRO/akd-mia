@@ -864,7 +864,7 @@ export default function PlanningRoomsPage({
     }
   };
   return (
-    <AdminLayout title="Planeacion - Salas" active="planningRooms">
+    <AdminLayout title="Planeacion - Salas" active="planningRooms" featureKey="planningRooms">
       <Head>
         <title>PilatesTime Admin - Planeacion de salas</title>
       </Head>

@@ -140,7 +140,8 @@ export async function updateStudioSettings(options: UpdateSettingsPayload): Prom
   upsertError = await attemptUpsert(upsertPayload);
 
   if (upsertError && isMissingColumnError(upsertError) && "phone_country" in upsertPayload) {
-    const { phone_country, ...rest } = upsertPayload;
+    const { phone_country: _legacyPhoneCountry, ...rest } = upsertPayload;
+    void _legacyPhoneCountry;
     upsertPayload = rest;
     upsertError = await attemptUpsert(upsertPayload);
     retryPerformed = true;

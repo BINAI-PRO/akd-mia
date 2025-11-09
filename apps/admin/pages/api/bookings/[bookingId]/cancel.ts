@@ -1,41 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { createSupabaseServerClient } from "@/lib/supabase-server";
-import { supabaseAdmin } from "@/lib/supabase-admin";
 import { cancelBooking, type ActorInput } from "@/apps/mobile/pages/api/bookings";
-
-async function requireStaffId(
-  req: NextApiRequest,
-  res: NextApiResponse
-): Promise<string | null> {
-  const supabase = createSupabaseServerClient({ req, res });
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.user) {
-    res.status(401).json({ error: "No autenticado" });
-    return null;
-  }
-
-  const { data: staffRow, error: staffError } = await supabaseAdmin
-    .from("staff")
-    .select("id")
-    .eq("auth_user_id", session.user.id)
-    .maybeSingle<{ id: string }>();
-
-  if (staffError) {
-    res.status(500).json({ error: staffError.message });
-    return null;
-  }
-
-  if (!staffRow?.id) {
-    res.status(403).json({ error: "Acceso restringido al personal autorizado" });
-    return null;
-  }
-
-  return staffRow.id;
-}
+import { requireAdminFeature } from "@/lib/api/require-admin-feature";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "DELETE") {
@@ -43,8 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Método no permitido" });
   }
 
-  const staffId = await requireStaffId(req, res);
-  if (!staffId) return;
+  const access = await requireAdminFeature(req, res, "classes", "EDIT");
+  if (!access) return;
 
   const { bookingId } = req.query;
   if (typeof bookingId !== "string" || bookingId.length === 0) {
@@ -52,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const actors: ActorInput = { actorStaffId: staffId };
+    const actors: ActorInput = { actorStaffId: access.staffId };
     const result = await cancelBooking({
       bookingId,
       actors,
@@ -71,4 +36,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(status).json({ error: message });
   }
 }
-

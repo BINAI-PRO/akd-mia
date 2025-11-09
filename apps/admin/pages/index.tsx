@@ -275,6 +275,7 @@ export default function AdminDashboardPage({
       title="Tablero"
       active="dashboard"
       headerToolbar={headerToolbar}
+      featureKey="dashboard"
     >
       <Head>
         <title>AT Pilates Time - Tablero</title>

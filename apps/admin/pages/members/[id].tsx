@@ -13,8 +13,9 @@ import {
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 import type { Tables } from "@/types/database";
 
 const AdminLayoutAny = AdminLayout as unknown as ComponentType<
@@ -219,8 +220,11 @@ export default function EditMemberPage({
   const latestMembership = sortedMemberships[0] ?? null;
   const initialStatus = (profile?.status ?? "ACTIVE").toUpperCase();
   const normalizedStatus = initialStatus === "CANCELLED" ? "CANCELED" : initialStatus;
-  const { profile: authProfile } = useAuth();
-  const isMasterUser = (authProfile?.role ?? "").toUpperCase() === "MASTER";
+  const featureKey: AdminFeatureKey = "memberDetail";
+  const pageAccess = useAdminAccess(featureKey);
+  const canEditMember = pageAccess.canEdit;
+  const allowPlanDelete = pageAccess.canDelete;
+  const readOnly = !canEditMember;
 
   const [form, setForm] = useState<FormState>({
     fullName: member.full_name,
@@ -384,7 +388,10 @@ export default function EditMemberPage({
   };
 
   const handleDeletePlan = async (planId: string) => {
-    if (!isMasterUser) return;
+    if (!allowPlanDelete) {
+      setPlanDeleteError("No tienes permisos para eliminar planes.");
+      return;
+    }
     if (typeof window !== "undefined") {
       const confirmed = window.confirm("¿Eliminar este plan activo? Esta acción no se puede deshacer.");
       if (!confirmed) return;
@@ -478,7 +485,7 @@ export default function EditMemberPage({
   };
 
   return (
-    <AdminLayoutAny title="Editar miembro" active="Miembros">
+    <AdminLayoutAny title="Editar miembro" active="Miembros" featureKey="memberDetail">
       <Head>
         <title>Editar miembro  Admin</title>
       </Head>
@@ -508,6 +515,11 @@ export default function EditMemberPage({
         {error && (
           <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
+          </div>
+        )}
+        {readOnly && (
+          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Tu rol solo tiene permiso de lectura en este perfil. Puedes revisar la información pero no guardar cambios.
           </div>
         )}
 
@@ -771,8 +783,8 @@ export default function EditMemberPage({
           <div className="grid gap-4 border-b border-slate-200 p-6">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-800">Planes activos</h2>
-              {isMasterUser ? (
-                <span className="text-xs text-slate-400">Solo MASTER puede eliminar planes.</span>
+              {!allowPlanDelete ? (
+                <span className="text-xs text-slate-400">No tienes permisos para eliminar planes.</span>
               ) : null}
             </div>
             {planDeleteError && (
@@ -818,7 +830,7 @@ export default function EditMemberPage({
                           </td>
                           <td className="px-4 py-3 text-slate-600">{remainingLabel}</td>
                           <td className="px-4 py-3 text-right">
-                            {isMasterUser ? (
+                            {allowPlanDelete ? (
                               <button
                                 type="button"
                                 onClick={() => handleDeletePlan(plan.id)}
@@ -828,7 +840,7 @@ export default function EditMemberPage({
                                 {planDeletingId === plan.id ? "Eliminando..." : "Eliminar plan"}
                               </button>
                             ) : (
-                              <span className="text-xs text-slate-400">Solo MASTER</span>
+                              <span className="text-xs text-slate-400">Sin permisos de eliminación</span>
                             )}
                           </td>
                         </tr>
@@ -849,7 +861,7 @@ export default function EditMemberPage({
             </Link>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={readOnly || submitting}
               className="inline-flex items-center gap-2 rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-60"
             >
               <span className="material-icons-outlined text-base">

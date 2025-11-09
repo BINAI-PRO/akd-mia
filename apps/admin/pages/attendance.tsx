@@ -378,7 +378,12 @@ export default function AttendanceScannerPage() {
       <Head>
         <title>Control de asistencia | Panel Admin</title>
       </Head>
-      <AdminLayout title="Control de asistencia" active="attendanceScanner">
+      <AdminLayout
+        title="Control de asistencia"
+        active="attendanceScanner"
+        featureKey="attendance"
+        minFeatureLevel="EDIT"
+      >
         <div className="mx-auto flex max-w-5xl flex-col gap-6">
           <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <header className="mb-4 flex items-center justify-between">

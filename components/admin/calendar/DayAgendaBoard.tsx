@@ -366,7 +366,12 @@ export default function DayAgendaBoard({
         </div>
       </section>
       </div>
-      <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
+      <SessionDetailsModal
+        sessionId={detailSessionId}
+        open={detailOpen}
+        onClose={closeDetails}
+        featureKey="calendarDay"
+      />
     </>
   );
 }

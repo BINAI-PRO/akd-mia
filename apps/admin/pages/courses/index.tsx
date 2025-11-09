@@ -15,6 +15,8 @@ import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
 import dayjs from "dayjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 // Bridge tipado por si AdminLayout requiere props adicionales
 type AdminLayoutProps = PropsWithChildren<Record<string, unknown>>;
@@ -337,6 +339,9 @@ export default function CoursesPage(
   });
   const [saving, setSaving] = useState(false);
   const [formMessage, setFormMessage] = useState<string | null>(null);
+  const featureKey: AdminFeatureKey = "courses";
+  const pageAccess = useAdminAccess(featureKey);
+  const readOnly = !pageAccess.canEdit;
 
   const ensureOption = (options: string[], value: string | null): string[] => {
     const trimmed = value?.trim();
@@ -413,6 +418,7 @@ export default function CoursesPage(
   };
 
   const handleEditCourse = (course: CourseRow) => {
+    if (readOnly) return;
     const nextLevels = ensureOption(levels, course.Nivel);
     if (nextLevels !== levels) setLevels(nextLevels);
     const nextCategories = ensureOption(categories, course.Categoría);
@@ -450,6 +456,10 @@ export default function CoursesPage(
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (readOnly) {
+      setFormError("Tu rol no tiene permisos para crear o editar horarios.");
+      return;
+    }
     setSaving(true);
     setFormMessage(null);
     setFormError(null);
@@ -580,11 +590,17 @@ export default function CoursesPage(
   const hasRoomOptions = roomOptions.length > 0;
 
   return (
-    <AdminLayoutAny title="Horarios" active="courses">
+    <AdminLayoutAny title="Horarios" active="courses" featureKey="courses">
       <Head>
         <meta charSet="utf-8" />
         <title>PilatesTime Admin - Horarios</title>
       </Head>
+      {readOnly && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+          Tu rol tiene acceso de solo lectura en esta sección. Puedes consultar los horarios pero no crear o editar
+          registros.
+        </div>
+      )}
       <div className="mx-auto flex max-w-6xl gap-6">
         <div className="flex-1 space-y-6">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -716,7 +732,7 @@ export default function CoursesPage(
                           <button
                             type="button"
                             onClick={() => handleEditCourse(course)}
-                            disabled={course.hasSessions || saving}
+                            disabled={readOnly || course.hasSessions || saving}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title={
                               course.hasSessions
@@ -761,10 +777,11 @@ export default function CoursesPage(
                 Registra al menos una sala antes de crear un horario.
               </p>
             )}
-            <form className="space-y-4 text-sm" onSubmit={handleSubmit}>
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                {"Título"}
+            <form onSubmit={handleSubmit}>
+              <fieldset disabled={readOnly || saving} className="space-y-4 text-sm">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                  {"Título"}
                 </label>
                 <input
                   value={formState.title}
@@ -1065,7 +1082,8 @@ export default function CoursesPage(
                     ? "Actualizar horario"
                     : "Guardar horario"}
                 </button>
-              </div>
+                </div>
+              </fieldset>
             </form>
           </div>
         </div>

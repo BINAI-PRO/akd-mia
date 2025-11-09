@@ -8,6 +8,7 @@ import {
   type PasswordFlowCompletionStatus,
   type PasswordFlowType,
 } from "@/components/auth/AuthPasswordSetupCard";
+import { PASSWORD_REQUIREMENT_SUMMARY } from "@/lib/password-policy";
 
 const normalizeFlowValue = (value?: string | null): PasswordFlowType | null => {
   if (!value) return null;
@@ -257,9 +258,7 @@ export default function AdminLoginPage() {
                     </span>
                   </button>
                 </div>
-                <p className="text-xs text-slate-500">
-                  Usa entre 8 y 64 caracteres con letras, números y al menos un símbolo.
-                </p>
+                <p className="text-xs text-slate-500">{PASSWORD_REQUIREMENT_SUMMARY}</p>
               </div>
 
               {statusMessage && (
