@@ -19,9 +19,6 @@ function formatCurrency(amount: number | null, currency: string | null) {
   return CURRENCY_FORMATTERS[code].format(amount);
 }
 
-const RECEPTION_EMAIL =
-  process.env.NEXT_PUBLIC_RECEPTION_EMAIL ?? "contacto@atpilatestime.com";
-
 function formatDate(value: string | null): string {
   if (!value) return "Sin fecha";
   try {
@@ -181,7 +178,7 @@ export default function PlansPage() {
       return;
     }
     if (membershipsEnabled && selectedPlan.requiresMembership && !hasActiveMembership) {
-      setCheckoutError("Debes tener una membresía activa para adquirir este plan");
+      setCheckoutError("No cumples los requisitos para adquirir esta tarifa");
       setCheckoutLoading(null);
       return;
     }
@@ -210,77 +207,19 @@ export default function PlansPage() {
     }
   };
 
-  const handleContactReception = () => {
-    router.push(`mailto:${RECEPTION_EMAIL}?subject=Compra de tarifa flexible`);
-  };
-
-  let membershipBanner: ReactNode = null;
-  if (membershipsEnabled) {
-    if (state.status === "loading") {
-      membershipBanner = (
-        <div className="animate-pulse rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 shadow-sm">
-          <div className="h-4 w-1/3 rounded bg-neutral-200" />
-          <div className="mt-2 h-3 w-2/3 rounded bg-neutral-200" />
-          <div className="mt-4 h-9 w-32 rounded bg-neutral-200" />
-        </div>
-      );
-    } else if (state.status === "ready") {
-      const membership = state.data.membership;
-      const isActive = membership?.isActive ?? false;
-      const statusLabel = membership
-        ? isActive
-          ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
-          : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
-        : "Membresía inactiva";
-
-      membershipBanner = (
-        <div
-          className={`rounded-2xl border px-4 py-4 shadow-sm ${
-            isActive
-              ? "border-emerald-200 bg-emerald-50"
-              : "border-amber-200 bg-amber-50"
-          }`}
-        >
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-neutral-900">
-                {membership?.name ?? "Membresía"}
-              </p>
-              <p className="text-xs text-neutral-600">{statusLabel}</p>
-              {membership?.category && (
-                <p className="text-[11px] text-neutral-500">Categoría: {membership.category}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => router.push("/membership")}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-            >
-              Gestionar membresía
-            </button>
-          </div>
-        </div>
-      );
-    } else if (state.status === "error") {
-      membershipBanner = (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
-          No se pudo cargar la informacion de la membresía. {state.message}
-        </div>
-      );
-    }
-  }
+  const membershipBanner: ReactNode = null;
 
   return (
     <>
       <Head>
-        <title>Tarifas | ATP Pilates</title>
+        <title>Tarifas y Bonos | ATP Pilates</title>
       </Head>
 
       <section className="mx-auto max-w-md space-y-6">
         <header className="pt-6 text-center">
           <h1 className="text-2xl font-semibold text-brand-800">Tarifas y bonos</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Consulta tus planes vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
+            Consulta tus tarifas vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
           </p>
         </header>
 
@@ -413,8 +352,8 @@ export default function PlansPage() {
                       <dd>{plan.appOnly ? "Solo app" : "App y recepción"}</dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Membresía</dt>
-                      <dd>{plan.requiresMembership ? "Requerida" : "No requerida"}</dd>
+                      <dt className="font-medium text-neutral-500">Requisito</dt>
+                      <dd>{plan.requiresMembership ? "Restricción activa" : "Sin restricciones"}</dd>
                     </div>
                   </dl>
 
@@ -436,19 +375,6 @@ export default function PlansPage() {
                       </span>
                       {checkoutLoading === plan.id ? "Redirigiendo..." : "Pagar con tarjeta"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleContactReception}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-neutral-300 px-4 py-2 font-semibold text-neutral-700 transition hover:bg-neutral-100"
-                    >
-                      <span className="material-icons-outlined text-base" aria-hidden="true">
-                        support_agent
-                      </span>
-                      Pagar en recepción
-                    </button>
-                    <p className="text-[11px] text-neutral-500">
-                      Nota: Realiza el pago en recepción y solicita la activación del plan.
-                    </p>
                   </div>
                 </article>
               ))}
@@ -456,14 +382,14 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Activa tu membresía anual para acceder a los planes disponibles."
-                    : "No hay planes disponibles en este momento. Consulta más tarde o contacta a recepción."}
+                    ? "Algunas tarifas están restringidas temporalmente."
+                    : "No hay tarifas disponibles en este momento. Consulta más tarde o contacta a recepción."}
                 </p>
               )}
 
               {lockedPlanCount > 0 && availablePlanTypes.length > 0 && (
                 <p className="text-xs text-neutral-500">
-                  Activa tu membresía anual para desbloquear {lockedPlanCount === 1 ? "una tarifa adicional" : `${lockedPlanCount} planes adicionales`}.
+                  Hay {lockedPlanCount === 1 ? "una tarifa" : `${lockedPlanCount} tarifas`} restringidas actualmente.
                 </p>
               )}
             </section>

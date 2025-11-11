@@ -3,7 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { madridDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
-import { useMembershipsEnabled, useStudioTimezone } from "@/components/StudioTimezoneContext";
+import { useStudioTimezone } from "@/components/StudioTimezoneContext";
 
 type MembershipSummary = {
   id: string;
@@ -95,7 +95,6 @@ function statusLabel(raw: string) {
 export default function MyReservationsPage() {
   const timezone = useStudioTimezone();
   const { user, loading } = useAuth();
-  const membershipsEnabled = useMembershipsEnabled();
   const [state, setState] = useState<ScreenState>({ status: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -250,28 +249,6 @@ export default function MyReservationsPage() {
     const upcomingBookings = state.data.upcomingBookings;
     const recentBookings = state.data.recentBookings;
 
-    const membershipCard = !membershipsEnabled ? null : state.data.membership?.isActive ? (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-sm">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              {state.data.membership?.name ?? "Membresía"}
-            </p>
-            <p className="text-xs text-neutral-600">
-              Activa hasta {formatDate(state.data.membership?.endDate ?? state.data.membership?.nextBillingDate)}.
-            </p>
-          </div>
-          <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
-            Activa
-          </span>
-        </div>
-      </div>
-    ) : (
-      <div className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
-        <p className="text-sm text-neutral-600">No tienes una membresía activa actualmente.</p>
-      </div>
-    );
-
     const planSections: JSX.Element[] = [];
     CATEGORY_ORDER.concat(["OTHER"]).forEach((categoryKey) => {
       const plans = groupedPlans.get(categoryKey);
@@ -352,13 +329,6 @@ export default function MyReservationsPage() {
 
     content = (
       <div className="space-y-6">
-        {membershipCard ? (
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold text-neutral-900">Membresía</h2>
-            {membershipCard}
-          </section>
-        ) : null}
-
         {planSections}
 
         <section className="space-y-3">
