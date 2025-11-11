@@ -17,6 +17,7 @@ import {
 } from "@/lib/admin-access";
 import { AdminAccessBlock } from "@/components/admin/AdminAccessBlock";
 import { useAdminAccess, type AdminAccessInfo } from "@/hooks/useAdminAccess";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 
 export type NavKey = AdminNavKey;
 
@@ -114,8 +115,11 @@ const satisfiesLevel = (access: AdminAccessInfo, level: AccessLevel) => {
   return true;
 };
 
-function filterNavigation(role: string | null | undefined): NavItem[] {
+function filterNavigation(role: string | null | undefined, membershipsEnabled: boolean): NavItem[] {
   return NAVIGATION.reduce<NavItem[]>((acc, item) => {
+    if (!membershipsEnabled && item.type === "group" && item.key === "memberships") {
+      return acc;
+    }
     if (item.type === "link") {
       if (hasNavAccess(item.key, role)) {
         acc.push(item);
@@ -145,7 +149,11 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const access = useAdminAccess(featureKey);
 
-  const filteredNavigation = useMemo(() => filterNavigation(profile?.role), [profile?.role]);
+  const membershipsEnabled = useMembershipsEnabled();
+  const filteredNavigation = useMemo(
+    () => filterNavigation(profile?.role, membershipsEnabled),
+    [profile?.role, membershipsEnabled]
+  );
 
   const initialOpenGroups = useMemo(() => {
     const groups = new Set<string>();

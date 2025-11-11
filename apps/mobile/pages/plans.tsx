@@ -1,6 +1,8 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 
 const CURRENCY_FORMATTERS: Record<string, Intl.NumberFormat> = {};
 
@@ -89,6 +91,7 @@ type ScreenState =
 
 export default function PlansPage() {
   const router = useRouter();
+  const membershipsEnabled = useMembershipsEnabled();
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -130,7 +133,7 @@ export default function PlansPage() {
       setCheckoutError(null);
       setStatusBanner({
         type: "success",
-        message: "Pago completado. Actualizaremos tu plan en cuanto confirmemos el movimiento.",
+        message: "Pago completado. Actualizaremos tus bonos en cuanto confirmemos el movimiento.",
       });
     } else if (statusValue === "cancelled") {
       setStatusBanner({
@@ -151,12 +154,14 @@ export default function PlansPage() {
 
   const availablePlanTypes = useMemo(() => {
     if (state.status !== "ready") return [];
-    const hasActiveMembership = state.data.membership?.isActive ?? false;
-    return state.data.planTypes.filter((plan) => hasActiveMembership || !plan.requiresMembership);
-  }, [state]);
+    const hasActiveMembership = membershipsEnabled ? state.data.membership?.isActive ?? false : true;
+    return state.data.planTypes.filter(
+      (plan) => !membershipsEnabled || hasActiveMembership || !plan.requiresMembership
+    );
+  }, [membershipsEnabled, state]);
 
   const lockedPlanCount =
-    state.status === "ready"
+    state.status === "ready" && membershipsEnabled
       ? state.data.planTypes.length - availablePlanTypes.length
       : 0;
 
@@ -164,18 +169,18 @@ export default function PlansPage() {
     setCheckoutError(null);
     setCheckoutLoading(planTypeId);
     if (state.status !== "ready") {
-      setCheckoutError("No se pudo validar el plan seleccionado");
+      setCheckoutError("No se pudo validar la tarifa seleccionada");
       setCheckoutLoading(null);
       return;
     }
     const selectedPlan = state.data.planTypes.find((plan) => plan.id === planTypeId);
-    const hasActiveMembership = state.data.membership?.isActive ?? false;
+    const hasActiveMembership = membershipsEnabled ? state.data.membership?.isActive ?? false : true;
     if (!selectedPlan) {
-      setCheckoutError("El plan seleccionado no esta disponible");
+      setCheckoutError("La tarifa seleccionada no esta disponible");
       setCheckoutLoading(null);
       return;
     }
-    if (selectedPlan.requiresMembership && !hasActiveMembership) {
+    if (membershipsEnabled && selectedPlan.requiresMembership && !hasActiveMembership) {
       setCheckoutError("Debes tener una membresía activa para adquirir este plan");
       setCheckoutLoading(null);
       return;
@@ -206,65 +211,69 @@ export default function PlansPage() {
   };
 
   const handleContactReception = () => {
-    router.push(`mailto:${RECEPTION_EMAIL}?subject=Compra de plan flexible`);
+    router.push(`mailto:${RECEPTION_EMAIL}?subject=Compra de tarifa flexible`);
   };
 
-  let membershipBanner: JSX.Element | null = null;
-  if (state.status === "loading") {
-    membershipBanner = (
-      <div className="animate-pulse rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 shadow-sm">
-        <div className="h-4 w-1/3 rounded bg-neutral-200" />
-        <div className="mt-2 h-3 w-2/3 rounded bg-neutral-200" />
-        <div className="mt-4 h-9 w-32 rounded bg-neutral-200" />
-      </div>
-    );
-  } else if (state.status === "ready") {
-    const membership = state.data.membership;
-    const isActive = membership?.isActive ?? false;
-    const statusLabel = membership
-      ? isActive
-        ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
-        : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
-      : "Membresía inactiva";
-
-    membershipBanner = (
-      <div
-        className={`rounded-2xl border px-4 py-4 shadow-sm ${
-          isActive ? "border-emerald-200 bg-emerald-50" : "border-amber-200 bg-amber-50"
-        }`}
-      >
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-neutral-900">
-              {membership?.name ?? "Membresía"}
-            </p>
-            <p className="text-xs text-neutral-600">{statusLabel}</p>
-            {membership?.category && (
-              <p className="text-[11px] text-neutral-500">Categoría: {membership.category}</p>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push("/membership")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-          >
-            Gestionar membresía
-          </button>
+  let membershipBanner: ReactNode = null;
+  if (membershipsEnabled) {
+    if (state.status === "loading") {
+      membershipBanner = (
+        <div className="animate-pulse rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 shadow-sm">
+          <div className="h-4 w-1/3 rounded bg-neutral-200" />
+          <div className="mt-2 h-3 w-2/3 rounded bg-neutral-200" />
+          <div className="mt-4 h-9 w-32 rounded bg-neutral-200" />
         </div>
-      </div>
-    );
-  } else if (state.status === "error") {
-    membershipBanner = (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
-        No se pudo cargar la informacion de la membresía. {state.message}
-      </div>
-    );
+      );
+    } else if (state.status === "ready") {
+      const membership = state.data.membership;
+      const isActive = membership?.isActive ?? false;
+      const statusLabel = membership
+        ? isActive
+          ? `Activa hasta ${formatDate(membership.endDate ?? membership.nextBillingDate)}`
+          : `Estado: ${(membership.status ?? "INACTIVA").toUpperCase()}`
+        : "Membresía inactiva";
+
+      membershipBanner = (
+        <div
+          className={`rounded-2xl border px-4 py-4 shadow-sm ${
+            isActive
+              ? "border-emerald-200 bg-emerald-50"
+              : "border-amber-200 bg-amber-50"
+          }`}
+        >
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">
+                {membership?.name ?? "Membresía"}
+              </p>
+              <p className="text-xs text-neutral-600">{statusLabel}</p>
+              {membership?.category && (
+                <p className="text-[11px] text-neutral-500">Categoría: {membership.category}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => router.push("/membership")}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+            >
+              Gestionar membresía
+            </button>
+          </div>
+        </div>
+      );
+    } else if (state.status === "error") {
+      membershipBanner = (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 shadow-sm">
+          No se pudo cargar la informacion de la membresía. {state.message}
+        </div>
+      );
+    }
   }
 
   return (
     <>
       <Head>
-        <title>Planes | ATP Pilates</title>
+        <title>Tarifas | ATP Pilates</title>
       </Head>
 
       <section className="mx-auto max-w-md space-y-6">
@@ -329,7 +338,7 @@ export default function PlansPage() {
           <div className="space-y-6">
             {activePlan ? (
               <section className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4 text-sm text-brand-900 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Tu plan vigente</h2>
+                <h2 className="text-base font-semibold text-brand-800">Tu tarifa vigente</h2>
                 <p className="mt-1 text-sm text-brand-700">
                   {activePlan.name} - {activePlan.status}
                 </p>
@@ -356,12 +365,12 @@ export default function PlansPage() {
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu plan actual, contacta a recepción para recibir apoyo.
+                  Si necesitas ajustar tu tarifa actual, contacta a recepción para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Aun no tienes un plan activo</h2>
+                <h2 className="text-base font-semibold text-brand-800">Aun no tienes una tarifa activa</h2>
                 <p className="mt-1 text-sm text-neutral-600">
                   Elige uno de los paquetes flexibles para reservar sesiónes y asegurar tu lugar en clase.
                 </p>
@@ -375,7 +384,7 @@ export default function PlansPage() {
                   <header className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-semibold text-neutral-900">{plan.name}</h3>
-                      <p className="text-sm text-neutral-600">{plan.description ?? "Plan flexible"}</p>
+                      <p className="text-sm text-neutral-600">{plan.description ?? "Tarifa flexible"}</p>
                     </div>
                     <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-medium text-brand-700">
                       {formatCurrency(plan.price, plan.currency)}
@@ -454,7 +463,7 @@ export default function PlansPage() {
 
               {lockedPlanCount > 0 && availablePlanTypes.length > 0 && (
                 <p className="text-xs text-neutral-500">
-                  Activa tu membresía anual para desbloquear {lockedPlanCount === 1 ? "un plan adicional" : `${lockedPlanCount} planes adicionales`}.
+                  Activa tu membresía anual para desbloquear {lockedPlanCount === 1 ? "una tarifa adicional" : `${lockedPlanCount} planes adicionales`}.
                 </p>
               )}
             </section>

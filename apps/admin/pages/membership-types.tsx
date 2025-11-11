@@ -4,6 +4,8 @@ import dayjs from "dayjs";
 import { useMemo, useState, type ComponentType, type PropsWithChildren } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { MembershipsDisabledNotice } from "@/components/admin/MembershipsDisabledNotice";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { AdminFeatureKey } from "@/lib/admin-access";
@@ -126,6 +128,7 @@ export default function MembershipTypesPage({
   const canEdit = pageAccess.canEdit;
   const canDelete = pageAccess.canDelete;
   const readOnly = !canEdit;
+  const membershipsEnabled = useMembershipsEnabled();
 
   const filteredRows = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -279,6 +282,17 @@ export default function MembershipTypesPage({
       setDeleteLoading(false);
     }
   };
+
+  if (!membershipsEnabled) {
+    return (
+      <AdminLayoutAny title="Tipos de membresía" active="membershipTypes" featureKey={featureKey}>
+        <Head>
+          <title>Tipos de membresía | Admin</title>
+        </Head>
+        <MembershipsDisabledNotice />
+      </AdminLayoutAny>
+    );
+  }
 
   return (
     <AdminLayoutAny title="Tipos de membresía" active="membershipTypes" featureKey="membershipTypes">

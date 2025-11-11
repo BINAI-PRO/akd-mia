@@ -90,7 +90,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  await loadStudioSettings();
+  const settings = await loadStudioSettings();
 
   const supabase = createSupabaseServerClient({ req, res });
   const {
@@ -193,7 +193,7 @@ export default async function handler(
   });
 
   const now = madridDayjs();
-  const membership = await fetchMembershipSummary(clientId);
+  const membership = settings.membershipsEnabled ? await fetchMembershipSummary(clientId) : null;
 
   const upcomingBookings = (bookingsData ?? [])
     .map((row) => {

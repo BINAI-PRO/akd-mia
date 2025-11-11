@@ -9,7 +9,8 @@ import {
 } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { useStudioPhoneCountry } from "@/components/StudioTimezoneContext";
+import { MembershipsDisabledNotice } from "@/components/admin/MembershipsDisabledNotice";
+import { useMembershipsEnabled, useStudioPhoneCountry } from "@/components/StudioTimezoneContext";
 import { normalizePhoneInput } from "@/lib/phone";
 import {
   CUSTOM_PHONE_COUNTRY_ISO,
@@ -80,6 +81,7 @@ export default function NewMemberPage({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter();
   const phoneCountry = useStudioPhoneCountry();
+  const membershipsEnabled = useMembershipsEnabled();
 
   const [form, setForm] = useState<FormState>({
     fullName: "",
@@ -230,6 +232,17 @@ export default function NewMemberPage({
       setSubmitting(false);
     }
   };
+
+  if (!membershipsEnabled) {
+    return (
+      <AdminLayoutAny title="Nuevo miembro" active="Miembros" featureKey="memberNew">
+        <Head>
+          <title>Registrar miembro | Admin</title>
+        </Head>
+        <MembershipsDisabledNotice />
+      </AdminLayoutAny>
+    );
+  }
 
   return (
     <AdminLayoutAny title="Nuevo miembro" active="Miembros" featureKey="memberNew">

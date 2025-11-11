@@ -13,6 +13,8 @@ import type {
   InferGetServerSidePropsType,
 } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { MembershipsDisabledNotice } from "@/components/admin/MembershipsDisabledNotice";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { AdminFeatureKey } from "@/lib/admin-access";
@@ -323,6 +325,7 @@ export default function AdminMiembrosPage(
   const pageAccess = useAdminAccess(featureKey);
   const readOnly = !pageAccess.canEdit;
   const allowDelete = pageAccess.canDelete;
+  const membershipsEnabled = useMembershipsEnabled();
 
   const membershipDefaultType = useMemo(
     () => membershipOptions.find((option) => option.isActive) ?? membershipOptions[0] ?? null,
@@ -853,6 +856,17 @@ type PlanFormState = {
     return firstActive?.id ?? courseOptions[0]?.id ?? "";
   }, [courseOptions]);
   const hasFixedCourses = courseOptions.length > 0;
+
+  if (!membershipsEnabled) {
+    return (
+      <AdminLayoutAny title="Miembros" active="Miembros" featureKey={featureKey}>
+        <Head>
+          <title>Miembros | Admin</title>
+        </Head>
+        <MembershipsDisabledNotice />
+      </AdminLayoutAny>
+    );
+  }
 
   return (
     <AdminLayoutAny

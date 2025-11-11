@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase-admin";
 import { ClientLinkConflictError, ensureClientForAuthUser } from "@/lib/resolve-client";
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
 import { fetchMembershipSummary, type MembershipSummary } from "@/lib/membership";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type PlanTypeRow = {
   id: string;
@@ -104,6 +105,7 @@ export default async function handler(
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const settings = await loadStudioSettings();
   const supabase = createSupabaseServerClient({ req, res });
   const {
     data: { session },
@@ -221,11 +223,13 @@ export default async function handler(
   }));
 
   let membership: MembershipSummary | null = null;
-  try {
-    membership = await fetchMembershipSummary(clientId);
-  } catch (membershipError) {
-    console.error("/api/plans membership", membershipError);
-    membership = null;
+  if (settings.membershipsEnabled) {
+    try {
+      membership = await fetchMembershipSummary(clientId);
+    } catch (membershipError) {
+      console.error("/api/plans membership", membershipError);
+      membership = null;
+    }
   }
 
   return res.status(200).json({ planTypes, activePlans, membership });

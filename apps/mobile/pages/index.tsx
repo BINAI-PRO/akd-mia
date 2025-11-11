@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 
 type MembershipSummary = {
   id: string;
@@ -42,6 +43,7 @@ function formatDate(value: string | null): string {
 export default function Home() {
   const { profile, user } = useAuth();
   const router = useRouter();
+  const membershipsEnabled = useMembershipsEnabled();
   const [membershipState, setMembershipState] = useState<MembershipState>({
     status: "idle",
     membership: null,
@@ -49,6 +51,10 @@ export default function Home() {
   });
 
   useEffect(() => {
+    if (!membershipsEnabled) {
+      setMembershipState({ status: "ready", membership: null, error: null });
+      return () => undefined;
+    }
     let active = true;
     const controller = new AbortController();
     setMembershipState({ status: "loading", membership: null, error: null });
@@ -68,14 +74,14 @@ export default function Home() {
       .catch((error: unknown) => {
         if (!active || controller.signal.aborted) return;
         const message = error instanceof Error ? error.message : "No se pudo cargar la membresía";
-    setMembershipState({ status: "error", membership: null, error: message });
-  });
+        setMembershipState({ status: "error", membership: null, error: message });
+      });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [membershipsEnabled]);
 
   const displayName =
     profile?.fullName?.trim() ??
@@ -94,6 +100,9 @@ export default function Home() {
       .slice(0, 2) || "AT";
 
   const membershipCard = useMemo(() => {
+    if (!membershipsEnabled) {
+      return null;
+    }
     if (membershipState.status === "loading" || membershipState.status === "idle") {
       return (
         <div className="animate-pulse rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 shadow-sm">
@@ -171,7 +180,7 @@ export default function Home() {
         </div>
       </div>
     );
-  }, [membershipState, router]);
+  }, [membershipState, membershipsEnabled, router]);
 
   return (
     <section className="px-4 pt-8">
@@ -202,7 +211,7 @@ export default function Home() {
           Ir a Reservas
         </Link>
       </div>
-      <div className="mx-auto mt-10 max-w-md">{membershipCard}</div>
+      {membershipCard ? <div className="mx-auto mt-10 max-w-md">{membershipCard}</div> : null}
       <div className="h-20" />
     </section>
   );

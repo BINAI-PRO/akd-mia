@@ -13,6 +13,7 @@ type SuccessPayload = {
   offsetMinutes: number | null;
   offsetLabel: string | null;
   phoneCountry: StudioPhoneCountry;
+  membershipsEnabled: boolean;
   suggestions: TimezoneOption[];
 };
 
@@ -30,6 +31,7 @@ function buildSuccessPayload(settings: StudioSettings): SuccessPayload {
     offsetMinutes,
     offsetLabel,
     phoneCountry: settings.phoneCountry,
+    membershipsEnabled: settings.membershipsEnabled,
     suggestions: STUDIO_TIMEZONE_SUGGESTIONS,
   };
 }
@@ -59,9 +61,13 @@ export async function studioSettingsApiHandler(
         return res.status(400).json({ error: "El identificador de teléfono no es válido" });
       }
 
+      const membershipsEnabledCandidate =
+        typeof body?.membershipsEnabled === "boolean" ? body.membershipsEnabled : undefined;
+
       const updated = await updateStudioSettings({
         timezone: timezoneCandidate,
         phoneCountry: phoneCandidate,
+        membershipsEnabled: membershipsEnabledCandidate,
       });
       return res.status(200).json(buildSuccessPayload(updated));
     }

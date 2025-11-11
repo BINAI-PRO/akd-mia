@@ -12,6 +12,8 @@ import type {
   InferGetServerSidePropsType,
 } from "next";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { MembershipsDisabledNotice } from "@/components/admin/MembershipsDisabledNotice";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { Tables } from "@/types/database";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -152,6 +154,7 @@ export default function AdminMembershipsPage(
   const featureKey: AdminFeatureKey = "membershipPlans";
   const pageAccess = useAdminAccess(featureKey);
   const readOnly = !pageAccess.canEdit;
+  const membershipsEnabled = useMembershipsEnabled();
 
   type FormState = {
     name: string;
@@ -345,6 +348,17 @@ export default function AdminMembershipsPage(
       </Link>
     </div>
   );
+
+  if (!membershipsEnabled) {
+    return (
+      <AdminLayoutAny title="Planes de membresía" active="membershipPlans" featureKey={featureKey}>
+        <Head>
+          <title>Planes | Admin</title>
+        </Head>
+        <MembershipsDisabledNotice />
+      </AdminLayoutAny>
+    );
+  }
 
   return (
     <AdminLayoutAny

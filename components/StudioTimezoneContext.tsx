@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { DEFAULT_STUDIO_TIMEZONE } from "@/lib/timezone";
 import {
+  DEFAULT_MEMBERSHIPS_ENABLED,
   DEFAULT_PHONE_COUNTRY,
   type StudioPhoneCountry,
 } from "@/lib/studio-settings-shared";
@@ -8,11 +9,13 @@ import {
 type StudioSettingsContextValue = {
   timezone: string;
   phoneCountry: StudioPhoneCountry;
+  membershipsEnabled: boolean;
 };
 
 const StudioSettingsContext = createContext<StudioSettingsContextValue>({
   timezone: DEFAULT_STUDIO_TIMEZONE,
   phoneCountry: DEFAULT_PHONE_COUNTRY,
+  membershipsEnabled: DEFAULT_MEMBERSHIPS_ENABLED,
 });
 
 type StudioSettingsProviderProps = {
@@ -34,4 +37,8 @@ export function useStudioTimezone(): string {
 
 export function useStudioPhoneCountry(): StudioPhoneCountry {
   return useStudioSettings().phoneCountry;
+}
+
+export function useMembershipsEnabled(): boolean {
+  return useStudioSettings().membershipsEnabled;
 }

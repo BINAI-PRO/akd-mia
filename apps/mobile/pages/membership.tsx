@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 
 type MembershipSummary = {
   id: string;
@@ -47,8 +48,13 @@ export default function MembershipPage() {
     membership: null,
     error: null,
   });
+  const membershipsEnabled = useMembershipsEnabled();
 
   useEffect(() => {
+    if (!membershipsEnabled) {
+      setState({ status: "ready", membership: null, error: null });
+      return () => undefined;
+    }
     let active = true;
     const controller = new AbortController();
 
@@ -74,7 +80,29 @@ export default function MembershipPage() {
       active = false;
       controller.abort();
     };
-  }, []);
+  }, [membershipsEnabled]);
+
+  if (!membershipsEnabled) {
+    return (
+      <>
+        <Head>
+          <title>Mi membresA-a | ATP Pilates</title>
+        </Head>
+        <main className="container-mobile space-y-6 pb-24 pt-6">
+          <header className="space-y-1">
+            <h1 className="text-2xl font-bold text-neutral-900">Mi membresA-a</h1>
+            <p className="text-sm text-neutral-500">La administraciA3n de membresA-as estA? deshabilitada temporalmente.</p>
+          </header>
+          <div className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-4 text-sm text-neutral-600 shadow-sm">
+            <p>
+              Las membresA-as estA?n desactivadas desde configuraciA3n. Consulta en recepciA3n si necesitas renovar o revisar tu
+              acceso.
+            </p>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   let content: JSX.Element;
 

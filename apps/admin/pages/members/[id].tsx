@@ -13,6 +13,8 @@ import {
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { MembershipsDisabledNotice } from "@/components/admin/MembershipsDisabledNotice";
+import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { AdminFeatureKey } from "@/lib/admin-access";
@@ -225,6 +227,7 @@ export default function EditMemberPage({
   const canEditMember = pageAccess.canEdit;
   const allowPlanDelete = pageAccess.canDelete;
   const readOnly = !canEditMember;
+  const membershipsEnabled = useMembershipsEnabled();
 
   const [form, setForm] = useState<FormState>({
     fullName: member.full_name,
@@ -483,6 +486,17 @@ export default function EditMemberPage({
       setSubmitting(false);
     }
   };
+
+  if (!membershipsEnabled) {
+    return (
+      <AdminLayoutAny title="Editar miembro" active="Miembros" featureKey={featureKey}>
+        <Head>
+          <title>Miembros | Admin</title>
+        </Head>
+        <MembershipsDisabledNotice />
+      </AdminLayoutAny>
+    );
+  }
 
   return (
     <AdminLayoutAny title="Editar miembro" active="Miembros" featureKey="memberDetail">

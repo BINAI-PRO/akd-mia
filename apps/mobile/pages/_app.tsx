@@ -9,6 +9,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { StudioSettingsProvider } from "@/components/StudioTimezoneContext";
 import { DEFAULT_STUDIO_TIMEZONE, setStudioTimezone } from "@/lib/timezone";
 import {
+  DEFAULT_MEMBERSHIPS_ENABLED,
   DEFAULT_PHONE_COUNTRY,
   type StudioPhoneCountry,
 } from "@/lib/studio-settings-shared";
@@ -23,6 +24,7 @@ export default function App({ Component, pageProps }: AppProps) {
     return {
       timezone: DEFAULT_STUDIO_TIMEZONE,
       phoneCountry: DEFAULT_PHONE_COUNTRY,
+      membershipsEnabled: DEFAULT_MEMBERSHIPS_ENABLED,
     };
   });
 
@@ -49,15 +51,24 @@ export default function App({ Component, pageProps }: AppProps) {
     fetch("/api/settings/timezone")
       .then(async (response) => {
         if (!response.ok) throw new Error(await response.text());
-        return response.json() as Promise<{ timezone?: string; phoneCountry?: StudioPhoneCountry }>;
+        return response.json() as Promise<{
+          timezone?: string;
+          phoneCountry?: StudioPhoneCountry;
+          membershipsEnabled?: boolean;
+        }>;
       })
       .then((payload) => {
         if (!active) return;
         const candidate = typeof payload?.timezone === "string" ? payload.timezone.trim() : "";
         const phone = payload?.phoneCountry ?? DEFAULT_PHONE_COUNTRY;
+        const membershipsEnabled =
+          typeof payload?.membershipsEnabled === "boolean"
+            ? payload.membershipsEnabled
+            : DEFAULT_MEMBERSHIPS_ENABLED;
         const next = {
           timezone: candidate || DEFAULT_STUDIO_TIMEZONE,
           phoneCountry: phone === "ES" ? "ES" : DEFAULT_PHONE_COUNTRY,
+          membershipsEnabled,
         };
         setStudioTimezone(next.timezone);
         setSettings(next);

@@ -7,6 +7,7 @@ import {
   ensureClientForAuthUser,
 } from "@/lib/resolve-client";
 import { isRefreshTokenMissingError } from "@/lib/auth-errors";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type MembershipResponse = {
   membership: MembershipSummary | null;
@@ -37,6 +38,11 @@ export default async function handler(
 
   if (!session?.user) {
     return res.status(401).json({ error: "Not authenticated" });
+  }
+
+  const settings = await loadStudioSettings();
+  if (!settings.membershipsEnabled) {
+    return res.status(200).json({ membership: null });
   }
 
   const { data: clientRow, error: clientError } = await supabaseAdmin

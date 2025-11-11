@@ -3,7 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { madridDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
-import { useStudioTimezone } from "@/components/StudioTimezoneContext";
+import { useMembershipsEnabled, useStudioTimezone } from "@/components/StudioTimezoneContext";
 
 type MembershipSummary = {
   id: string;
@@ -95,6 +95,7 @@ function statusLabel(raw: string) {
 export default function MyReservationsPage() {
   const timezone = useStudioTimezone();
   const { user, loading } = useAuth();
+  const membershipsEnabled = useMembershipsEnabled();
   const [state, setState] = useState<ScreenState>({ status: "idle" });
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -249,7 +250,7 @@ export default function MyReservationsPage() {
     const upcomingBookings = state.data.upcomingBookings;
     const recentBookings = state.data.recentBookings;
 
-    const membershipCard = state.data.membership?.isActive ? (
+    const membershipCard = !membershipsEnabled ? null : state.data.membership?.isActive ? (
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -351,10 +352,12 @@ export default function MyReservationsPage() {
 
     content = (
       <div className="space-y-6">
-        <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-neutral-900">Membresía</h2>
-          {membershipCard}
-        </section>
+        {membershipCard ? (
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-neutral-900">Membresía</h2>
+            {membershipCard}
+          </section>
+        ) : null}
 
         {planSections}
 
