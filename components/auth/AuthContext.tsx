@@ -167,7 +167,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("Failed to load profile");
       }
       const payload = (await response.json().catch(() => null)) as
-        | { profile?: Partial<AuthProfile> & { authUserId: string }; error?: string }
+        | {
+            profile?: Partial<AuthProfile> & {
+              authUserId: string;
+              profileComplete?: boolean;
+            };
+            error?: string;
+          }
         | null;
 
       if (!payload || typeof payload !== "object" || !payload.profile) {
@@ -175,30 +181,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const remoteProfile = payload.profile;
+      const { profileComplete, ...profileData } = remoteProfile;
       setProfile((current) => {
         const base = current ?? deriveBaseProfile(user);
         return {
           ...base,
-          ...remoteProfile,
-          clientId: remoteProfile.clientId ?? base.clientId,
-          avatarUrl: remoteProfile.avatarUrl ?? base.avatarUrl,
-          email: remoteProfile.email ?? base.email,
-          phone: remoteProfile.phone ?? base.phone,
-          fullName: remoteProfile.fullName ?? base.fullName,
-          status: remoteProfile.status ?? base.status,
-          role: remoteProfile.role ?? base.role,
+          ...profileData,
+          clientId: profileData.clientId ?? base.clientId,
+          avatarUrl: profileData.avatarUrl ?? base.avatarUrl,
+          email: profileData.email ?? base.email,
+          phone: profileData.phone ?? base.phone,
+          fullName: profileData.fullName ?? base.fullName,
+          status: profileData.status ?? base.status,
+          role: profileData.role ?? base.role,
           isAdmin:
-            remoteProfile.isAdmin !== undefined
-              ? remoteProfile.isAdmin
+            profileData.isAdmin !== undefined
+              ? profileData.isAdmin
               : base.isAdmin,
-          staffId: remoteProfile.staffId ?? base.staffId,
-          permissions: Array.isArray(remoteProfile.permissions)
-            ? remoteProfile.permissions
+          staffId: profileData.staffId ?? base.staffId,
+          permissions: Array.isArray(profileData.permissions)
+            ? profileData.permissions
             : base.permissions,
         };
       });
       const hasPhone =
-        typeof remoteProfile.phone === "string" && remoteProfile.phone.trim().length > 0;
+        (typeof profileData.phone === "string" && profileData.phone.trim().length > 0) ||
+        profileComplete === true;
       updateProfileCompletedFlag(hasPhone);
     } catch (error) {
       console.error("[AuthContext] reloadProfile failed", error);

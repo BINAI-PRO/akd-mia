@@ -25,6 +25,7 @@ type MeResponse = {
     status: string | null;
     role: string | null;
     isAdmin: boolean;
+    profileComplete: boolean;
   };
 };
 
@@ -78,6 +79,8 @@ function shapeProfile(params: {
   };
 }): MeResponse {
   const { authUserId, client, fallback } = params;
+  const resolvedPhone = client?.phone ?? fallback.phone ?? null;
+  const profileComplete = typeof resolvedPhone === "string" && resolvedPhone.trim().length > 0;
 
   return {
     profile: {
@@ -85,11 +88,12 @@ function shapeProfile(params: {
       clientId: client?.id ?? null,
       fullName: client?.full_name ?? fallback.fullName,
       email: client?.email ?? fallback.email,
-      phone: client?.phone ?? fallback.phone,
+      phone: resolvedPhone,
       avatarUrl: client?.client_profiles?.avatar_url ?? fallback.avatarUrl,
       status: client?.client_profiles?.status ?? null,
       role: fallback.role,
       isAdmin: fallback.isAdmin,
+      profileComplete,
     },
   };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -278,7 +278,7 @@ export default function PlansPage() {
 
       <section className="mx-auto max-w-md space-y-6">
         <header className="pt-6 text-center">
-          <h1 className="text-2xl font-semibold text-brand-800">Planes y paquetes</h1>
+          <h1 className="text-2xl font-semibold text-brand-800">Tarifas y bonos</h1>
           <p className="mt-1 text-sm text-neutral-600">
             Consulta tus planes vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
           </p>
@@ -378,7 +378,7 @@ export default function PlansPage() {
             )}
 
             <section className="space-y-4">
-              <h2 className="text-base font-semibold text-neutral-800">Planes disponibles</h2>
+              <h2 className="text-base font-semibold text-neutral-800">Tarifas disponibles</h2>
               {availablePlanTypes.map((plan) => (
                 <article key={plan.id} className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
                   <header className="flex items-start justify-between gap-3">
