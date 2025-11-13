@@ -402,7 +402,26 @@ export default function PlansPage() {
           </div>
         )}
       </section>
+      <div className="mx-auto max-w-md pb-8">
+        <MobileFooterAttribution />
+      </div>
     </>
+  );
+}
+
+function MobileFooterAttribution() {
+  return (
+    <div className="flex justify-center">
+      <a
+        href="https://binai.pro"
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 text-[9.6px] text-neutral-400 transition hover:text-neutral-500"
+      >
+        <span className="mt-[10px]">Desarrollado por :</span>
+        <img src="/logo_binai.png" alt="Logo BinAI" className="mt-[10px] h-6 w-auto" />
+      </a>
+    </div>
   );
 }
 

@@ -287,7 +287,8 @@ export default function SchedulePage() {
   };
 
   return (
-    <section className="pt-6 space-y-3">
+    <>
+      <section className="pt-6 space-y-3">
       <h2 className="text-2xl font-bold">Reservas</h2>
 
       {isRebooking && (
@@ -321,7 +322,27 @@ export default function SchedulePage() {
           />
         ))}
       </div>
-    </section>
+      </section>
+      <div className="pb-8">
+        <MobileFooterAttribution />
+      </div>
+    </>
+  );
+}
+
+function MobileFooterAttribution() {
+  return (
+    <div className="flex justify-center">
+      <a
+        href="https://binai.pro"
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 text-[9.6px] text-neutral-400 transition hover:text-neutral-500"
+      >
+        <span className="mt-[10px]">Desarrollado por :</span>
+        <img src="/logo_binai.png" alt="Logo BinAI" className="mt-[10px] h-6 w-auto" />
+      </a>
+    </div>
   );
 }
 

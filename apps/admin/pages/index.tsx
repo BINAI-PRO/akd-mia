@@ -486,6 +486,17 @@ export default function AdminDashboardPage({
           </div>
         </section>
       </div>
+      <footer className="mx-auto mt-2 flex max-w-7xl justify-center">
+        <a
+          href="https://binai.pro"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 text-[11px] text-slate-400 transition hover:text-slate-500"
+        >
+          Desarrollado por :
+          <img src="/logo_binai.png" alt="Logo BinAI" className="h-[1.8rem] w-auto" />
+        </a>
+      </footer>
       <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
       {accessDeniedOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50">
