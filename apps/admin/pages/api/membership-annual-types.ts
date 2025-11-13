@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         name: name.trim(),
         description: description?.trim() || null,
         billing_period: "ANNUAL",
-        access_type: "MEMBERSHIP",
+        access_type: "OPEN_CLASS",
         price: numericPrice.toFixed(2),
         currency: (currency ?? "MXN").toUpperCase(),
         class_quota: null,

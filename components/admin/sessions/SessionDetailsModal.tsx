@@ -776,47 +776,49 @@ export default function SessionDetailsModal({ sessionId, open, onClose, featureK
                           No se encontraron planes activos disponibles con la búsqueda actual.
                         </p>
                       ) : (
-                        <ul className="space-y-2">
-                          {manualResults.map((option) => (
-                            <li
-                              key={option.planPurchaseId}
-                              className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div>
-                                <p className="text-sm font-semibold text-slate-800">
-                                  {option.clientName}
-                                </p>
-                                <div className="mt-1 space-y-0.5 text-xs text-slate-500">
-                                  {option.planName && (
-                                    <p>
-                                      Plan: <span className="font-medium text-slate-700">{option.planName}</span>
-                                    </p>
-                                  )}
-                                  {option.unlimited ? (
-                                    <p>Clases disponibles: Ilimitado</p>
-                                  ) : (
-                                    <p>
-                                      Clases disponibles:{" "}
-                                      <span className="font-medium text-slate-700">
-                                        {option.remainingClasses ?? 0}
-                                      </span>
-                                    </p>
-                                  )}
-                                  {option.clientEmail && <p>{option.clientEmail}</p>}
-                                  {option.clientPhone && <p>{option.clientPhone}</p>}
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleManualBooking(option.planPurchaseId)}
-                                disabled={readOnly || manualAction === option.planPurchaseId}
-                                className="self-start rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300 sm:self-center"
+                        <div className="max-h-96 overflow-y-auto pr-1">
+                          <ul className="space-y-2">
+                            {manualResults.map((option) => (
+                              <li
+                                key={option.planPurchaseId}
+                                className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                               >
-                                {manualAction === option.planPurchaseId ? "Reservando..." : "Reservar"}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-800">
+                                    {option.clientName}
+                                  </p>
+                                  <div className="mt-1 space-y-0.5 text-xs text-slate-500">
+                                    {option.planName && (
+                                      <p>
+                                        Plan: <span className="font-medium text-slate-700">{option.planName}</span>
+                                      </p>
+                                    )}
+                                    {option.unlimited ? (
+                                      <p>Clases disponibles: Ilimitado</p>
+                                    ) : (
+                                      <p>
+                                        Clases disponibles:{" "}
+                                        <span className="font-medium text-slate-700">
+                                          {option.remainingClasses ?? 0}
+                                        </span>
+                                      </p>
+                                    )}
+                                    {option.clientEmail && <p>{option.clientEmail}</p>}
+                                    {option.clientPhone && <p>{option.clientPhone}</p>}
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleManualBooking(option.planPurchaseId)}
+                                  disabled={readOnly || manualAction === option.planPurchaseId}
+                                  className="self-start rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-300 sm:self-center"
+                                >
+                                  {manualAction === option.planPurchaseId ? "Reservando..." : "Reservar"}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       )}
                     </div>
                   </div>
