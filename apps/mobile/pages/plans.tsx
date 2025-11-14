@@ -1,6 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
 
@@ -419,7 +420,7 @@ function MobileFooterAttribution() {
         className="flex items-center gap-2 text-[9.6px] text-neutral-400 transition hover:text-neutral-500"
       >
         <span className="mt-[10px]">Desarrollado por :</span>
-        <img src="/logo_binai.png" alt="Logo BinAI" className="mt-[10px] h-6 w-auto" />
+        <Image src="/logo_binai.png" alt="Logo BinAI" width={120} height={32} className="mt-[10px] h-6 w-auto" />
       </a>
     </div>
   );

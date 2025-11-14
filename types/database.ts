@@ -555,6 +555,155 @@ export type Database = {
         ]
       }
 
+      session_evaluations: {
+        Row: {
+          id: string
+          booking_id: string
+          session_id: string
+          client_id: string
+          class_type_id: string | null
+          instructor_id: string | null
+          room_id: string | null
+          session_start: string | null
+          session_end: string | null
+          created_at: string
+          updated_at: string
+          rating_reservation_process: number
+          rating_reception: number
+          rating_cleanliness: number
+          rating_lighting: number
+          rating_climate: number
+          rating_noise: number
+          rating_room_comfort: number
+          rating_equipment_condition: number
+          rating_equipment_availability: number
+          rating_instructor_respect: number
+          rating_instructor_clarity: number
+          rating_instructor_technique: number
+          discomfort: boolean
+          discomfort_notes: string | null
+          nps_score: number | null
+          comment: string | null
+          summary_reception: number
+          summary_environment: number
+          summary_equipment: number
+          summary_instructor: number
+          summary_global: number
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          session_id: string
+          client_id: string
+          class_type_id?: string | null
+          instructor_id?: string | null
+          room_id?: string | null
+          session_start?: string | null
+          session_end?: string | null
+          created_at?: string
+          updated_at?: string
+          rating_reservation_process: number
+          rating_reception: number
+          rating_cleanliness: number
+          rating_lighting: number
+          rating_climate: number
+          rating_noise: number
+          rating_room_comfort: number
+          rating_equipment_condition: number
+          rating_equipment_availability: number
+          rating_instructor_respect: number
+          rating_instructor_clarity: number
+          rating_instructor_technique: number
+          discomfort?: boolean
+          discomfort_notes?: string | null
+          nps_score?: number | null
+          comment?: string | null
+          summary_reception: number
+          summary_environment: number
+          summary_equipment: number
+          summary_instructor: number
+          summary_global: number
+        }
+        Update: {
+          id?: string
+          booking_id?: string
+          session_id?: string
+          client_id?: string
+          class_type_id?: string | null
+          instructor_id?: string | null
+          room_id?: string | null
+          session_start?: string | null
+          session_end?: string | null
+          created_at?: string
+          updated_at?: string
+          rating_reservation_process?: number
+          rating_reception?: number
+          rating_cleanliness?: number
+          rating_lighting?: number
+          rating_climate?: number
+          rating_noise?: number
+          rating_room_comfort?: number
+          rating_equipment_condition?: number
+          rating_equipment_availability?: number
+          rating_instructor_respect?: number
+          rating_instructor_clarity?: number
+          rating_instructor_technique?: number
+          discomfort?: boolean
+          discomfort_notes?: string | null
+          nps_score?: number | null
+          comment?: string | null
+          summary_reception?: number
+          summary_environment?: number
+          summary_equipment?: number
+          summary_instructor?: number
+          summary_global?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_evaluations_booking_id_fkey",
+            columns: ["booking_id"],
+            isOneToOne: true,
+            referencedRelation: "bookings",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_class_type_id_fkey",
+            columns: ["class_type_id"],
+            isOneToOne: false,
+            referencedRelation: "class_types",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_client_id_fkey",
+            columns: ["client_id"],
+            isOneToOne: false,
+            referencedRelation: "clients",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_instructor_id_fkey",
+            columns: ["instructor_id"],
+            isOneToOne: false,
+            referencedRelation: "instructors",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_room_id_fkey",
+            columns: ["room_id"],
+            isOneToOne: false,
+            referencedRelation: "rooms",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_evaluations_session_id_fkey",
+            columns: ["session_id"],
+            isOneToOne: false,
+            referencedRelation: "sessions",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
       // -----------------------------
       //  MEMBRESÍAS
       // -----------------------------

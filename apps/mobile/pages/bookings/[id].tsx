@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import Head from "next/head";
 import Img from "@/components/Img";
+import SessionEvaluationForm from "@/components/SessionEvaluationForm";
 import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { madridDayjs } from "@/lib/timezone";
@@ -107,6 +108,10 @@ export default function BookingDetail({
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter();
   const { profile } = useAuth();
+  const focusParam = router.query.focus;
+  const focusEvaluation = Array.isArray(focusParam)
+    ? focusParam.includes("evaluation")
+    : focusParam === "evaluation";
   const [cancelState, setCancelState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [cancelError, setCancelError] = useState<string | null>(null);
 
@@ -157,7 +162,23 @@ export default function BookingDetail({
     );
   }
 
-  const s = data.session;
+const s = data.session;
+
+if (focusEvaluation) {
+  return (
+    <>
+      <Head>
+        <title>Evalúa tu sesión | {s.classType}</title>
+      </Head>
+      <main className="container-mobile py-6 space-y-4">
+        <h1 className="h1">Evalúa tu sesión</h1>
+        {data?.id && s.end ? (
+          <SessionEvaluationForm bookingId={data.id} sessionEndISO={s.end} />
+        ) : null}
+      </main>
+    </>
+  );
+}
 
   return (
     <>
@@ -237,6 +258,10 @@ export default function BookingDetail({
             <p className="text-xs text-red-600">{cancelError}</p>
           )}
         </section>
+
+        {data?.id && s.end ? (
+          <SessionEvaluationForm bookingId={data.id} sessionEndISO={s.end} />
+        ) : null}
       </main>
     </>
   );

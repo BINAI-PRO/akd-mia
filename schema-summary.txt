@@ -89,8 +89,8 @@ CREATE TABLE public.client_profiles (
 CREATE TABLE public.clients (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   full_name text NOT NULL,
-  phone text,
-  email text UNIQUE,
+  phone text NOT NULL,
+  email text NOT NULL UNIQUE,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   auth_user_id uuid UNIQUE,
   CONSTRAINT clients_pkey PRIMARY KEY (id)
@@ -105,7 +105,7 @@ CREATE TABLE public.courses (
   currency text NOT NULL DEFAULT 'MXN'::text,
   duration_label text,
   level USER-DEFINED DEFAULT 'Multinivel'::course_level,
-  category USER-DEFINED,
+  category USER-DEFINED NOT NULL DEFAULT 'Grupal'::category,
   visibility USER-DEFINED NOT NULL DEFAULT 'PUBLIC'::course_visibility,
   status USER-DEFINED NOT NULL DEFAULT 'DRAFT'::course_status,
   tags ARRAY NOT NULL DEFAULT '{}'::text[],
@@ -277,6 +277,7 @@ CREATE TABLE public.plan_types (
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   category USER-DEFINED,
   app_only boolean DEFAULT false,
+  mem_req boolean NOT NULL DEFAULT true,
   CONSTRAINT plan_types_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.plan_usages (
@@ -346,6 +347,45 @@ CREATE TABLE public.session_apparatus (
   CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
   CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
 );
+CREATE TABLE public.session_evaluations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  session_id uuid NOT NULL UNIQUE,
+  class_type_id uuid,
+  room_id uuid,
+  instructor_id uuid,
+  session_start timestamp with time zone,
+  session_end timestamp with time zone,
+  recorded_by uuid NOT NULL,
+  recorded_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  rating_reservation_process smallint NOT NULL CHECK (rating_reservation_process >= 1 AND rating_reservation_process <= 5),
+  rating_reception smallint NOT NULL CHECK (rating_reception >= 1 AND rating_reception <= 5),
+  rating_cleanliness smallint NOT NULL CHECK (rating_cleanliness >= 1 AND rating_cleanliness <= 5),
+  rating_lighting smallint NOT NULL CHECK (rating_lighting >= 1 AND rating_lighting <= 5),
+  rating_climate smallint NOT NULL CHECK (rating_climate >= 1 AND rating_climate <= 5),
+  rating_noise smallint NOT NULL CHECK (rating_noise >= 1 AND rating_noise <= 5),
+  rating_room_comfort smallint NOT NULL CHECK (rating_room_comfort >= 1 AND rating_room_comfort <= 5),
+  rating_equipment_condition smallint NOT NULL CHECK (rating_equipment_condition >= 1 AND rating_equipment_condition <= 5),
+  rating_equipment_availability smallint NOT NULL CHECK (rating_equipment_availability >= 1 AND rating_equipment_availability <= 5),
+  rating_instructor_respect smallint NOT NULL CHECK (rating_instructor_respect >= 1 AND rating_instructor_respect <= 5),
+  rating_instructor_clarity smallint NOT NULL CHECK (rating_instructor_clarity >= 1 AND rating_instructor_clarity <= 5),
+  rating_instructor_technique smallint NOT NULL CHECK (rating_instructor_technique >= 1 AND rating_instructor_technique <= 5),
+  discomfort boolean NOT NULL DEFAULT false,
+  discomfort_notes text,
+  nps_score smallint CHECK (nps_score >= 0 AND nps_score <= 10),
+  comment text,
+  summary_reception numeric NOT NULL,
+  summary_environment numeric NOT NULL,
+  summary_equipment numeric NOT NULL,
+  summary_instructor numeric NOT NULL,
+  summary_global numeric NOT NULL,
+  CONSTRAINT session_evaluations_pkey PRIMARY KEY (id),
+  CONSTRAINT session_evaluations_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT session_evaluations_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
+  CONSTRAINT session_evaluations_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
+  CONSTRAINT session_evaluations_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
+  CONSTRAINT session_evaluations_recorded_by_fkey FOREIGN KEY (recorded_by) REFERENCES public.staff(id)
+);
 CREATE TABLE public.session_waitlist (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   session_id uuid NOT NULL,
@@ -408,10 +448,12 @@ CREATE TABLE public.staff_roles (
   CONSTRAINT staff_roles_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.studio_settings (
-  key text NOT NULL PRIMARY KEY,
-  schedule_timezone text NOT NULL DEFAULT 'Etc/GMT-1',
-  phone_country text NOT NULL DEFAULT 'MX',
+  key text NOT NULL,
+  schedule_timezone text NOT NULL DEFAULT 'Etc/GMT-1'::text,
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_by uuid,
+  phone_country text NOT NULL DEFAULT 'MX'::text,
+  memberships_enabled boolean NOT NULL DEFAULT true,
+  CONSTRAINT studio_settings_pkey PRIMARY KEY (key),
   CONSTRAINT studio_settings_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.staff(id)
 );

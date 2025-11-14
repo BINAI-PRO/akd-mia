@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { madridDayjs } from "@/lib/timezone";
 import { useAuth } from "@/components/auth/AuthContext";
 import { useStudioTimezone } from "@/components/StudioTimezoneContext";
@@ -93,6 +94,7 @@ function statusLabel(raw: string) {
 
 
 export default function MyReservationsPage() {
+  const router = useRouter();
   const timezone = useStudioTimezone();
   const { user, loading } = useAuth();
   const [state, setState] = useState<ScreenState>({ status: "idle" });
@@ -210,7 +212,7 @@ export default function MyReservationsPage() {
   }, [state]);
 
   const handleEvaluateSession = (bookingId: string) => {
-    alert(`Evaluar sesión ${bookingId}`);
+    router.push({ pathname: `/bookings/${bookingId}`, query: { focus: "evaluation" } });
   };
 
   let content: JSX.Element;

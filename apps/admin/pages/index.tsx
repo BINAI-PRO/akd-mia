@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
+import Image from "next/image";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -494,7 +495,7 @@ export default function AdminDashboardPage({
           className="flex items-center gap-1 text-[11px] text-slate-400 transition hover:text-slate-500"
         >
           Desarrollado por :
-          <img src="/logo_binai.png" alt="Logo BinAI" className="h-[1.8rem] w-auto" />
+          <Image src="/logo_binai.png" alt="Logo BinAI" width={96} height={32} className="h-[1.8rem] w-auto" />
         </a>
       </footer>
       <SessionDetailsModal sessionId={detailSessionId} open={detailOpen} onClose={closeDetails} />
