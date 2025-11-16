@@ -22,7 +22,8 @@ export async function middleware(req: NextRequest) {
   const activeSession = error ? null : session;
 
   const { pathname, search } = req.nextUrl;
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/api/auth");
+  const isAuthRoute =
+    pathname.startsWith("/login") || pathname.startsWith("/api/auth") || pathname.startsWith("/auth");
 
   if (!activeSession && !isAuthRoute) {
     const loginUrl = req.nextUrl.clone();

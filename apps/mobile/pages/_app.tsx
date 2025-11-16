@@ -1,5 +1,7 @@
 import type { AppProps } from "next/app";
 import { useEffect, useState } from "react";
+import type { Session } from "next-auth";
+import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
 import Header from "@/components/Header";
 import PwaInstallPrompt from "@/components/PwaInstallPrompt";
@@ -18,7 +20,9 @@ type NextPageWithAuth = AppProps["Component"] & {
   publicPage?: boolean;
 };
 
-export default function App({ Component, pageProps }: AppProps) {
+type CustomAppProps = AppProps<{ session?: Session }>;
+
+export default function App({ Component, pageProps }: CustomAppProps) {
   const [settings, setSettings] = useState(() => {
     setStudioTimezone(DEFAULT_STUDIO_TIMEZONE);
     return {
@@ -84,23 +88,25 @@ export default function App({ Component, pageProps }: AppProps) {
   const timezone = settings.timezone;
 
   return (
-    <AuthProvider>
-      <StudioSettingsProvider value={settings}>
-        <PwaInstallPrompt />
-        {isPublic ? (
-          <Component key={`tz-${timezone}`} {...pageProps} />
-        ) : (
-          <ProtectedRoute requireProfileCompletion>
-            <>
-              <Header />
-              <main className="mx-auto max-w-md px-4 pb-28">
-                <Component key={`tz-${timezone}`} {...pageProps} />
-              </main>
-              <TabBar />
-            </>
-          </ProtectedRoute>
-        )}
-      </StudioSettingsProvider>
-    </AuthProvider>
+    <SessionProvider session={pageProps.session}>
+      <AuthProvider>
+        <StudioSettingsProvider value={settings}>
+          <PwaInstallPrompt />
+          {isPublic ? (
+            <Component key={`tz-${timezone}`} {...pageProps} />
+          ) : (
+            <ProtectedRoute requireProfileCompletion>
+              <>
+                <Header />
+                <main className="mx-auto max-w-md px-4 pb-28">
+                  <Component key={`tz-${timezone}`} {...pageProps} />
+                </main>
+                <TabBar />
+              </>
+            </ProtectedRoute>
+          )}
+        </StudioSettingsProvider>
+      </AuthProvider>
+    </SessionProvider>
   );
 }

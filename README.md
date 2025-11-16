@@ -1,5 +1,15 @@
 This monorepo hosts the **AT Pilates Time** mobile PWA and admin panel. Both apps share Supabase for authentication and data. See `docs/auth-workflow.md` for the end-to-end auth setup guide (linking `auth.users` with `public.clients`, creating admin accounts, etc.). For copy guidelines (acentos, UTF-8 y localización), revisa `docs/language-style.md`.
 
+
+## Autenticacion hibrida (Supabase + Google en Vercel)
+
+- Google OAuth ahora se maneja con NextAuth/Auth.js para que todo el flujo ocurra bajo tu dominio publico (`https://madrid-chamberi.atpilatestime.com`). Configura los nuevos secretos en `.env.local` y en Vercel:
+  - `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` (los del proyecto en Google Cloud).
+  - `NEXTAUTH_SECRET` (un string aleatorio, por ejemplo `openssl rand -base64 32`). `NEXTAUTH_URL` lo define Vercel en produccion; en desarrollo usa `http://localhost:3000`.
+- Registra `https://<TU_DOMINIO>/api/auth/callback/google` como Redirect URI en Google Cloud. NextAuth usa esa ruta para completar el login.
+- Luego, la pagina publica `/auth/google` intercambia el `id_token` de Google con Supabase mediante `signInWithIdToken`, asi que la app sigue usando el token de Supabase (RLS, realtime, etc.) sin mostrar el dominio `*.supabase.co`.
+- El login por email/contrasena sigue funcionando directamente con Supabase Auth, no hay que cambiar nada en ese flujo.
+
 ---
 
 This project was originally bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
@@ -42,3 +52,6 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+
+
+
