@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/AuthContext";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { madridDayjs } from "@/lib/timezone";
 import { clampAnchor, earliestAnchor, startOfWeekMX } from "@/lib/date-mx";
-import type { PostgresInsertPayload } from "@supabase/supabase-js";
+import type { RealtimePostgresInsertPayload } from "@supabase/supabase-js";
 import type { Tables } from "@/types/database";
 
 type ApiSession = {
@@ -100,7 +100,7 @@ export default function SchedulePage() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "bookings" },
-        (payload: PostgresInsertPayload<BookingRow>) => {
+        (payload: RealtimePostgresInsertPayload<BookingRow>) => {
           const sessionId = payload.new.session_id;
           if (!sessionId) return;
           setSessions((prev) =>
@@ -311,7 +311,7 @@ export default function SchedulePage() {
       <DayBar iso={selected} />
 
       <div className="mt-2 space-y-3">
-        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este d�a.</p>}
+        {sessions.length === 0 && <p className="text-neutral-500 text-sm">No hay clases en este día.</p>}
         {sessions.map((s) => (
           <SessionCard
             key={s.id}
