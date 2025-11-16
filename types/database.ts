@@ -60,6 +60,7 @@ export type Database = {
           phone2_has_whatsapp: boolean | null
           created_at: string | null
           bio: string | null
+          staff_id: string | null
         }
         Insert: {
           id?: string
@@ -71,6 +72,7 @@ export type Database = {
           phone2_has_whatsapp?: boolean | null
           created_at?: string | null
           bio?: string | null
+          staff_id?: string | null
         }
         Update: {
           id?: string
@@ -82,8 +84,119 @@ export type Database = {
           phone2_has_whatsapp?: boolean | null
           created_at?: string | null
           bio?: string | null
+          staff_id?: string | null
         }
         Relationships: []
+      }
+
+      instructor_qr_tokens: {
+        Row: {
+          id: string
+          instructor_id: string
+          session_id: string
+          staff_id: string | null
+          token: string
+          expires_at: string
+          consumed_at: string | null
+          consumed_by_staff: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          instructor_id: string
+          session_id: string
+          staff_id?: string | null
+          token: string
+          expires_at: string
+          consumed_at?: string | null
+          consumed_by_staff?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          instructor_id?: string
+          session_id?: string
+          staff_id?: string | null
+          token?: string
+          expires_at?: string
+          consumed_at?: string | null
+          consumed_by_staff?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_qr_tokens_consumed_by_staff_fkey",
+            columns: ["consumed_by_staff"],
+            isOneToOne: false,
+            referencedRelation: "staff",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_qr_tokens_instructor_id_fkey",
+            columns: ["instructor_id"],
+            isOneToOne: false,
+            referencedRelation: "instructors",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_qr_tokens_session_id_fkey",
+            columns: ["session_id"],
+            isOneToOne: false,
+            referencedRelation: "sessions",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_qr_tokens_staff_id_fkey",
+            columns: ["staff_id"],
+            isOneToOne: false,
+            referencedRelation: "staff",
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+
+      instructor_attendance: {
+        Row: {
+          instructor_id: string
+          session_id: string
+          checked_in_at: string
+          checked_in_by_staff: string | null
+        }
+        Insert: {
+          instructor_id: string
+          session_id: string
+          checked_in_at?: string
+          checked_in_by_staff?: string | null
+        }
+        Update: {
+          instructor_id?: string
+          session_id?: string
+          checked_in_at?: string
+          checked_in_by_staff?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_attendance_instructor_id_fkey",
+            columns: ["instructor_id"],
+            isOneToOne: false,
+            referencedRelation: "instructors",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_attendance_session_id_fkey",
+            columns: ["session_id"],
+            isOneToOne: false,
+            referencedRelation: "sessions",
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_attendance_checked_in_by_staff_fkey",
+            columns: ["checked_in_by_staff"],
+            isOneToOne: false,
+            referencedRelation: "staff",
+            referencedColumns: ["id"]
+          }
+        ]
       }
 
       // -----------------------------

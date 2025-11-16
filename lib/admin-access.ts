@@ -49,7 +49,8 @@ export type AdminFeatureKey =
   | "planningInstructors"
   | "planningRooms"
   | "planningStaff"
-  | "planningSettings";
+  | "planningSettings"
+  | "instructorApp";
 
 type FeatureConfig = {
   path: string;
@@ -275,6 +276,18 @@ export const ADMIN_FEATURES: Record<AdminFeatureKey, FeatureConfig> = {
       RECEPTIONIST: NONE,
       LOCATION_MANAGER: NONE,
       MASTER: NONE,
+      SUPPORT: FULL,
+    },
+  },
+  instructorApp: {
+    path: "/instructor",
+    label: "App de instructores",
+    navKey: "instructorApp",
+    accessByRole: {
+      INSTRUCTOR: EDIT,
+      RECEPTIONIST: READ,
+      LOCATION_MANAGER: FULL,
+      MASTER: FULL,
       SUPPORT: FULL,
     },
   },

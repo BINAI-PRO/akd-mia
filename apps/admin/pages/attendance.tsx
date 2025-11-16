@@ -15,6 +15,7 @@ type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => Barc
 type ScanRecord = {
   bookingId: string;
   clientName: string;
+  isInstructor?: boolean;
   classType: string | null;
   sessionStart: string | null;
   status: string;
@@ -110,7 +111,7 @@ export default function AttendanceScannerPage() {
           | {
               bookingId: string;
               status: string;
-              client: { fullName: string };
+              client: { fullName: string; role?: string };
               session: { classType: string | null; startTime: string | null };
               message: string;
             }
@@ -125,7 +126,7 @@ export default function AttendanceScannerPage() {
         const successPayload = payload as {
           bookingId: string;
           status: string;
-          client: { fullName: string };
+          client: { fullName: string; role?: string };
           session: { classType: string | null; startTime: string | null };
           message: string;
         };
@@ -135,6 +136,7 @@ export default function AttendanceScannerPage() {
             {
               bookingId: successPayload.bookingId,
               clientName: successPayload.client.fullName ?? "Cliente",
+              isInstructor: successPayload.client.role === "INSTRUCTOR",
               classType: successPayload.session.classType ?? null,
               sessionStart: successPayload.session.startTime ?? null,
               status: successPayload.status,
@@ -505,7 +507,14 @@ export default function AttendanceScannerPage() {
             {recentSuccess && (
               <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold">{recentSuccess.clientName}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{recentSuccess.clientName}</span>
+                    {recentSuccess.isInstructor && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                        Instructor
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-emerald-600">
                     {dayjs(recentSuccess.timestamp).format("DD MMM HH:mm")}
                   </span>
@@ -540,7 +549,14 @@ export default function AttendanceScannerPage() {
                     history.map((record) => (
                       <tr key={`${record.bookingId}-${record.timestamp}`}>
                         <td className="px-4 py-3 font-medium text-slate-700">
-                          {record.clientName}
+                          <div className="flex items-center gap-2">
+                            <span>{record.clientName}</span>
+                            {record.isInstructor && (
+                              <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-600">
+                                Instructor
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-slate-500">
                           {record.classType ?? "Sesión"}

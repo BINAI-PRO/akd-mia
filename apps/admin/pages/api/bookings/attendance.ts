@@ -8,7 +8,7 @@ type SuccessResponse = {
   bookingId: string;
   status: string;
   present: boolean;
-  client: { id: string | null; fullName: string };
+  client: { id: string | null; fullName: string; role?: "CLIENT" | "INSTRUCTOR" };
   session: { id: string; startTime: string | null; classType: string | null };
   message: string;
 };
@@ -28,6 +28,20 @@ type BookingRow = {
 };
 
 const ALLOWED_STATUSES = new Set(["CONFIRMED", "CHECKED_IN", "CHECKED_OUT", "REBOOKED"]);
+
+type InstructorTokenRow = {
+  id: string;
+  instructor_id: string;
+  session_id: string;
+  expires_at: string;
+  consumed_at: string | null;
+  instructors: { id: string; full_name: string | null } | null;
+  sessions: {
+    id: string;
+    start_time: string | null;
+    class_types: { name: string | null } | null;
+  } | null;
+};
 
 async function resolveBookingIdFromToken(token: string) {
   const cleaned = token.trim().toUpperCase();
@@ -50,6 +64,69 @@ async function resolveBookingIdFromToken(token: string) {
     }
   }
   return data.booking_id;
+}
+
+async function tryResolveInstructorToken(token: string, actorStaffId: string | null) {
+  const cleaned = token.trim().toUpperCase();
+  const { data, error } = await supabaseAdmin
+    .from("instructor_qr_tokens")
+    .select(
+      `
+        id,
+        instructor_id,
+        session_id,
+        expires_at,
+        consumed_at,
+        instructors ( id, full_name ),
+        sessions ( id, start_time, class_types ( name ) )
+      `
+    )
+    .eq("token", cleaned)
+    .maybeSingle<InstructorTokenRow>();
+
+  if (error) {
+    throw Object.assign(new Error("No se pudo validar el codigo del instructor"), { status: 500 });
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  if (data.consumed_at) {
+    throw Object.assign(new Error("El codigo ya fue usado"), { status: 409 });
+  }
+
+  if (data.expires_at) {
+    const expiry = madridDayjs(data.expires_at);
+    if (expiry.isValid() && expiry.isBefore(madridDayjs())) {
+      throw Object.assign(new Error("El codigo del instructor expirA3"), { status: 410 });
+    }
+  }
+
+  const now = new Date().toISOString();
+  const { error: updateError } = await supabaseAdmin
+    .from("instructor_qr_tokens")
+    .update({ consumed_at: now, consumed_by_staff: actorStaffId ?? null })
+    .eq("id", data.id);
+
+  if (updateError) {
+    throw Object.assign(new Error("No se pudo registrar el ingreso"), { status: 500 });
+  }
+
+  await supabaseAdmin.from("instructor_attendance").upsert({
+    instructor_id: data.instructor_id,
+    session_id: data.session_id,
+    checked_in_at: now,
+    checked_in_by_staff: actorStaffId ?? null,
+  });
+
+  return {
+    instructorId: data.instructor_id,
+    instructorName: data.instructors?.full_name ?? "Instructor",
+    sessionId: data.session_id,
+    sessionStart: data.sessions?.start_time ?? null,
+    classType: data.sessions?.class_types?.name ?? null,
+  };
 }
 
 async function fetchBookingRecord(bookingId: string) {
@@ -152,6 +229,26 @@ export default async function handler(
     const hasToken = typeof token === "string" && token.trim().length > 0;
 
     if (!bookingId && hasToken) {
+      const instructorCheck = await tryResolveInstructorToken(token as string, access.staffId);
+      if (instructorCheck) {
+        return res.status(200).json({
+          bookingId: instructorCheck.sessionId,
+          status: "INSTRUCTOR_CHECKED_IN",
+          present: true,
+          client: {
+            id: instructorCheck.instructorId,
+            fullName: instructorCheck.instructorName,
+            role: "INSTRUCTOR",
+          },
+          session: {
+            id: instructorCheck.sessionId,
+            startTime: instructorCheck.sessionStart,
+            classType: instructorCheck.classType,
+          },
+          message: "Asistencia del instructor registrada",
+        });
+      }
+
       bookingId = await resolveBookingIdFromToken(token as string);
     }
 
@@ -183,6 +280,7 @@ export default async function handler(
     const client = {
       id: booking.clients?.id ?? null,
       fullName: booking.clients?.full_name ?? "Cliente",
+      role: "CLIENT" as const,
     };
     const session = {
       id: booking.sessions?.id ?? booking.session_id,

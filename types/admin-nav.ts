@@ -15,8 +15,8 @@ export type AdminNavKey =
   | "planningInstructors"
   | "planningRooms"
   | "planningStaff"
+  | "instructorApp"
   | "contacts"
   | "marketing"
   | "analytics"
   | "settings";
-

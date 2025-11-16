@@ -52,6 +52,7 @@ type NavItem = NavLink | NavGroup;
 const NAVIGATION: NavItem[] = [
   { type: "link", key: "dashboard", label: "Inicio", icon: "home", href: "/" },
   { type: "link", key: "calendar", label: "Calendario", icon: "calendar_today", href: "/calendar/day" },
+  { type: "link", key: "instructorApp", label: "Instructor", icon: "self_improvement", href: "/instructor" },
   {
     type: "group",
     key: "products",
