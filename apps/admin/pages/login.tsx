@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
+import { signIn } from "next-auth/react";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import { useAuth } from "@/components/auth/AuthContext";
 import {
@@ -117,15 +118,16 @@ export default function AdminLoginPage() {
     setFormError(null);
 
     try {
-      const supabase = supabaseBrowser();
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${redirectTarget}`
-          : redirectTarget;
-      await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo },
-      });
+      const callbackUrl = `/auth/google?redirect=${encodeURIComponent(redirectTarget)}`;
+      const response = await signIn("google", { callbackUrl, redirect: false });
+      if (response?.error) {
+        throw new Error(response.error);
+      }
+      if (response?.url) {
+        window.location.href = response.url;
+      } else {
+        setSubmitting(false);
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "No se pudo iniciar sesión con Google";

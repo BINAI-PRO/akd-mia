@@ -1,6 +1,7 @@
 import type { AppProps } from "next/app";
 import { useEffect, useState } from "react";
 import "@/styles/globals.css";
+import { SessionProvider } from "next-auth/react";
 import { AuthProvider } from "@/components/auth/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { StudioSettingsProvider } from "@/components/StudioTimezoneContext";
@@ -63,16 +64,18 @@ export default function AdminApp({ Component, pageProps }: AppProps) {
   const timezone = settings.timezone;
 
   return (
-    <AuthProvider>
-      <StudioSettingsProvider value={settings}>
-        {isPublic ? (
-          <Component key={`tz-${timezone}`} {...pageProps} />
-        ) : (
-          <ProtectedRoute>
+    <SessionProvider session={(pageProps as { session?: Session }).session}>
+      <AuthProvider>
+        <StudioSettingsProvider value={settings}>
+          {isPublic ? (
             <Component key={`tz-${timezone}`} {...pageProps} />
-          </ProtectedRoute>
-        )}
-      </StudioSettingsProvider>
-    </AuthProvider>
+          ) : (
+            <ProtectedRoute>
+              <Component key={`tz-${timezone}`} {...pageProps} />
+            </ProtectedRoute>
+          )}
+        </StudioSettingsProvider>
+      </AuthProvider>
+    </SessionProvider>
   );
 }
