@@ -1,11 +1,11 @@
-﻿import Head from "next/head";
+import Head from "next/head";
 import { useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
-import AdminLayout from "@/components/admin/AdminLayout";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { supabaseAdmin } from "@/lib/supabase-admin";
-import type { AdminFeatureKey } from "@/lib/admin-access";
 import dayjs from "dayjs";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { supabaseAdmin } from "@/lib/supabase-admin";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import type { AdminFeatureKey } from "@/lib/admin-access";
 
 type ClassTypeItem = {
   id: string;
@@ -30,7 +30,7 @@ type FormState = {
 const INTENSITY_OPTIONS = ["LEVE", "MEDIA", "ALTA", "MEDIA A ALTA", "MULTINIVEL"] as const;
 
 const pretty = (value: string | null | undefined) => {
-  if (!value) return "—";
+  if (!value) return "-";
   return value
     .split(" ")
     .map((token) => (token ? token[0].toUpperCase() + token.slice(1).toLowerCase() : token))
@@ -47,8 +47,6 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     console.error(error);
     return { props: { initialClassTypes: [] } };
   }
-
-  console.log("[class-types] fetched", data?.length ?? 0);
 
   const initialClassTypes: ClassTypeItem[] = (data ?? []).map((row) => ({
     id: row.id,
@@ -74,9 +72,11 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [filters, setFilters] = useState({ search: "", intensity: "all", target: "all" });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const featureKey: AdminFeatureKey = "classTypes";
   const pageAccess = useAdminAccess(featureKey);
   const readOnly = !pageAccess.canEdit;
+  const canDelete = pageAccess.canDelete;
 
   const intensityOptions = useMemo(() => {
     const values = new Set<string>();
@@ -96,10 +96,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
       if (filters.intensity !== "all" && item.intensity !== filters.intensity) return false;
       if (filters.target !== "all" && item.targetAudience !== filters.target) return false;
       if (!term) return true;
-      const haystack = [item.name, item.description, item.targetAudience]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
+      const haystack = [item.name, item.description, item.targetAudience].filter(Boolean).join(" ").toLowerCase();
       return haystack.includes(term);
     });
   }, [classTypes, filters]);
@@ -125,6 +122,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     setMessage(null);
     try {
       const payload = {
+        id: editingId ?? undefined,
         name: formState.name.trim(),
         description: formState.description.trim() || null,
         intensity: formState.intensity || null,
@@ -132,29 +130,86 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
       };
 
       const response = await fetch("/api/class-types", {
-        method: "POST",
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body?.error ?? "No se pudo crear la clase");
+        throw new Error(body?.error ?? "No se pudo guardar la clase");
       }
 
       const body = await response.json();
-      const created: ClassTypeItem = {
+      const updated: ClassTypeItem = {
         ...body.classType,
         createdAt: null,
       };
-      setClassTypes((prev) =>
-        [created, ...prev].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }))
-      );
+
+      setClassTypes((prev) => {
+        const existingIndex = prev.findIndex((item) => item.id === updated.id);
+        if (existingIndex >= 0) {
+          const copy = [...prev];
+          copy[existingIndex] = updated;
+          return copy.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+        }
+        return [updated, ...prev].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
+      });
+
       setFormState({ name: "", description: "", intensity: INTENSITY_OPTIONS[0], targetAudience: "" });
-      setMessage(body?.message ?? "Clase creada");
+      setEditingId(null);
+      setMessage(body?.message ?? (editingId ? "Clase actualizada" : "Clase creada"));
     } catch (submissionError) {
       console.error(submissionError);
-      setError(submissionError instanceof Error ? submissionError.message : "No se pudo crear la clase");
+      setError(submissionError instanceof Error ? submissionError.message : "No se pudo guardar la clase");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (item: ClassTypeItem) => {
+    setEditingId(item.id);
+    setFormState({
+      name: item.name,
+      description: item.description ?? "",
+      intensity: item.intensity ?? INTENSITY_OPTIONS[0],
+      targetAudience: item.targetAudience ?? "",
+    });
+    setMessage(null);
+    setError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setFormState({ name: "", description: "", intensity: INTENSITY_OPTIONS[0], targetAudience: "" });
+    setMessage(null);
+    setError(null);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!canDelete) return;
+    const confirmed = window.confirm("Esta acción eliminará la clase. ¿Continuar?");
+    if (!confirmed) return;
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const response = await fetch("/api/class-types", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error ?? "No se pudo eliminar la clase");
+      }
+      setClassTypes((prev) => prev.filter((item) => item.id !== id));
+      if (editingId === id) {
+        cancelEdit();
+      }
+      setMessage("Clase eliminada");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo eliminar la clase");
     } finally {
       setSaving(false);
     }
@@ -166,13 +221,15 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
         <title>PilatesTime Admin - Clases</title>
       </Head>
 
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <header className="border-b border-slate-200 px-6 py-5">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-2">
               <div>
                 <h1 className="text-2xl font-semibold text-slate-800">Clases</h1>
-                <p className="text-sm text-slate-500">Gestiona las clases disponibles para tus horarios y sesiónes.</p>
+                <p className="text-sm text-slate-500">
+                  Gestiona las clases disponibles para tus horarios y sesiones.
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 <input
@@ -180,7 +237,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   value={filters.search}
                   onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
                   placeholder="Buscar por nombre o descripción"
-                  className="h-10 w-60 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  className="h-10 w-80 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
                 <select
                   value={filters.intensity}
@@ -194,32 +251,11 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                     </option>
                   ))}
                 </select>
-                <select
-                  value={filters.target}
-                  onChange={(event) => setFilters((prev) => ({ ...prev, target: event.target.value }))}
-                  className="h-10 rounded-md border border-slate-200 px-3 py-2 text-sm"
-                >
-                  <option value="all">Todos los públicos</option>
-                  {targetOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {pretty(option)}
-                    </option>
-                  ))}
-                </select>
-                {(filters.search || filters.intensity !== "all" || filters.target !== "all") && (
-                  <button
-                    type="button"
-                    onClick={() => setFilters({ search: "", intensity: "all", target: "all" })}
-                    className="rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
-                  >
-                    Limpiar
-                  </button>
-                )}
               </div>
             </div>
           </header>
 
-          <div className="max-h-[70vh] overflow-auto px-6 py-4">
+          <div className="px-6 py-4">
             {filteredList.length === 0 ? (
               <div className="py-10 text-center text-sm text-slate-500">No se encontraron clases.</div>
             ) : (
@@ -229,23 +265,44 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                     key={item.id}
                     className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-brand-200"
                   >
-                    <header className="flex items-start justify-between gap-3">
+                    <header className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <h2 className="text-base font-semibold text-slate-800">{item.name}</h2>
                         <p className="text-xs text-slate-500">
-                          Registrada {item.createdAt ? dayjs(item.createdAt).format("DD MMM YYYY") : "—"}
+                          Registrada {item.createdAt ? dayjs(item.createdAt).format("DD MMM YYYY") : "-"}
                         </p>
                       </div>
-                      {item.intensity && (
-                        <span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
-                          {pretty(item.intensity)}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {item.intensity && (
+                          <span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
+                            {pretty(item.intensity)}
+                          </span>
+                        )}
+                        {!readOnly && (
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(item)}
+                              className="rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 hover:border-brand-300 hover:text-brand-700"
+                            >
+                              Editar
+                            </button>
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(item.id)}
+                                className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50"
+                                disabled={saving}
+                              >
+                                Eliminar
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </header>
                     {item.description && <p className="mt-3 text-sm text-slate-600">{item.description}</p>}
-                    <footer className="mt-3 text-xs text-slate-500">
-                      Dirigido a: {pretty(item.targetAudience)}
-                    </footer>
+                    <footer className="mt-3 text-xs text-slate-500">Dirigido a: {pretty(item.targetAudience)}</footer>
                   </article>
                 ))}
               </div>
@@ -255,8 +312,14 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
 
         <section className="flex h-max flex-col gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <header className="border-b border-slate-200 pb-4">
-            <h2 className="text-xl font-semibold text-slate-800">Agregar clase</h2>
-            <p className="text-sm text-slate-500">Define una nueva clase para usar en horarios y sesiónes.</p>
+            <h2 className="text-xl font-semibold text-slate-800">
+              {editingId ? "Editar clase" : "Agregar clase"}
+            </h2>
+            <p className="text-sm text-slate-500">
+              {editingId
+                ? "Actualiza los datos de la clase seleccionada."
+                : "Define una nueva clase para usar en horarios y sesiones."}
+            </p>
           </header>
 
           {readOnly && (
@@ -322,12 +385,22 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
             {error && <p className="text-xs text-rose-600">{error}</p>}
 
             <div className="flex items-center justify-end gap-3">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                  disabled={saving}
+                >
+                  Cancelar
+                </button>
+              )}
               <button
                 type="submit"
                 disabled={!canSubmit}
                 className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
               >
-                {saving ? "Guardando..." : "Guardar clase"}
+                {saving ? "Guardando..." : editingId ? "Guardar cambios" : "Guardar clase"}
               </button>
             </div>
           </form>
@@ -336,8 +409,3 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     </AdminLayout>
   );
 }
-
-
-
-
-
