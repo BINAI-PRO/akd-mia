@@ -99,13 +99,7 @@ async function fetchByPhone(
   }
 
   if (!data || data.length === 0) return null;
-
-  if (data.length > 1) {
-    throw new ClientLinkConflictError(
-      "Multiple client records share the same phone; link manually to continue."
-    );
-  }
-
+  if (data.length > 1) return null;
   return data[0];
 }
 
@@ -150,14 +144,8 @@ export async function ensureClientForAuthUser({
   }
 
   if (trimmedPhone) {
-    const byPhone = await fetchByPhone(trimmedPhone);
-    if (byPhone) {
-      if (byPhone.auth_user_id && byPhone.auth_user_id !== authUserId) {
-        throw new ClientLinkConflictError(
-          "Phone already linked to another auth user; resolve conflict before proceeding."
-        );
-      }
-
+    const byPhone = await fetchByPhone(trimmedPhone).catch(() => null);
+    if (byPhone && !byPhone.auth_user_id) {
       const { error: linkError } = await supabaseAdmin
         .from("clients")
         .update({ auth_user_id: authUserId })
@@ -195,4 +183,3 @@ export async function ensureClientForAuthUser({
 
   return created ?? null;
 }
-
