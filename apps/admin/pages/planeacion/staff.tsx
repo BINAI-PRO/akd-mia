@@ -260,6 +260,10 @@ export default function StaffManagementPage({
       setMessage({ type: "error", text: "Completa nombre, correo y rol." });
       return;
     }
+    if (!formState.phone || !formState.phone.trim()) {
+      setMessage({ type: "error", text: "Ingresa el telAcfono de contacto." });
+      return;
+    }
     setInviteLoading(true);
     setMessage(null);
     try {
@@ -270,7 +274,7 @@ export default function StaffManagementPage({
           email: formState.email,
           fullName: formState.fullName,
           roleSlug: formState.roleSlug,
-          phone: formState.phone || null,
+          phone: formState.phone.trim(),
         }),
       });
       const { payload, raw } = await parseJsonResponse<{ error?: string; staff?: StaffMember }>(response);
@@ -343,13 +347,14 @@ export default function StaffManagementPage({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-slate-700">
-              Teléfono (opcional)
+              Teléfono de contacto
               <input
                 type="tel"
                 name="phone"
                 value={formState.phone}
                 onChange={handleFormChange}
                 placeholder="+52 55 0000 0000"
+                required
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
               />
             </label>

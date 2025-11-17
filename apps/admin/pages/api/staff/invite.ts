@@ -2,6 +2,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { normalizePhoneInput } from "@/lib/phone";
+import { loadStudioSettings } from "@/lib/studio-settings";
 
 type StaffRow = {
   id: string;
@@ -148,9 +150,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!roleSlug || typeof roleSlug !== "string") {
       return res.status(400).json({ error: "Rol requerido" });
     }
+    if (typeof phone !== "string" || !phone.trim()) {
+      return res.status(400).json({ error: "Teléfono requerido" });
+    }
 
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedSlug = roleSlug.trim().toUpperCase();
+    const settings = await loadStudioSettings();
+    const phoneResult = normalizePhoneInput(phone, {
+      countryIso: settings.phoneCountry,
+      fallbackCountry: settings.phoneCountry,
+    });
+    if (!phoneResult.ok) {
+      return res.status(400).json({ error: phoneResult.error });
+    }
+    const normalizedPhone = phoneResult.value;
 
     const { data: role, error: roleError } = await supabaseAdmin
       .from("staff_roles")
@@ -171,14 +185,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const existingLookup = await findAuthUserByEmail(normalizedEmail);
 
+    const metadata = {
+      full_name: fullName,
+      phone: normalizedPhone,
+      staff_role: normalizedSlug,
+    };
+
     if (existingLookup) {
       authUserId = existingLookup.id;
       await supabaseAdmin.auth.admin.updateUserById(authUserId, {
-        user_metadata: { full_name: fullName },
+        user_metadata: metadata,
       });
     } else {
       const inviteResponse = await supabaseAdmin.auth.admin.inviteUserByEmail(normalizedEmail, {
-        data: { full_name: fullName },
+        data: metadata,
         redirectTo: inviteRedirectTo,
       });
 
@@ -198,7 +218,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       auth_user_id: authUserId,
       full_name: fullName.trim(),
       email: normalizedEmail,
-      phone: phone ? String(phone).trim() : null,
+      phone: normalizedPhone,
       role_id: role.id,
       updated_at: new Date().toISOString(),
     };
