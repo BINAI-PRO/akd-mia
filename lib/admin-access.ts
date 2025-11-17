@@ -78,8 +78,8 @@ export const ADMIN_FEATURES: Record<AdminFeatureKey, FeatureConfig> = {
     label: "Panel principal",
     navKey: "dashboard",
     accessByRole: {
-      INSTRUCTOR: READ,
-      RECEPTIONIST: READ,
+      INSTRUCTOR: NONE,
+      RECEPTIONIST: NONE,
       LOCATION_MANAGER: FULL,
       MASTER: FULL,
       SUPPORT: FULL,
@@ -154,7 +154,7 @@ export const ADMIN_FEATURES: Record<AdminFeatureKey, FeatureConfig> = {
     label: "Programador de cursos",
     navKey: "courseScheduler",
     accessByRole: {
-      INSTRUCTOR: READ,
+      INSTRUCTOR: NONE,
       RECEPTIONIST: EDIT,
       LOCATION_MANAGER: FULL,
       MASTER: FULL,
@@ -212,7 +212,7 @@ export const ADMIN_FEATURES: Record<AdminFeatureKey, FeatureConfig> = {
     label: "Tipos de membresía",
     navKey: "membershipTypes",
     accessByRole: {
-      INSTRUCTOR: READ,
+      INSTRUCTOR: NONE,
       RECEPTIONIST: READ,
       LOCATION_MANAGER: EDIT,
       MASTER: FULL,
@@ -275,7 +275,7 @@ export const ADMIN_FEATURES: Record<AdminFeatureKey, FeatureConfig> = {
       INSTRUCTOR: NONE,
       RECEPTIONIST: NONE,
       LOCATION_MANAGER: NONE,
-      MASTER: NONE,
+      MASTER: FULL,
       SUPPORT: FULL,
     },
   },
