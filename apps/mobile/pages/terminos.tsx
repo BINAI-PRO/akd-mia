@@ -9,7 +9,7 @@ const SECTIONS: Section[] = [
   {
     title: "1. Aceptación del servicio",
     paragraphs: [
-      "Al acceder o utilizar la aplicación AT Pilates Time confirmas que eres mayor de edad y que aceptas estos términos. Si no estás de acuerdo, por favor deja de usar la plataforma.",
+      "Al acceder o utilizar la aplicación BInAI Akdēmia confirmas que eres mayor de edad y que aceptas estos términos. Si no estás de acuerdo, por favor deja de usar la plataforma.",
     ],
   },
   {
@@ -50,10 +50,10 @@ export default function TermsOfServicePage() {
   return (
     <>
       <Head>
-        <title>Términos de servicio | AT Pilates Time</title>
+        <title>Términos de servicio | BInAI Akdēmia</title>
         <meta
           name="description"
-          content="Consulta los términos de servicio oficiales de la app AT Pilates Time."
+          content="Consulta los términos de servicio oficiales de la app BInAI Akdēmia."
         />
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-12 text-neutral-800">

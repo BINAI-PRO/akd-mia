@@ -210,7 +210,7 @@ export default function AdminLayout({
     const isActive = link.key === active;
     const className = [
       "flex items-center rounded-lg px-4 py-2 text-sm transition",
-      isActive ? "bg-brand-50 text-brand-700 font-semibold" : "text-slate-600 hover:bg-slate-100",
+      isActive ? "bg-brand-50 text-brand-700 font-semibold" : "text-brand-900 hover:bg-brand-100",
     ].join(" ");
 
     return (
@@ -239,7 +239,7 @@ export default function AdminLayout({
               type="button"
               onClick={() => toggleGroup(item.key)}
               className={`flex w-full items-center justify-between rounded-lg px-4 py-2 text-sm transition ${
-                containsActive ? "bg-brand-50 text-brand-700 font-semibold" : "text-slate-600 hover:bg-slate-100"
+                containsActive ? "bg-brand-50 text-brand-700 font-semibold" : "text-brand-900 hover:bg-brand-100"
               }`}
             >
               <span className="flex items-center">
@@ -266,29 +266,29 @@ export default function AdminLayout({
 
   const BrandBlock = () => (
     <div className="flex items-center gap-3">
-      <Img src="/logo.png" alt="AT Pilates Time" width={160} height={40} className="h-10 w-auto" />
-      <div className="leading-tight">
-        <p className="text-sm font-semibold text-slate-800">AT Pilates Time</p>
-        <p className="text-xs uppercase tracking-wide text-slate-500">ATP Tu Fit App</p>
+      <Img src="/logo.png" alt="BInAI Akdēmia" width={160} height={40} className="h-10 w-auto" />
+      <div className="leading-tight text-brand-50">
+        <p className="text-sm font-semibold text-brand-50">BInAI Akdēmia</p>
+        <p className="text-xs uppercase tracking-wide text-brand-200">Pro·Fitness</p>
       </div>
     </div>
   );
 
   const UserBadge = () => (
-    <div className="flex items-center gap-3 rounded-full border border-slate-200 px-3 py-1">
+    <div className="flex items-center gap-3 rounded-full border border-brand-200 bg-brand-50 px-3 py-1">
       {avatarUrl ? (
         <Img src={avatarUrl} alt={displayName} width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
       ) : (
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-700">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-semibold text-brand-900">
           {initials || "U"}
         </span>
       )}
       <div className="flex flex-col text-right">
-        <span className="text-sm font-semibold leading-tight text-slate-800">{displayName}</span>
+        <span className="text-sm font-semibold leading-tight text-brand-900">{displayName}</span>
         <button
           type="button"
           onClick={handleSignOut}
-          className="text-[11px] font-medium text-brand-600 hover:text-brand-700"
+          className="text-[11px] font-medium text-brand-700 hover:text-brand-800"
           disabled={profileLoading}
         >
           Cerrar sesión
@@ -298,10 +298,10 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-brand-50 text-slate-900">
       <div className="flex h-screen">
-        <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
-          <div className="flex h-16 items-center justify-start border-b border-slate-200 px-6">
+        <aside className="hidden w-64 flex-shrink-0 flex-col border-r border-brand-100 bg-brand-50 md:flex">
+          <div className="flex h-16 items-center justify-start border-b border-brand-200 bg-brand-900 px-6">
             <BrandBlock />
           </div>
           {renderNav()}
@@ -309,13 +309,13 @@ export default function AdminLayout({
 
         {mobileOpen && (
           <div className="fixed inset-0 z-40 flex md:hidden" role="dialog" aria-modal="true">
-            <div className="fixed inset-0 bg-slate-900/50" onClick={() => setMobileOpen(false)} />
-            <aside className="relative ml-auto flex h-full w-64 flex-col border-l border-slate-200 bg-white shadow-xl">
-              <div className="flex h-16 items-center justify-between border-b border-slate-200 px-6">
+            <div className="fixed inset-0 bg-brand-900/60" onClick={() => setMobileOpen(false)} />
+            <aside className="relative ml-auto flex h-full w-64 flex-col border-l border-brand-100 bg-brand-50 shadow-xl">
+              <div className="flex h-16 items-center justify-between border-b border-brand-200 bg-brand-900 px-6 text-brand-50">
                 <BrandBlock />
                 <button
                   type="button"
-                  className="ml-2 rounded-md p-2 text-slate-500 hover:bg-slate-100"
+                  className="ml-2 rounded-md p-2 text-brand-50 hover:bg-brand-800"
                   onClick={() => setMobileOpen(false)}
                   aria-label="Cerrar menu"
                 >
@@ -328,17 +328,17 @@ export default function AdminLayout({
         )}
 
         <div className="flex flex-1 flex-col overflow-hidden">
-          <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-6">
+          <header className="flex h-16 items-center justify-between border-b border-brand-800 bg-brand-900 px-6 text-brand-50 shadow">
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                className="rounded-md border border-slate-200 p-2 text-slate-600 md:hidden"
+                className="rounded-md border border-brand-700 p-2 text-brand-50 transition hover:bg-brand-800 md:hidden"
                 onClick={() => setMobileOpen(true)}
                 aria-label="Abrir menu"
               >
                 <span className="material-icons-outlined">menu</span>
               </button>
-              <h1 className="text-2xl font-semibold">{title}</h1>
+              <h1 className="text-2xl font-semibold text-white">{title}</h1>
             </div>
             <div className="flex items-center gap-4">
               {headerToolbar}
@@ -346,10 +346,10 @@ export default function AdminLayout({
             </div>
           </header>
 
-          <main className="flex-1 overflow-y-auto bg-slate-100 p-6 lg:p-8">
+          <main className="flex-1 overflow-y-auto bg-brand-50 p-6 lg:p-8">
             {featureKey ? (
               access.loading ? (
-                <div className="rounded-lg border border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
+                <div className="rounded-lg border border-brand-100 bg-white px-4 py-6 text-center text-sm text-brand-800">
                   Cargando permisos...
                 </div>
               ) : satisfiesLevel(access, minFeatureLevel) ? (

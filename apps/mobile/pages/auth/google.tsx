@@ -9,6 +9,7 @@ export default function GoogleAuthLinkPage() {
   const { data: nextSession, status } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [completed, setCompleted] = useState(false);
+  const googleIdToken = (nextSession as { googleIdToken?: string } | null)?.googleIdToken ?? null;
 
   const redirectTarget = useMemo(() => {
     const param = router.query.redirect;
@@ -18,8 +19,8 @@ export default function GoogleAuthLinkPage() {
 
   useEffect(() => {
     if (status === "loading" || completed) return;
-    if (!nextSession?.googleIdToken) {
-      setError("No se encontró el token de Google para completar la sesión.");
+    if (!googleIdToken) {
+      setError("No se encontrA3 el token de Google para completar la sesiA3n.");
       return;
     }
 
@@ -30,7 +31,7 @@ export default function GoogleAuthLinkPage() {
         const client = supabaseBrowser();
         const { error: linkError } = await client.auth.signInWithIdToken({
           provider: "google",
-          token: nextSession.googleIdToken,
+          token: googleIdToken,
         });
 
         if (linkError) {
@@ -45,9 +46,7 @@ export default function GoogleAuthLinkPage() {
         if (cancelled) return;
         console.error("google link error", linkError);
         const message =
-          linkError instanceof Error
-            ? linkError.message
-            : "No se pudo completar la autenticación.";
+          linkError instanceof Error ? linkError.message : "No se pudo completar la autenticaciA3n.";
         setError(message);
       }
     };
@@ -57,14 +56,14 @@ export default function GoogleAuthLinkPage() {
     return () => {
       cancelled = true;
     };
-  }, [completed, nextSession?.googleIdToken, redirectTarget, router, status]);
+  }, [completed, googleIdToken, redirectTarget, router, status]);
 
   const isLoading = status === "loading" || (!error && !completed);
 
   return (
     <>
       <Head>
-        <title>Conectando cuenta | AT Pilates Time</title>
+        <title>Conectando cuenta | BInAI Akdm-ia</title>
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-4 rounded-3xl bg-white px-6 py-8 text-center shadow-xl">
@@ -72,7 +71,7 @@ export default function GoogleAuthLinkPage() {
           {isLoading && (
             <>
               <p className="text-sm text-neutral-500">
-                Estamos conectando tu cuenta de Google con AT Pilates Time.
+                Estamos conectando tu cuenta de Google con BInAI Akdm-ia.
               </p>
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
             </>
@@ -97,5 +96,5 @@ export default function GoogleAuthLinkPage() {
   );
 }
 
-// Permite acceder sin sesión previa de Supabase.
+// Permite acceder sin sesiA3n previa de Supabase.
 (GoogleAuthLinkPage as { publicPage?: boolean }).publicPage = true;

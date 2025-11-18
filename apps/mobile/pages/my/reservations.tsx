@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -176,7 +176,8 @@ export default function MyReservationsPage() {
 
   const groupedPlans = useMemo(() => {
     if (state.status !== "loaded") return new Map<string, DashboardPlan[]>();
-    const activePlans = state.data.plans.filter((plan) => plan.status === "ACTIVE");
+    const { data } = state;
+    const activePlans = data.plans.filter((plan) => plan.status === "ACTIVE");
     const map = new Map<string, DashboardPlan[]>();
 
     activePlans.forEach((plan) => {
@@ -215,7 +216,7 @@ export default function MyReservationsPage() {
     router.push({ pathname: `/bookings/${bookingId}`, query: { focus: "evaluation" } });
   };
 
-  let content: JSX.Element;
+  let content: ReactElement;
   if (state.status === "unauthenticated") {
     content = (
       <p className="text-sm text-neutral-600">
@@ -247,11 +248,12 @@ export default function MyReservationsPage() {
         {state.message}
       </div>
     );
-  } else {
-    const upcomingBookings = state.data.upcomingBookings;
-    const recentBookings = state.data.recentBookings;
+  } else if (state.status === "loaded") {
+    const { data } = state;
+    const upcomingBookings = data.upcomingBookings;
+    const recentBookings = data.recentBookings;
 
-    const planSections: JSX.Element[] = [];
+    const planSections: ReactElement[] = [];
     CATEGORY_ORDER.concat(["OTHER"]).forEach((categoryKey) => {
       const plans = groupedPlans.get(categoryKey);
       if (!plans || plans.length === 0) return;
@@ -413,12 +415,15 @@ export default function MyReservationsPage() {
         </section>
       </div>
     );
+  } else {
+    // Fallback for unexpected state
+    content = <></>;
   }
 
   return (
     <>
       <Head>
-        <title>Mis reservas | AT Pilates Time</title>
+        <title>Mis reservas | BInAI Akdemia</title>
       </Head>
       <main className="container-mobile space-y-6 py-6">
         <div className="flex items-center justify-between">
@@ -437,4 +442,5 @@ export default function MyReservationsPage() {
     </>
   );
 }
+
 

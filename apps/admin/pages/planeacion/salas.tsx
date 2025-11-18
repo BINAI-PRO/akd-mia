@@ -866,7 +866,7 @@ export default function PlanningRoomsPage({
   return (
     <AdminLayout title="Planeacion - Salas" active="planningRooms" featureKey="planningRooms">
       <Head>
-        <title>PilatesTime Admin - Planeacion de salas</title>
+        <title>BInAI Akdēmia Admin - Planeacion de salas</title>
       </Head>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">

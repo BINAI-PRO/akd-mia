@@ -213,7 +213,7 @@ export default function PlansPage() {
   return (
     <>
       <Head>
-        <title>Tarifas y Bonos | ATP Pilates</title>
+        <title>Tarifas y Bonos | BInAI Akdēmia</title>
       </Head>
 
       <section className="mx-auto max-w-md space-y-6">

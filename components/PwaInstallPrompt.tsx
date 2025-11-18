@@ -119,8 +119,8 @@ const PwaInstallPrompt = () => {
 
   const title =
     variant === "install"
-      ? "Instala AT Pilates"
-      : "Agrega AT Pilates a tu pantalla de inicio";
+      ? "Instala BInAI Akdēmia"
+      : "Agrega BInAI Akdēmia a tu pantalla de inicio";
 
   const description =
     variant === "install"
@@ -135,12 +135,12 @@ const PwaInstallPrompt = () => {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-6">
-      <div className="pointer-events-auto w-full max-w-sm rounded-3xl border border-slate-200 bg-white/95 p-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)] ring-1 ring-black/5 backdrop-blur">
+      <div className="pointer-events-auto w-full max-w-sm rounded-3xl border border-brand-100 bg-white/95 p-4 shadow-[0_12px_40px_-16px_rgba(15,23,42,0.45)] ring-1 ring-black/5 backdrop-blur">
         <div className="flex items-start gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
             <Img
               src="/logo-icon-192.png"
-              alt="AT Pilates"
+              alt="BInAI Akdēmia"
               width={48}
               height={48}
               className="h-10 w-10 object-contain"
@@ -148,13 +148,13 @@ const PwaInstallPrompt = () => {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-slate-900">{title}</p>
-            <p className="mt-1 text-xs text-slate-600">{description}</p>
+            <p className="mt-1 text-xs text-brand-900">{description}</p>
           </div>
           <button
             type="button"
             onClick={hideForSession}
             aria-label="Cerrar recomendación de instalación"
-            className="ml-1 rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+            className="ml-1 rounded-full p-1.5 text-brand-900/60 transition hover:bg-brand-100 hover:text-brand-900"
           >
             &times;
           </button>
@@ -165,25 +165,25 @@ const PwaInstallPrompt = () => {
             <button
               type="button"
               onClick={handleInstallClick}
-              className="w-full rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+              className="w-full rounded-2xl bg-brand-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2"
             >
               Instalar
             </button>
             <button
               type="button"
               onClick={hideForSession}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              className="w-full rounded-2xl border border-brand-100 px-4 py-2.5 text-sm font-semibold text-brand-900 transition hover:bg-brand-50"
             >
               Más tarde
             </button>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
-            <div className="rounded-2xl bg-slate-50 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+            <div className="rounded-2xl bg-brand-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">
                 Cómo agregarla en iOS
               </p>
-              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-slate-600">
+              <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-brand-900">
                 {iosSteps.map((step) => (
                   <li key={step}>{step}</li>
                 ))}
@@ -192,7 +192,7 @@ const PwaInstallPrompt = () => {
             <button
               type="button"
               onClick={hideForSession}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600 transition hover:bg-slate-50"
+              className="w-full rounded-2xl border border-brand-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-brand-900 transition hover:bg-brand-50"
             >
               Entendido
             </button>

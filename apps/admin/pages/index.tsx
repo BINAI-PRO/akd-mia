@@ -279,7 +279,7 @@ export default function AdminDashboardPage({
       featureKey="dashboard"
     >
       <Head>
-        <title>AT Pilates Time - Tablero</title>
+        <title>BInAI Akdēmia - Tablero</title>
       </Head>
       <div className="mx-auto flex max-w-7xl flex-col gap-8">
         <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -454,7 +454,7 @@ export default function AdminDashboardPage({
           <div>
             <h2 className="text-xl font-semibold text-indigo-900">Quieres $20? Invita a un amigo!</h2>
             <p className="mt-1 text-sm text-indigo-800">
-              Comparte PilatesTime y recibe $20 por cada cliente que se convierta en suscriptor.
+              Comparte BInAI Akdm-ia y recibe $20 por cada cliente que se convierta en suscriptor.
             </p>
             <button
               type="button"

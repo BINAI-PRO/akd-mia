@@ -218,7 +218,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   return (
     <AdminLayout title="Clases" active="classTypes" featureKey="classTypes">
       <Head>
-        <title>PilatesTime Admin - Clases</title>
+        <title>BInAI Akdēmia Admin - Clases</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px]">

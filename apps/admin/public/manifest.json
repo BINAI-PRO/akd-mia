@@ -1,10 +1,10 @@
 {
-  "name": "AT Pilates — Reservas",
-  "short_name": "AT Pilates",
+  "name": "BInAI Akdēmia - Reservas",
+  "short_name": "BInAI Akdēmia",
   "start_url": "/schedule",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#4b8bc5",
+  "background_color": "#e6fafb",
+  "theme_color": "#012f3d",
   "icons": [
     { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }

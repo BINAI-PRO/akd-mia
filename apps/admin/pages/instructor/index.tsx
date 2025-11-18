@@ -246,7 +246,7 @@ export default function InstructorDashboardPage() {
   return (
     <>
       <Head>
-        <title>App de instructor | AT Pilates Time</title>
+        <title>App de instructor | BInAI Akdēmia</title>
       </Head>
       <AdminLayout
         title="App de instructor"

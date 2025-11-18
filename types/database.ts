@@ -1,6 +1,6 @@
 // types/database.ts
 // -----------------------------------------------------------------------------
-// Supabase types for ATP Pilates Time (subset used by the admin panel).
+// Supabase types for BInAI Akdēmia (subset used by the admin panel).
 // Includes instructors, class types, rooms, apparatus and related pivots.
 // -----------------------------------------------------------------------------
 
@@ -207,16 +207,22 @@ export type Database = {
           id: string
           name: string
           description: string | null
+          intensity: string | null
+          target_audience: string | null
         }
         Insert: {
           id?: string
           name?: string
           description?: string | null
+          intensity?: string | null
+          target_audience?: string | null
         }
         Update: {
           id?: string
           name?: string
           description?: string | null
+          intensity?: string | null
+          target_audience?: string | null
         }
         Relationships: []
       }

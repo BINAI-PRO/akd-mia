@@ -2,16 +2,16 @@
 
 /* === Tokens (Tailwind v4) === */
 @theme {
-  --color-brand-50:  #f2f7f8;
-  --color-brand-100: #dfeaf0;
-  --color-brand-200: #c5d9e4;
-  --color-brand-300: #aac7d7;
-  --color-brand-400: #95bacf;
-  --color-brand-500: #8cb7c7;
-  --color-brand-600: #6f90b9;
-  --color-brand-700: #4f6a8c;
-  --color-brand-800: #364c66;
-  --color-brand-900: #243349;
+  --color-brand-50:  #e6fafb;
+  --color-brand-100: #cff4f6;
+  --color-brand-200: #a0e9ef;
+  --color-brand-300: #72dfe7;
+  --color-brand-400: #44d4e0;
+  --color-brand-500: #1bc3c8;
+  --color-brand-600: #15a5af;
+  --color-brand-700: #0e8795;
+  --color-brand-800: #08697a;
+  --color-brand-900: #012f3d;
 
   --color-blush-100: #f8e6ea;
   --color-blush-200: #f3d6dd;
@@ -45,7 +45,7 @@
 /* Base */
 :root { color-scheme: light; }
 html, body { height: 100%; }
-body { @apply bg-white text-neutral-800 antialiased; }
+body { @apply bg-brand-50 text-neutral-800 antialiased; }
 
 /* Utilidades */
 .no-scrollbar::-webkit-scrollbar { display: none; }

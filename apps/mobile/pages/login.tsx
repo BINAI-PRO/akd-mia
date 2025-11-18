@@ -96,7 +96,7 @@ export default function MobileLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesión | AT Pilates Time</title>
+        <title>Iniciar sesión | BInAI Akdēmia</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -104,7 +104,7 @@ export default function MobileLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
-              alt="AT Pilates Time"
+              alt="BInAI Akdēmia"
               width={200}
               height={70}
               className="h-14 w-auto"

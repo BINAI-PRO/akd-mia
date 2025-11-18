@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useMembershipsEnabled } from "@/components/StudioTimezoneContext";
@@ -86,7 +86,7 @@ export default function MembershipPage() {
     return (
       <>
         <Head>
-          <title>Mi membresA-a | ATP Pilates</title>
+          <title>Mi membresia | BInAI Akdēmia</title>
         </Head>
         <main className="container-mobile space-y-6 pb-24 pt-6">
           <header className="space-y-1">
@@ -104,7 +104,7 @@ export default function MembershipPage() {
     );
   }
 
-  let content: JSX.Element;
+  let content: ReactElement;
 
   if (state.status === "loading") {
     content = (
@@ -264,7 +264,7 @@ export default function MembershipPage() {
   return (
     <>
       <Head>
-        <title>Mi membresía | ATP Pilates</title>
+        <title>Mi membresía | BInAI Akdm-ia</title>
       </Head>
       <main className="container-mobile space-y-6 pb-24 pt-6">
         <header className="space-y-1">

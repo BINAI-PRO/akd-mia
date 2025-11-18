@@ -622,7 +622,7 @@ export default function CoursesPage(
     <AdminLayoutAny title="Horarios" active="courses" featureKey="courses">
       <Head>
         <meta charSet="utf-8" />
-        <title>PilatesTime Admin - Horarios</title>
+        <title>BInAI Akdēmia Admin - Horarios</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">

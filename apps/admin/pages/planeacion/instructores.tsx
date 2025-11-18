@@ -390,7 +390,7 @@ export default function InstructorsPage({
       featureKey="planningInstructors"
     >
       <Head>
-        <title>PilatesTime · Planeación · Instructores</title>
+        <title>BInAI Akdēmia · Planeación · Instructores</title>
       </Head>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-6">

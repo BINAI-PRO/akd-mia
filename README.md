@@ -1,4 +1,4 @@
-This monorepo hosts the **AT Pilates Time** mobile PWA and admin panel. Both apps share Supabase for authentication and data. See `docs/auth-workflow.md` for the end-to-end auth setup guide (linking `auth.users` with `public.clients`, creating admin accounts, etc.). For copy guidelines (acentos, UTF-8 y localización), revisa `docs/language-style.md`.
+This monorepo hosts the **BInAI Akadēmia** mobile PWA and admin panel. Both apps share Supabase for authentication and data. See `docs/auth-workflow.md` for the end-to-end auth setup guide (linking `auth.users` with `public.clients`, creating admin accounts, etc.). For copy guidelines (acentos, UTF-8 y localización), revisa `docs/language-style.md`.
 
 
 ## Autenticacion hibrida (Supabase + Google en Vercel)

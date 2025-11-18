@@ -580,7 +580,7 @@ export default function AdminClassesPage({
   return (
     <AdminLayout title="Sesiones" active="classes" featureKey="classes">
       <Head>
-        <title>PilatesTime Admin - Sesiones</title>
+        <title>BInAI Akdēmia Admin - Sesiones</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -784,7 +784,7 @@ export default function AdminClassesPage({
                   disabled={!canCreateSingle}
                   className={`inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition ${
                     canCreateSingle
-                      ? "bg-brand-600 text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                      ? "bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
                       : "bg-slate-200 text-slate-500 cursor-not-allowed"
                   }`}
                 >

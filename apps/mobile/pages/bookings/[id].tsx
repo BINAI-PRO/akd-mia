@@ -150,7 +150,7 @@ export default function BookingDetail({
     return (
       <>
         <Head>
-          <title>Reserva | AT Pilates Time</title>
+          <title>Reserva | BInAI Akdēmia</title>
         </Head>
         <main className="container-mobile py-6">
           <h1 className="h1 mb-3">Reserva</h1>

@@ -655,7 +655,7 @@ export default function CourseSchedulerPage({
   return (
     <AdminLayout title="Programador de sesiónes" active="courseScheduler" featureKey="courseScheduler">
       <Head>
-        <title>PilatesTime Admin - Programador de sesiónes</title>
+        <title>BInAI Akdēmia Admin - Programador de sesiónes</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">

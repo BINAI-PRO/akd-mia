@@ -282,14 +282,15 @@ export default function StaffManagementPage({
       if (!response.ok || !parsed.staff) {
         throw new Error(parsed.error ?? "No se pudo registrar al staff");
       }
+      const staffMember = parsed.staff;
       setStaff((prev) => {
-        const existingIndex = prev.findIndex((entry) => entry.id === parsed.staff?.id);
+        const existingIndex = prev.findIndex((entry) => entry.id === staffMember.id);
         if (existingIndex >= 0) {
           const copy = [...prev];
-          copy[existingIndex] = { ...copy[existingIndex], ...parsed.staff };
+          copy[existingIndex] = { ...copy[existingIndex], ...staffMember };
           return copy;
         }
-        return [...prev, parsed.staff].sort((a, b) => (a.fullName ?? "").localeCompare(b.fullName ?? ""));
+        return [...prev, staffMember].sort((a, b) => (a.fullName ?? "").localeCompare(b.fullName ?? ""));
       });
       setMessage({
         type: "success",
@@ -312,7 +313,7 @@ export default function StaffManagementPage({
   return (
     <AdminLayout title="Administrar staff" active="planningStaff" featureKey="planningStaff">
       <Head>
-        <title>Equipo | ATP Pilates Admin</title>
+        <title>Equipo | BInAI Akdēmia Admin</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-8">

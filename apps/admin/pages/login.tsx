@@ -189,7 +189,7 @@ export default function AdminLoginPage() {
           <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
             <header className="mb-6 text-center">
               <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-                AT Pilates Time
+                BInAI Akdēmia
               </p>
               <h1 className="mt-2 text-2xl font-bold text-slate-900">
                 Acceso administrativo

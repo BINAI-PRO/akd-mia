@@ -37,9 +37,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
     return (
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <header className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-            AT Pilates Time
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">BInAI Akdēmia</p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">Validando enlace...</h1>
           <p className="mt-1 text-sm text-slate-500">
             Espera un momento mientras confirmamos tu invitación o recuperación.
@@ -104,9 +102,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
   return (
     <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
       <header className="mb-6 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-          AT Pilates Time
-        </p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">BInAI Akdēmia</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">{heading}</h1>
         <p className="mt-1 text-sm text-slate-500">{description}</p>
         {email && (
