@@ -75,6 +75,7 @@ export type CourseRow = {
   defaultRoomName: string | null;
   hasSessions: boolean;
   bookingWindowDays: number | null;
+  cancellationWindowHours: number | null;
 };
 
 export type PageProps = {
@@ -104,6 +105,7 @@ type FormState = {
   classTypeId: string;
   defaultRoomId: string;
   bookingWindowDays: string;
+  cancellationWindowHours: string;
 };
 
 type CourseApiResponse = {
@@ -126,6 +128,8 @@ function formatCurrency(value: number, currencyCode: string) {
 
 function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): CourseRow {
   const bookingWindowRaw = (row as { booking_window_days?: number | null }).booking_window_days;
+  const cancellationWindowRaw = (row as { cancellation_window_hours?: number | null })
+    .cancellation_window_hours;
   return {
     id: row.id,
     title: row.title,
@@ -151,6 +155,10 @@ function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): Cou
       bookingWindowRaw === null || bookingWindowRaw === undefined
         ? null
         : Number(bookingWindowRaw),
+    cancellationWindowHours:
+      cancellationWindowRaw === null || cancellationWindowRaw === undefined
+        ? null
+        : Number(cancellationWindowRaw),
     updatedAt: row.updated_at ?? "",
     createdAt: row.created_at ?? "",
     classTypeId: row.class_type_id ?? null,
@@ -173,6 +181,9 @@ const FALLBACK_COURSE_CATEGORIES = [
   "Promoción",
   "Evento",
 ];
+
+const DEFAULT_LEVEL_VALUE = "Multinivel";
+const DEFAULT_CATEGORY_VALUE = "Grupal";
 
 async function loadEnumOptions(enumName: string, fallback: string[]): Promise<string[]> {
   try {
@@ -199,7 +210,7 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
     supabaseAdmin
       .from("courses")
       .select(
-        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, booking_window_days, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)"
+        "id, title, description, short_description, price, currency, duration_label, level, category, session_count, session_duration_minutes, class_type_id, lead_instructor_id, visibility, status, tags, cover_image_url, booking_window_days, cancellation_window_hours, updated_at, created_at, instructors:lead_instructor_id (id, full_name), class_types:class_type_id (id, name), rooms:default_room_id (id, name)"
       )
       .order("updated_at", { ascending: false }),
     supabaseAdmin
@@ -308,6 +319,7 @@ const DEFAULT_FORM: FormState = {
   classTypeId: "",
   defaultRoomId: "",
   bookingWindowDays: "7",
+  cancellationWindowHours: "",
 };
 
 export default function CoursesPage(
@@ -326,6 +338,8 @@ export default function CoursesPage(
   const [courses, setCourses] = useState<CourseRow[]>(initialCourses);
   const [levels, setLevels] = useState<string[]>(levelOptions);
   const [categories, setCategories] = useState<string[]>(categoryOptions);
+  const pickDefaultOption = (options: string[], preferred: string) =>
+    options.includes(preferred) ? preferred : options[0] ?? "";
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "all" | "published" | "draft" | "archived"
@@ -333,8 +347,8 @@ export default function CoursesPage(
   const [formState, setFormState] = useState<FormState>({
     ...DEFAULT_FORM,
     classTypeId: classTypes[0]?.id ?? "",
-    level: levelOptions[0] ?? "",
-    category: categoryOptions[0] ?? "",
+    level: pickDefaultOption(levelOptions, DEFAULT_LEVEL_VALUE),
+    category: pickDefaultOption(categoryOptions, DEFAULT_CATEGORY_VALUE),
     defaultRoomId: roomOptions[0]?.id ?? "",
   });
   const [saving, setSaving] = useState(false);
@@ -409,8 +423,8 @@ export default function CoursesPage(
     setFormState({
       ...DEFAULT_FORM,
       classTypeId: classTypes[0]?.id ?? "",
-      level: currentLevels[0] ?? "",
-      category: currentCategories[0] ?? "",
+      level: pickDefaultOption(currentLevels, DEFAULT_LEVEL_VALUE),
+      category: pickDefaultOption(currentCategories, DEFAULT_CATEGORY_VALUE),
       defaultRoomId: options?.nextRoomId ?? roomOptions[0]?.id ?? "",
     });
     setFormError(null);
@@ -445,6 +459,10 @@ export default function CoursesPage(
         course.bookingWindowDays === null || course.bookingWindowDays === undefined
           ? ""
           : String(course.bookingWindowDays),
+      cancellationWindowHours:
+        course.cancellationWindowHours === null || course.cancellationWindowHours === undefined
+          ? ""
+          : String(course.cancellationWindowHours),
     });
     setEditingCourseId(course.id);
     setFormMessage(null);
@@ -502,6 +520,16 @@ export default function CoursesPage(
         bookingWindowDays = Math.trunc(parsedWindow);
       }
 
+      const trimmedCancellation = formState.cancellationWindowHours.trim();
+      let cancellationWindowHours: number | null = null;
+      if (trimmedCancellation.length > 0) {
+        const parsedCancellation = Number(trimmedCancellation);
+        if (!Number.isFinite(parsedCancellation) || parsedCancellation < 0) {
+          throw new Error("La ventana de cancelación debe ser un número mayor o igual a cero");
+        }
+        cancellationWindowHours = Math.trunc(parsedCancellation);
+      }
+
       const payload = {
         title: trimmedTitle,
         shortDescription: formState.shortDescription.trim() || null,
@@ -523,6 +551,7 @@ export default function CoursesPage(
         classTypeId,
         defaultRoomId: defaultRoomId || null,
         bookingWindowDays,
+        cancellationWindowHours,
       };
 
       const existingCourse = editingCourseId
@@ -601,8 +630,8 @@ export default function CoursesPage(
           registros.
         </div>
       )}
-      <div className="mx-auto flex max-w-6xl gap-6">
-        <div className="flex-1 space-y-6">
+      <div className="mx-auto flex max-w-6xl w-full gap-6">
+        <div className="flex-1 min-w-0 space-y-6">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex flex-wrap items-center gap-3">
               <div className="relative">
@@ -641,24 +670,24 @@ export default function CoursesPage(
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
+          <div className="overflow-hidden rounded-lg border border-slate-100 bg-white">
+            <table className="w-200% table-fixed md:table-auto divide-y divide-slate-100">
+              <thead className="bg-slate-50 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Curso</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Sesiónes</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Precio</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Estado</th>
-                  <th className="px-4 py-3 text-right whitespace-nowrap">Actualizado</th>
-                  <th className="px-3 py-3 text-right w-14">Acciones</th>
+                  <th className="px-2 py-2 w-[20%] whitespace-wrap">Curso</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Sesiónes</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Precio</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Estado</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Creado</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-center">Accion</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-100">
                 {filteredCourses.length === 0 ? (
                   <tr>
                     <td
                       colSpan={6}
-                      className="px-4 py-10 text-center text-sm text-slate-500"
+                      className="px-4 py-10 text-center text-xs text-slate-500"
                     >
                       No hay horarios que coincidan con los filtros.
                     </td>
@@ -917,44 +946,19 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  {"Etiqueta de duración"}
+                  Ventana de cancelación (horas)
                 </label>
                 <input
-                  value={formState.durationLabel}
-                  onChange={handleFormChange("durationLabel")}
-                  placeholder="Ej. 8 sesiónes (55 min)"
+                  type="number"
+                  min={0}
+                  value={formState.cancellationWindowHours}
+                  onChange={handleFormChange("cancellationWindowHours")}
                   className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+                  placeholder="24"
                 />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Precio
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={formState.price}
-                    onChange={handleFormChange("price")}
-                    placeholder="Ej. 1200"
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700">
-                    Moneda
-                  </label>
-                  <select
-                    value={formState.currency}
-                    onChange={handleFormChange("currency")}
-                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
-                  >
-                    <option value="MXN">MXN</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                  </select>
-                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Tiempo mínimo de antelación para cancelar sin penalización. Deja el campo vacío para usar el valor predeterminado.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -994,16 +998,34 @@ export default function CoursesPage(
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700">
-                  Etiquetas
-                </label>
-                <input
-                  value={formState.tags}
-                  onChange={handleFormChange("tags")}
-                  placeholder="Separadas por coma"
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Precio
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formState.price}
+                    onChange={handleFormChange("price")}
+                    placeholder="Ej. 1200"
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">
+                    Moneda
+                  </label>
+                  <select
+                    value={formState.currency}
+                    onChange={handleFormChange("currency")}
+                    className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
+                  >
+                    <option value="MXN">MXN</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -1011,7 +1033,7 @@ export default function CoursesPage(
                   <label className="block text-sm font-medium text-slate-700">
                     Visibilidad
                   </label>
-                  <div className="mt-1 flex items-center gap-4 text-sm">
+                  <div className="mt-1 flex flex-col gap-2 text-sm">
                     <label className="flex items-center gap-2">
                       <input
                         type="radio"
@@ -1032,7 +1054,7 @@ export default function CoursesPage(
                         onChange={handleFormChange("visibility")}
                         className="h-4 w-4"
                       />
-                      {"Privado (solo invitación)"}
+                      {"Privado"}
                     </label>
                   </div>
                 </div>
@@ -1059,7 +1081,7 @@ export default function CoursesPage(
                 <p className="text-sm text-rose-600">{formError}</p>
               )}
 
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => {

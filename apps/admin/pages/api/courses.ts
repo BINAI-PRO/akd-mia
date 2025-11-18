@@ -29,6 +29,7 @@ type CoursePayload = {
   classTypeId?: string | null;
   defaultRoomId?: string | null;
   bookingWindowDays?: number | string | null;
+  cancellationWindowHours?: number | string | null;
 };
 
 type NormalizedPayload = {
@@ -50,6 +51,7 @@ type NormalizedPayload = {
   classTypeId: string;
   defaultRoomId: string | null;
   bookingWindowDays: number | null;
+  cancellationWindowHours: number | null;
 };
 
 function normalizePayload(input: CoursePayload): NormalizedPayload {
@@ -116,6 +118,8 @@ function normalizePayload(input: CoursePayload): NormalizedPayload {
     classTypeId: input.classTypeId.trim(),
     defaultRoomId: input.defaultRoomId?.trim() || null,
     bookingWindowDays: parsedWindow === null ? null : Math.trunc(parsedWindow),
+    cancellationWindowHours:
+      parsedCancellation === null ? null : Math.trunc(parsedCancellation),
   };
 }
 
@@ -140,6 +144,7 @@ function buildDatabasePayload(normalized: NormalizedPayload) {
     class_type_id: normalized.classTypeId,
     default_room_id: normalized.defaultRoomId,
     booking_window_days: normalized.bookingWindowDays,
+    cancellation_window_hours: normalized.cancellationWindowHours,
   };
 }
 

@@ -467,6 +467,7 @@ export type Database = {
           category: string
           session_count: number
           session_duration_minutes: number
+          booking_window_days: number | null
           lead_instructor_id: string | null
           class_type_id: string | null
           default_room_id: string | null
@@ -490,6 +491,7 @@ export type Database = {
           category: string
           session_count?: number
           session_duration_minutes?: number
+          booking_window_days?: number | null
           lead_instructor_id?: string | null
           class_type_id?: string | null
           default_room_id?: string | null
@@ -513,6 +515,7 @@ export type Database = {
           category?: string
           session_count?: number
           session_duration_minutes?: number
+          booking_window_days?: number | null
           lead_instructor_id?: string | null
           class_type_id?: string | null
           default_room_id?: string | null
