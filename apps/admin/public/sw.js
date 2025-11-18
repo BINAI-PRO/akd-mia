@@ -1,20 +1,73 @@
-const CACHE = "at-pilates-v1";
-const ASSETS = ["/", "/schedule", "/logo.png", "/manifest.json"];
+const CACHE_NAME = "at-pilates-v3";
+const STATIC_ASSETS = ["/manifest.json", "/logo-icon-192.png", "/logo-icon-512.png", "/logo-icon-1024.png"];
+const PROTECTED_PAGES = ["/", "/schedule"];
 
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(()=> self.skipWaiting()));
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
+  );
 });
-self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
-self.addEventListener("fetch", e => {
-  const url = new URL(e.request.url);
-  if (url.pathname.startsWith("/api/qr/") || ASSETS.includes(url.pathname)) {
-    e.respondWith(caches.open(CACHE).then(async cache => {
-      const cached = await cache.match(e.request);
-      if (cached) return cached;
-      const res = await fetch(e.request);
-      cache.put(e.request, res.clone());
-      return res;
-    }));
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((names) =>
+        Promise.all(
+          names
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (PROTECTED_PAGES.includes(url.pathname)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) {
+            return cached;
+          }
+          return Response.error();
+        })
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/qr/") || STATIC_ASSETS.includes(url.pathname)) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(event.request);
+        if (cached) {
+          return cached;
+        }
+        const response = await fetch(event.request);
+        cache.put(event.request, response.clone());
+        return response;
+      })
+    );
   }
 });
 
