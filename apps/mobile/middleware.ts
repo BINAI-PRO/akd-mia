@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 import type { Database } from "@/types/database";
-import { isRefreshTokenMissingError } from "@/lib/auth-errors";
+import { isRefreshTokenMissingError } from "./lib/edge-auth-errors";
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next({ request: { headers: req.headers } });
@@ -50,4 +50,5 @@ export const config = {
     "/((?!_next/static|_next/image|api/|favicon.ico|sw.js|manifest.json|robots.txt|logo.png|logo-icon-192.png|logo-icon-512.png|logo-icon-1024.png|logo.webp).*)",
   ],
 };
+
 
