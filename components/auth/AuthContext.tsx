@@ -1,4 +1,4 @@
-import {
+﻿import {
   createContext,
   useCallback,
   useContext,
@@ -164,7 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       if (!response.ok) {
-        throw new Error("Failed to load profile");
+        console.error("[AuthContext] /api/me failed", response.status);
+        return;
       }
       const payload = (await response.json().catch(() => null)) as
         | {
@@ -331,3 +332,8 @@ export function useAuth() {
   }
   return ctx;
 }
+
+
+
+
+
