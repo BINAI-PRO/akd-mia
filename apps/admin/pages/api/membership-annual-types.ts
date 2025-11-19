@@ -58,7 +58,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description: description?.trim() || null,
         billing_period: "ANNUAL",
         access_type: "OPEN_CLASS",
-        price: numericPrice.toFixed(2),
+        price: Number(numericPrice.toFixed(2)),
         currency: (currency ?? "MXN").toUpperCase(),
         class_quota: null,
         trial_days: null,
@@ -126,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!Number.isFinite(numericPrice) || numericPrice < 0) {
           return res.status(400).json({ error: "El precio debe ser un número válido" });
         }
-        updatePayload.price = numericPrice.toFixed(2);
+        updatePayload.price = Number(numericPrice.toFixed(2));
       }
       if (currency !== undefined) updatePayload.currency = currency.toUpperCase();
       if (privileges !== undefined) updatePayload.privileges = privileges?.trim() || null;

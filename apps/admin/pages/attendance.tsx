@@ -417,7 +417,7 @@ export default function AttendanceScannerPage() {
                   muted
                 />
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <div className="h-40 w-40 rounded-lg border-2 border-emerald-400/80 outline outline-2 outline-offset-4 outline-emerald-400/40" />
+                  <div className="h-40 w-40 rounded-lg border-2 border-emerald-400/80 outline outline-offset-4 outline-emerald-400/40" />
                 </div>
               </div>
             )}
