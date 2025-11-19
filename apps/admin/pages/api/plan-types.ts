@@ -222,6 +222,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
 
-  res.setHeader("Allow", "POST, PATCH");
+  if (req.method === "DELETE") {
+    try {
+      const { id } = req.body as { id?: string };
+
+      if (!id) {
+        return res.status(400).json({ error: "El identificador del plan es obligatorio" });
+      }
+
+      const { count, error: countError } = await supabaseAdmin
+        .from("plan_purchases")
+        .select("id", { count: "exact", head: true })
+        .eq("plan_type_id", id);
+
+      if (countError) {
+        console.error("/api/plan-types", countError);
+        return res.status(500).json({ error: countError.message });
+      }
+
+      if ((count ?? 0) > 0) {
+        return res
+          .status(400)
+          .json({ error: "No puedes eliminar un plan con compras registradas o activas." });
+      }
+
+      const { error } = await supabaseAdmin.from("plan_types").delete().eq("id", id);
+      if (error) {
+        console.error("/api/plan-types", error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      return res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error("/api/plan-types", error);
+      const message = error instanceof Error ? error.message : "Error inesperado";
+      return res.status(500).json({ error: message });
+    }
+  }
+
+  res.setHeader("Allow", "POST, PATCH, DELETE");
   return res.status(405).json({ error: "Metodo no permitido" });
 }

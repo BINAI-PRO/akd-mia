@@ -124,7 +124,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
     return values;
 
 
-  } catch (error) {
+  } catch {
 
 
     return [...fallback];
@@ -441,27 +441,27 @@ export default function AdminMembershipsPage(
 
   const [plans, setPlans] = useState<PlanListRow[]>(initialPlanes);
 
-
   const [statusFilter, setStatusFilter] = useState<"all" | PlanEstatus>("all");
-
 
   const [message, setMessage] = useState<string | null>(null);
 
-
   const [error, setError] = useState<string | null>(null);
-
 
   const [saving, setSaving] = useState(false);
 
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const featureKey: AdminFeatureKey = "membershipPlans";
 
-
   const pageAccess = useAdminAccess(featureKey);
-
 
   const readOnly = !pageAccess.canEdit;
 
+  const canDelete = pageAccess.canDelete;
+
+  const canManageExisting = pageAccess.level === "FULL";
 
   const membershipsEnabled = useMembershipsEnabled();
 
@@ -644,17 +644,10 @@ export default function AdminMembershipsPage(
 
 
   function resetForm() {
-
-
     setFormState(DEFAULT_FORM);
-
-
+    setEditingId(null);
     setMessage(null);
-
-
     setError(null);
-
-
   }
 
 
@@ -662,237 +655,152 @@ export default function AdminMembershipsPage(
 
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-
-
     e.preventDefault();
-
-
     if (readOnly) {
-
-
       setError("Tu rol no tiene permisos para crear o editar planes.");
-
-
       return;
-
-
     }
-
-
     setSaving(true);
-
-
     setMessage(null);
-
-
     setError(null);
 
-
-
-
-
     try {
-
-
       if (!formState.name.trim()) throw new Error("El nombre es obligatorio");
 
-
-
-
-
       const numericPrice = formState.price ? Number(formState.price) : 0;
-
-
       if (!Number.isFinite(numericPrice) || numericPrice < 0)
-
-
-        throw new Error("El precio debe ser un número positivo");
-
-
-
-
+        throw new Error("El precio debe ser un numero positivo");
 
       let classCountValue: number | null = null;
-
-
       if (formState.classCount.trim()) {
-
-
         const parsed = Number(formState.classCount);
-
-
         if (!Number.isInteger(parsed) || parsed <= 0) {
-
-
-          throw new Error("El número de sesiónes debe ser un entero positivo o deja el campo vacío para plan ilimitado");
-
-
+          throw new Error("El numero de sesiones debe ser un entero positivo o deja el campo vacio para plan ilimitado");
         }
-
-
         classCountValue = parsed;
-
-
       }
-
-
-
-
 
       let validityDaysValue: number | null = null;
-
-
       if (formState.validityDays.trim()) {
-
-
         const candidate = Number(formState.validityDays);
-
-
         if (!Number.isInteger(candidate) || candidate <= 0) {
-
-
           throw new Error("La vigencia debe ser un entero positivo");
-
-
         }
-
-
         validityDaysValue = candidate;
-
-
       }
-
-
-
-
 
       const trimmedCategory = formState.category.trim();
-
-
       if (!trimmedCategory) {
-
-
-        throw new Error("Debes seleccionar una categoría");
-
-
+        throw new Error("Debes seleccionar una categoria");
       }
-
-
-
-
 
       const payload = {
-
-
         name: formState.name.trim(),
-
-
         description: formState.description.trim() || null,
-
-
         price: numericPrice,
-
-
         currency: formState.currency.toUpperCase(),
-
-
         classCount: classCountValue,
-
-
         validityDays: validityDaysValue,
-
-
         privileges: formState.privileges.trim() || null,
-
-
         isActive: formState.isActive,
-
-
         category: trimmedCategory,
-
-
         appOnly: formState.appOnly,
-
-
         memReq: formState.requiresMembership,
-
-
       };
 
-
-
-
+      const method = editingId ? "PATCH" : "POST";
+      const bodyPayload = editingId ? { id: editingId, ...payload } : payload;
 
       const res = await fetch("/api/plan-types", {
-
-
-        method: "POST",
-
-
+        method,
         headers: { "Content-Type": "application/json" },
-
-
-        body: JSON.stringify(payload),
-
-
+        body: JSON.stringify(bodyPayload),
       });
-
-
       if (!res.ok) {
-
-
         const body = await res.json().catch(() => ({}));
-
-
-        throw new Error(body.error || "No se pudo crear el plan");
-
-
+        throw new Error(body.error || (editingId ? "No se pudo actualizar el plan" : "No se pudo crear el plan"));
       }
-
-
       const body = await res.json();
-
-
       const inserted = body.planType ?? body.data ?? body;
-
-
       const newRow = mapPlan(inserted, 0);
 
-
-      setPlans((prev) => [newRow, ...prev]);
-
-
-      setMessage("Plan creado correctamente");
-
-
-      resetForm();
-
-
+      if (editingId) {
+        setPlans((prev) =>
+          prev.map((p) => (p.id === editingId ? { ...newRow, activePurchases: p.activePurchases } : p))
+        );
+        resetForm();
+        setMessage("Plan actualizado correctamente");
+      } else {
+        setPlans((prev) => [newRow, ...prev]);
+        resetForm();
+        setMessage("Plan creado correctamente");
+      }
     } catch (err: unknown) {
-
-
-      const message = err instanceof Error ? err.message : "No se pudo crear el plan";
-
-
+      const message = err instanceof Error ? err.message : editingId ? "No se pudo actualizar el plan" : "No se pudo crear el plan";
       setError(message);
-
-
     } finally {
-
-
       setSaving(false);
-
-
     }
-
-
   }
 
+  function beginEdit(plan: PlanListRow) {
+    setError(null);
+    setMessage(null);
+    setEditingId(plan.id);
+    setFormState({
+      name: plan.name,
+      description: plan.description ?? "",
+      price: plan.price?.toString() ?? "",
+      currency: plan.currency ?? "MXN",
+      classCount: plan.classCount?.toString() ?? "",
+      validityDays: plan.validityDays?.toString() ?? "",
+      privileges: plan.privileges ?? "",
+      isActive: plan.status === "Activo",
+      category: plan.category,
+      appOnly: plan.appOnly,
+      requiresMembership: plan.requiresMembership,
+    });
+  }
 
+  async function handleDelete(plan: PlanListRow) {
+    if (!canDelete) {
+      setError("Tu rol no puede eliminar planes.");
+      return;
+    }
+    if (plan.activePurchases > 0) {
+      setError("No puedes eliminar un plan con compras vigentes.");
+      return;
+    }
+    const confirmDelete = window.confirm(`Eliminar el plan "${plan.name}"? Esta accion no se puede deshacer.`);
+    if (!confirmDelete) return;
 
+    setRowBusy(plan.id);
+    setError(null);
+    setMessage(null);
 
-
-  async function togglePlanEstatus(plan: PlanListRow) {
+    try {
+      const res = await fetch("/api/plan-types", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: plan.id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "No se pudo eliminar el plan");
+      }
+      setPlans((prev) => prev.filter((p) => p.id !== plan.id));
+      if (editingId === plan.id) {
+        resetForm();
+      }
+      setMessage("Plan eliminado");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "No se pudo eliminar el plan";
+      setError(message);
+    } finally {
+      setRowBusy(null);
+    }
+  }
+async function togglePlanEstatus(plan: PlanListRow) {
 
 
     if (readOnly) {
@@ -1185,20 +1093,19 @@ export default function AdminMembershipsPage(
 
                   <th className="px-6 py-3">Plan</th>
 
-
                   <th className="px-6 py-3">Precio</th>
-
 
                   <th className="px-6 py-3">Accesos</th>
 
-
                   <th className="px-6 py-3">Miembros</th>
-
 
                   <th className="px-6 py-3">Estado</th>
 
+                  <th className="px-6 py-3 text-right">Acciones</th>
 
                   <th className="px-6 py-3 text-right">Actualizado</th>
+
+
 
 
                 </tr>
@@ -1216,7 +1123,7 @@ export default function AdminMembershipsPage(
                   <tr>
 
 
-                    <td colSpan={6} className="px-6 py-6 text-center text-sm text-slate-500">
+                    <td colSpan={7} className="px-6 py-6 text-center text-sm text-slate-500">
 
 
                       No hay planes que coincidan con los filtros.
@@ -1369,10 +1276,10 @@ export default function AdminMembershipsPage(
                                 onChange={() => togglePlanEstatus(plan)}
 
 
-                                disabled={readOnly}
+                                disabled={readOnly || rowBusy === plan.id}
 
 
-                                aria-disabled={readOnly}
+                                aria-disabled={readOnly || rowBusy === plan.id}
 
 
                               />
@@ -1393,6 +1300,28 @@ export default function AdminMembershipsPage(
                         </td>
 
 
+                        <td className="px-6 py-4">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 ${!canManageExisting || rowBusy === plan.id ? "opacity-50 cursor-not-allowed" : ""}`}
+                              onClick={() => beginEdit(plan)}
+                              disabled={!canManageExisting || rowBusy === plan.id}
+                              title="Editar plan"
+                            >
+                              <span className="material-icons-outlined text-base">edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 bg-white text-rose-600 transition hover:bg-rose-50 ${!canDelete || rowBusy === plan.id || plan.activePurchases > 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                              onClick={() => handleDelete(plan)}
+                              disabled={!canDelete || rowBusy === plan.id || plan.activePurchases > 0}
+                              title={plan.activePurchases > 0 ? "No se puede eliminar con compras activas" : "Eliminar plan"}
+                            >
+                              <span className="material-icons-outlined text-base">delete</span>
+                            </button>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 text-right text-xs text-slate-500">
 
 
@@ -1928,6 +1857,8 @@ export default function AdminMembershipsPage(
 
 
 }
+
+
 
 
 
