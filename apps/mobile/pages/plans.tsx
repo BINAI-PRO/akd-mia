@@ -1,4 +1,4 @@
-锘縤mport { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
 import Image from "next/image";
@@ -213,7 +213,7 @@ export default function PlansPage() {
   return (
     <>
       <Head>
-        <title>Tarifas y Bonos | BInAI Akd膿mia</title>
+        <title>Tarifas y Bonos | BInAI Akdemia</title>
       </Head>
 
       <section className="mx-auto max-w-md space-y-6">
@@ -300,19 +300,19 @@ export default function PlansPage() {
                     <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-600 font-medium">Categor铆a</dt>
-                    <dd>{activePlan.category ?? "Sin categor铆a"}</dd>
+                    <dt className="text-brand-600 font-medium">Categor韆</dt>
+                    <dd>{activePlan.category ?? "Sin categor韆"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu tarifa actual, contacta a recepci贸n para recibir apoyo.
+                  Si necesitas ajustar tu tarifa actual, contacta a recepci髇 para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
                 <h2 className="text-base font-semibold text-brand-800">Aun no tienes una tarifa activa</h2>
                 <p className="mt-1 text-sm text-neutral-600">
-                  Elige uno de los paquetes flexibles para reservar sesi贸nes y asegurar tu lugar en clase.
+                  Elige uno de los paquetes flexibles para reservar sesi髇es y asegurar tu lugar en clase.
                 </p>
               </section>
             )}
@@ -333,7 +333,7 @@ export default function PlansPage() {
 
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-5">
                     <div>
-                      <dt className="font-medium text-neutral-500">Sesi贸nes</dt>
+                      <dt className="font-medium text-neutral-500">Sesi髇es</dt>
                       <dd>{plan.isUnlimited ? "Ilimitado" : (plan.classCount ?? 0)}</dd>
                     </div>
                     <div>
@@ -345,16 +345,16 @@ export default function PlansPage() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Categor铆a</dt>
-                      <dd>{plan.category ?? "Sin categor铆a"}</dd>
+                      <dt className="font-medium text-neutral-500">Categor韆</dt>
+                      <dd>{plan.category ?? "Sin categor韆"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
-                      <dd>{plan.appOnly ? "Solo app" : "App y recepci贸n"}</dd>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepci髇"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Requisito</dt>
-                      <dd>{plan.requiresMembership ? "Restricci贸n activa" : "Sin restricciones"}</dd>
+                      <dd>{plan.requiresMembership ? "Restricci髇 activa" : "Sin restricciones"}</dd>
                     </div>
                   </dl>
 
@@ -383,8 +383,8 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Algunas tarifas est谩n restringidas temporalmente."
-                    : "No hay tarifas disponibles en este momento. Consulta m谩s tarde o contacta a recepci贸n."}
+                    ? "Algunas tarifas est醤 restringidas temporalmente."
+                    : "No hay tarifas disponibles en este momento. Consulta m醩 tarde o contacta a recepci髇."}
                 </p>
               )}
 
@@ -397,7 +397,7 @@ export default function PlansPage() {
 
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
               <p>
-                Los pagos en efectivo o transferencia deben confirmarse con recepci贸n para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
+                Los pagos en efectivo o transferencia deben confirmarse con recepci髇 para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
               </p>
             </section>
           </div>
