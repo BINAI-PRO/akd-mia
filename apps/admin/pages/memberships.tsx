@@ -413,7 +413,7 @@ export default function AdminMembershipsPage(
                   filteredPlanes.map((plan) => {
                     const detailTokens = [
                       plan.classCount === null ? "Ilimitado" : `${plan.classCount} sesiÃ³nes`,
-                      plan.validityDays ? `${plan.validityDays} dias de vigencia` : null,
+                      plan.validityDays ? `${plan.validityDays} días de vigencia` : null,
                       `CategorÃ­a: ${plan.category}`,
                       plan.appOnly ? "Solo app" : null,
                       plan.requiresMembership ? "Requiere membresÃ­a" : "Compra sin membresÃ­a",
@@ -586,7 +586,7 @@ export default function AdminMembershipsPage(
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-slate-600">Vigencia (dias)</label>
+                <label className="block text-sm font-medium text-slate-600">Vigencia (días)</label>
                 <input
                   value={formState.validityDays}
                   onChange={handleChange("validityDays")}
@@ -643,6 +643,8 @@ export default function AdminMembershipsPage(
     </AdminLayoutAny>
   );
 }
+
+
 
 
 
