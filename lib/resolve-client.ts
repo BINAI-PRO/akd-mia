@@ -113,7 +113,8 @@ export async function ensureClientForAuthUser({
   if (existing) return existing;
 
   const trimmedEmail = email?.trim() ?? null;
-  const trimmedPhone = phone?.toString().trim() ?? null;
+  const rawPhone = phone?.toString().trim() ?? null;
+  const trimmedPhone = rawPhone && rawPhone.length > 0 ? rawPhone : null;
   const trimmedFullName = fullName?.trim() ?? null;
 
   if (trimmedEmail) {
@@ -164,7 +165,7 @@ export async function ensureClientForAuthUser({
   const newClient: Partial<Tables<"clients">> = {
     auth_user_id: authUserId,
     email: trimmedEmail ?? null,
-    phone: trimmedPhone ?? null,
+    phone: trimmedPhone ?? "",
     full_name:
       trimmedFullName ??
       (trimmedEmail ? trimmedEmail.split("@")[0] : null) ??

@@ -1,4 +1,5 @@
 ﻿import type { NextApiRequest, NextApiResponse } from "next";
+import type { PostgrestError } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
@@ -41,6 +42,22 @@ type MeResponse = {
     permissions: string[];
   };
 };
+
+function isClientLinkConflict(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof ClientLinkConflictError) return true;
+  if (typeof error === "object" && "name" in error) {
+    return (error as { name?: string }).name === "ClientLinkConflictError";
+  }
+  return false;
+}
+
+function isMultipleRowsError(error: PostgrestError | null): boolean {
+  if (!error) return false;
+  if (error.code === "PGRST116") return true;
+  const message = (error.message ?? "").toLowerCase();
+  return message.includes("multiple") && message.includes("rows");
+}
 
 function extractMetadata(entry: {
   user_metadata?: Record<string, unknown>;
@@ -203,17 +220,28 @@ export default async function handler(
     .update({ last_login_at: nowIso, updated_at: nowIso })
     .eq("id", staffRecord.id);
 
-  const { data: client, error } = await supabaseAdmin
+  const {
+    data: client,
+    error: clientError,
+  } = await supabaseAdmin
     .from("clients")
     .select("id, full_name, email, phone, client_profiles ( avatar_url, status )")
     .eq("auth_user_id", session.user.id)
     .maybeSingle();
 
-  if (error) {
-    return res.status(500).json({ error: error.message });
-  }
+  let profile: ClientRow | null = null;
 
-  let profile = client as ClientRow | null;
+  if (clientError) {
+    if (isMultipleRowsError(clientError)) {
+      console.warn(
+        `[api/admin/me] Multiple client rows linked to auth_user_id=${session.user.id}. Continuing without client association.`
+      );
+    } else {
+      return res.status(500).json({ error: clientError.message });
+    }
+  } else {
+    profile = client as ClientRow | null;
+  }
 
   if (!profile) {
     try {
@@ -225,10 +253,7 @@ export default async function handler(
       });
 
       if (ensured?.id) {
-        const {
-          data: hydrated,
-          error: hydrateError,
-        } = await supabaseAdmin
+        const { data: hydrated, error: hydrateError } = await supabaseAdmin
           .from("clients")
           .select(
             "id, full_name, email, phone, client_profiles ( avatar_url, status )"
@@ -237,13 +262,22 @@ export default async function handler(
           .maybeSingle();
 
         if (hydrateError) {
-          return res.status(500).json({ error: hydrateError.message });
+          if (isMultipleRowsError(hydrateError)) {
+            console.warn(
+              `[api/admin/me] Multiple client rows detected when hydrating client_id=${ensured.id}; continuing without hydration.`
+            );
+          } else {
+            return res.status(500).json({ error: hydrateError.message });
+          }
+        } else {
+          profile = hydrated as ClientRow | null;
         }
-
-        profile = hydrated as ClientRow | null;
       }
     } catch (linkError: unknown) {
-      if (linkError instanceof ClientLinkConflictError) {
+      if (isClientLinkConflict(linkError)) {
+        console.warn(
+          `[api/admin/me] Client link conflict for auth_user_id=${session.user.id}.`
+        );
         // Si hay conflicto con un cliente previo, seguimos sin vincularlo para no bloquear el acceso.
         profile = null;
       } else {
