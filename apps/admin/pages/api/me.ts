@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+﻿import type { NextApiRequest, NextApiResponse } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
@@ -244,13 +244,13 @@ export default async function handler(
       }
     } catch (linkError: unknown) {
       if (linkError instanceof ClientLinkConflictError) {
-        return res.status(409).json({ error: linkError.message });
+        // Si hay conflicto con un cliente previo, seguimos sin vincularlo para no bloquear el acceso.
+        profile = null;
+      } else {
+        const message =
+          linkError instanceof Error ? linkError.message : "Failed to resolve client profile";
+        return res.status(500).json({ error: message });
       }
-      const message =
-        linkError instanceof Error
-          ? linkError.message
-          : "Failed to resolve client profile";
-      return res.status(500).json({ error: message });
     }
   }
 
@@ -274,3 +274,4 @@ export default async function handler(
     },
   });
 }
+
