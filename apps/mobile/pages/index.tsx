@@ -199,3 +199,4 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
     </div>
   );
 }
+
