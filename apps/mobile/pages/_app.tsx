@@ -98,7 +98,7 @@ export default function App({ Component, pageProps }: CustomAppProps) {
             <ProtectedRoute requireProfileCompletion>
               <>
                 <Header />
-                <main className="mx-auto max-w-md px-4 pb-28">
+                <main className="container-mobile pb-28">
                   <Component key={`tz-${timezone}`} {...pageProps} />
                 </main>
                 <TabBar />

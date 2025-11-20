@@ -173,7 +173,7 @@ export default function SchedulePage() {
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
       setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, _pending: false } : s)));
-      alert(msg?.error || "No se pudo completar la acci�n.");
+      alert(msg?.error || "No se pudo completar la acción.");
       return;
     }
 
@@ -192,7 +192,7 @@ export default function SchedulePage() {
 
   const handleJoinWaitlist = async (id: string) => {
     if (!profile?.clientId) {
-      alert("Inicia sesi�n para unirte a la lista de espera.");
+      alert("Inicia sesión para unirte a la lista de espera.");
       return;
     }
 
@@ -289,16 +289,16 @@ export default function SchedulePage() {
 
   return (
     <>
-      <section className="pt-6 space-y-3">
+      <section className="container-mobile pt-6 space-y-3">
       <h2 className="text-2xl font-bold">Reservas</h2>
 
       {isRebooking && (
         <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-          Selecciona una nueva sesi�n para completar la reprogramaci�n de tu reserva.
+          Selecciona una nueva sesión para completar la reprogramación de tu reserva.
         </p>
       )}
 
-      {/* Selector de MES A�O a la izquierda y HOY a la derecha (misma altura h-10) */}
+      {/* Selector de MES AÑO a la izquierda y HOY a la derecha (misma altura h-10) */}
       <div className="flex items-center justify-between">
         <MonthPicker anchor={anchor} onMonthChange={handleMonthChange} />
         <button onClick={handleToday} className="h-10 rounded-xl border px-3 text-sm font-semibold">

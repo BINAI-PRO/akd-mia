@@ -29,17 +29,17 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-brand-800 bg-brand-900 text-brand-50 shadow">
-      <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3">
+      <div className="mx-auto flex w-full max-w-md items-center gap-3 px-4 py-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
-          alt="Akdēmia by BInAI"
+          alt="Akdemia by BInAI"
           className="h-12 w-auto shrink-0"
           width={160}
           height={56}
         />
         <div className="min-w-0">
-          <h1 className="text-base font-semibold leading-none text-white">Akdēmia by BInAI</h1>
+          <h1 className="text-base font-semibold leading-none text-white">Akdemia by BInAI</h1>
           <p className="text-xs leading-none text-brand-200">Pro Fitness</p>
         </div>
 

@@ -62,7 +62,7 @@ export default function TabBar() {
   const router = useRouter();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-neutral-200">
-      <div className="mx-auto max-w-md px-2 py-2 grid grid-cols-4">
+      <div className="mx-auto w-full max-w-md px-2 py-2 grid grid-cols-4">
         {items.map(it => {
           const active = router.pathname === it.href;
           return (

@@ -131,7 +131,7 @@ export default function PlansPage() {
       setCheckoutError(null);
       setStatusBanner({
         type: "success",
-        message: "Pago completado. Actualizaremás tus bonos en cuanto confirmemás el movimiento.",
+        message: "Pago completado. Actualizaremos tus bonos en cuanto confirmemos el movimiento.",
       });
     } else if (statusValue === "cancelled") {
       setStatusBanner({
@@ -216,7 +216,7 @@ export default function PlansPage() {
         <title>Tarifas y Bonos | Akdemia by BInAI</title>
       </Head>
 
-      <section className="mx-auto max-w-md space-y-6">
+      <section className="container-mobile space-y-6">
         <header className="pt-6 text-center">
           <h1 className="text-2xl font-semibold text-brand-800">Tarifas y bonos</h1>
           <p className="mt-1 text-sm text-neutral-600">
@@ -300,17 +300,17 @@ export default function PlansPage() {
                     <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-600 font-medium">Categoría</dt>
-                    <dd>{activePlan.category ?? "Sin Categoría"}</dd>
+                    <dt className="text-brand-600 font-medium">Categoria</dt>
+                    <dd>{activePlan.category ?? "Sin categoria"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu tarifa actual, contacta a recepción para recibir apoyo.
+                  Si necesitas ajustar tu tarifa actual, contacta a recepcion para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Aún no tienes una tarifa activa</h2>
+                <h2 className="text-base font-semibold text-brand-800">Aun no tienes una tarifa activa</h2>
                 <p className="mt-1 text-sm text-neutral-600">
                   Elige uno de los paquetes flexibles para reservar sesiones y asegurar tu lugar en clase.
                 </p>
@@ -333,35 +333,33 @@ export default function PlansPage() {
 
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-5">
                     <div>
-                      <dt className="font-medium text-neutral-500">sesiones</dt>
-                      <dd>{plan.isUnlimited ? "Ilimitado" : (plan.classCount ?? 0)}</dd>
+                      <dt className="font-medium text-neutral-500">Sesiones</dt>
+                      <dd>{plan.isUnlimited ? "Ilimitado" : plan.classCount ?? 0}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Vigencia</dt>
                       <dd>
                         {plan.validityDays && plan.validityDays > 0
                           ? `${plan.validityDays} dias`
-                          : "Según condiciones del plan"}
+                          : "Segun condiciones del plan"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Categoría</dt>
-                      <dd>{plan.category ?? "Sin Categoría"}</dd>
+                      <dt className="font-medium text-neutral-500">Categoria</dt>
+                      <dd>{plan.category ?? "Sin categoria"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
-                      <dd>{plan.appOnly ? "Solo app" : "App y recepción"}</dd>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepcion"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Requisito</dt>
-                      <dd>{plan.requiresMembership ? "Restricción activa" : "Sin Restricciónes"}</dd>
+                      <dd>{plan.requiresMembership ? "Restriccion activa" : "Sin restricciones"}</dd>
                     </div>
                   </dl>
 
                   {plan.privileges ? (
-                    <p className="mt-2 text-xs text-neutral-500 whitespace-pre-line">
-                      {plan.privileges}
-                    </p>
+                    <p className="mt-2 whitespace-pre-line text-xs text-neutral-500">{plan.privileges}</p>
                   ) : null}
 
                   <div className="mt-4 flex flex-col gap-2 text-sm">
@@ -383,8 +381,8 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Algunas tarifas están restringidas temporalmente."
-                    : "No hay tarifas disponibles en este momento. Consulta más tarde o contacta a recepción."}
+                    ? "Algunas tarifas estan restringidas temporalmente."
+                    : "No hay tarifas disponibles en este momento. Consulta mas tarde o contacta a recepcion."}
                 </p>
               )}
 
@@ -397,13 +395,13 @@ export default function PlansPage() {
 
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
               <p>
-                Los pagos en efectivo o transferencia deben confirmarse con recepción para activar tu plan. Si realizas la compra en la app, te enviaremás un correo con el comprobante una vez Stripe confirme el pago.
+                Los pagos en efectivo o transferencia deben confirmarse con recepcion para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
               </p>
             </section>
           </div>
         )}
       </section>
-      <div className="mx-auto max-w-md pb-8">
+      <div className="container-mobile pb-8">
         <MobileFooterAttribution />
       </div>
     </>
@@ -425,16 +423,3 @@ function MobileFooterAttribution() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-

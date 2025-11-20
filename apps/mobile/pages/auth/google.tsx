@@ -35,7 +35,11 @@ export default function GoogleAuthLinkPage() {
         });
 
         if (linkError) {
-          throw linkError;
+          const friendly =
+            typeof linkError.message === "string" && linkError.message.toLowerCase().includes("rate limit")
+              ? "Demasiadas solicitudes. Espera unos segundos o cierra otras sesiones abiertas y vuelve a intentar."
+              : linkError.message;
+          throw new Error(friendly);
         }
 
         if (cancelled) return;

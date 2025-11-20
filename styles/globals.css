@@ -39,7 +39,7 @@
   /* No @apply badge aquí: escribe utilidades completas */
   .badge-green { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700; }
   .badge-red { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700; }
-  .container-mobile { @apply mx-auto max-w-md px-4; }
+  .container-mobile { @apply mx-auto max-w-md px-2; }
 }
 
 /* Base */
