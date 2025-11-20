@@ -1,6 +1,6 @@
-{
-  "name": "BInAI Akdēmia - Reservas",
-  "short_name": "BInAI Akdēmia",
+﻿{
+  "name": "Akdēmia by BInAI
+  "short_name": "Akdēmia by BInAI
   "start_url": "/schedule",
   "display": "standalone",
   "background_color": "#e6fafb",
@@ -11,3 +11,4 @@
     { "src": "/logo-icon-1024.png", "sizes": "1024x1024", "type": "image/png" }
   ]
 }
+

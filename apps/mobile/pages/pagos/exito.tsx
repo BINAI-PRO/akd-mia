@@ -22,7 +22,7 @@ export default function PaymentSuccessPage() {
   return (
     <>
       <Head>
-        <title>Pago confirmado | ATP Tu Fit App</title>
+        <title>Pago confirmado | Pro Fitness</title>
       </Head>
       <section className="py-10">
         <h1 className="text-xl font-semibold text-neutral-900">Pago registrado</h1>

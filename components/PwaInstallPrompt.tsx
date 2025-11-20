@@ -19,23 +19,19 @@ const isStandaloneMode = () => {
   if (typeof window === "undefined") return false;
   return (
     window.matchMedia?.("(display-mode: standalone)")?.matches === true ||
-    ((window.navigator as Navigator & { standalone?: boolean }).standalone ??
-      false)
+    ((window.navigator as Navigator & { standalone?: boolean }).standalone ?? false)
   );
 };
 
 const shouldSkipPrompt = () => {
   if (typeof window === "undefined") return true;
-  const installed =
-    window.localStorage?.getItem(INSTALL_STATE_KEY) === "installed";
-  const dismissed =
-    window.sessionStorage?.getItem(DISMISS_SESSION_KEY) === "1";
+  const installed = window.localStorage?.getItem(INSTALL_STATE_KEY) === "installed";
+  const dismissed = window.sessionStorage?.getItem(DISMISS_SESSION_KEY) === "1";
   return installed || dismissed || isStandaloneMode();
 };
 
 const PwaInstallPrompt = () => {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [variant, setVariant] = useState<PromptVariant>("hidden");
   const [isIos, setIsIos] = useState(false);
 
@@ -70,10 +66,7 @@ const PwaInstallPrompt = () => {
     }
 
     return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, [isIos]);
@@ -116,21 +109,18 @@ const PwaInstallPrompt = () => {
     }
   };
 
-
   const title =
-    variant === "install"
-      ? "Instala BInAI Akdēmia"
-      : "Agrega BInAI Akdēmia a tu pantalla de inicio";
+    variant === "install" ? "Instala Akdemia by BInAI" : "Agrega Akdemia by BInAI";
 
   const description =
     variant === "install"
-      ? "Añade la app para abrirla directo desde tu pantalla de inicio y disfrutar la mejor experiencia."
-      : "Sigue estos pasos y tendrás la app como si fuera nativa en tu iPhone o iPad.";
+      ? "Anade la app para abrirla directo desde tu pantalla de inicio y disfrutar la mejor experiencia."
+      : "Sigue estos pasos y tendras la app como si fuera nativa en tu iPhone o iPad.";
 
   const iosSteps = [
-    "Toca el ícono de compartir en Safari",
-    "Elige “Agregar a la pantalla de inicio”",
-    "Confirma con “Agregar”",
+    "Toca el icono de compartir en Safari",
+    "Elige 'Agregar a la pantalla de inicio'",
+    "Confirma con 'Agregar'",
   ];
 
   return (
@@ -140,7 +130,7 @@ const PwaInstallPrompt = () => {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
             <Img
               src="/logo-icon-192.png"
-              alt="BInAI Akdēmia"
+              alt="Akdemia by BInAI"
               width={48}
               height={48}
               className="h-10 w-10 object-contain"
@@ -153,7 +143,7 @@ const PwaInstallPrompt = () => {
           <button
             type="button"
             onClick={hideForSession}
-            aria-label="Cerrar recomendación de instalación"
+            aria-label="Cerrar recomendacion de instalacion"
             className="ml-1 rounded-full p-1.5 text-brand-900/60 transition hover:bg-brand-100 hover:text-brand-900"
           >
             &times;
@@ -174,14 +164,14 @@ const PwaInstallPrompt = () => {
               onClick={hideForSession}
               className="w-full rounded-2xl border border-brand-100 px-4 py-2.5 text-sm font-semibold text-brand-900 transition hover:bg-brand-50"
             >
-              Más tarde
+              Mas tarde
             </button>
           </div>
         ) : (
           <div className="mt-4 space-y-3">
             <div className="rounded-2xl bg-brand-50 p-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-brand-800">
-                Cómo agregarla en iOS
+                Como agregarla en iOS
               </p>
               <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs text-brand-900">
                 {iosSteps.map((step) => (
@@ -201,7 +191,6 @@ const PwaInstallPrompt = () => {
       </div>
     </div>
   );
-
 };
 
 export default PwaInstallPrompt;

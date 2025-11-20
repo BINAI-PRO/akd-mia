@@ -1,4 +1,4 @@
-锘縤mport Head from "next/head";
+import Head from "next/head";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -233,7 +233,7 @@ const ATYPICAL_WEEKS = [
   {
     id: "summer-break",
     label: "Semana del 15 de julio",
-    note: "Vacaciones de verano - se omiten sesi贸nes jueves y viernes",
+    note: "Vacaciones de verano - se omiten sesi髇es jueves y viernes",
   },
   {
     id: "instructor-change",
@@ -537,13 +537,13 @@ export default function CourseSchedulerPage({
   const planButtonLabel = isPlanning
     ? "Programando..."
     : frequency === "once"
-    ? "Programar sesi贸n"
-    : "Programar sesi贸nes";
+    ? "Programar sesi髇"
+    : "Programar sesi髇es";
 
   const handlePlanSessions = async () => {
     if (!selectedCourse) return;
     if (readOnly) {
-      setPlanError("Tu rol no tiene permisos para programar sesi贸nes.");
+      setPlanError("Tu rol no tiene permisos para programar sesi髇es.");
       return;
     }
     setPlanError(null);
@@ -555,7 +555,7 @@ export default function CourseSchedulerPage({
     }
 
     if (pendingSessionsForSelectedCourse === 0) {
-      setPlanError("Este horario ya tiene todas las sesi贸nes programadas.");
+      setPlanError("Este horario ya tiene todas las sesi髇es programadas.");
       return;
     }
 
@@ -570,28 +570,28 @@ export default function CourseSchedulerPage({
     });
 
     if (preparedSessions.length === 0) {
-      setPlanError("Configura al menos una sesi贸n para programar.");
+      setPlanError("Configura al menos una sesi髇 para programar.");
       return;
     }
 
     for (let index = 0; index < preparedSessions.length; index += 1) {
       const item = preparedSessions[index];
       if (!item.date || !item.startTime) {
-        setPlanError(`Completa la fecha y hora para la sesi贸n ${index + 1}.`);
+        setPlanError(`Completa la fecha y hora para la sesi髇 ${index + 1}.`);
         return;
       }
       if (!item.duration || item.duration <= 0) {
-        setPlanError(`Define una duracion valida para la sesi贸n ${index + 1}.`);
+        setPlanError(`Define una duracion valida para la sesi髇 ${index + 1}.`);
         return;
       }
       if (!item.instructorId) {
-        setPlanError(`Asigna un instructor para la sesi贸n ${index + 1}.`);
+        setPlanError(`Asigna un instructor para la sesi髇 ${index + 1}.`);
         return;
       }
     }
 
     if (preparedSessions.length > pendingSessionsForSelectedCourse) {
-      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesi贸nes pendientes para este horario.`);
+      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesi髇es pendientes para este horario.`);
       return;
     }
 
@@ -609,7 +609,7 @@ export default function CourseSchedulerPage({
 
       const result = await response.json();
       if (!response.ok) {
-        setPlanError(result?.error ?? "No se pudo programar las sesi贸nes.");
+        setPlanError(result?.error ?? "No se pudo programar las sesi髇es.");
         return;
       }
 
@@ -642,24 +642,24 @@ export default function CourseSchedulerPage({
       );
 
       setPlanStatus("success");
-      setPlanMessage(result?.message ?? `Se programaron ${insertedSessions.length} sesi贸nes.`);
+      setPlanMessage(result?.message ?? `Se programaron ${insertedSessions.length} sesi髇es.`);
       setPlanError(null);
       setDraftSessions([]);
     } catch (error) {
       console.error("schedule sessions", error);
-      setPlanError("Ocurrio un error inesperado al programar las sesi贸nes.");
+      setPlanError("Ocurrio un error inesperado al programar las sesi髇es.");
     } finally {
       setIsPlanning(false);
     }
   };
   return (
-    <AdminLayout title="Programador de sesi贸nes" active="courseScheduler" featureKey="courseScheduler">
+    <AdminLayout title="Programador de sesi髇es" active="courseScheduler" featureKey="courseScheduler">
       <Head>
-        <title>BInAI Akd膿mia Admin - Programador de sesi贸nes</title>
+        <title>Akdemia by BInAI</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Tu rol solo permite consultar este programador. No podr谩s generar nuevas sesi贸nes.
+          Tu rol solo permite consultar este programador. No podr醩 generar nuevas sesi髇es.
         </div>
       )}
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -677,7 +677,7 @@ export default function CourseSchedulerPage({
                       {pendingCourses.length} horarios con pendientes
                     </span>
                     <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
-                      {totalPendingSessions} sesi贸nes sin programar
+                      {totalPendingSessions} sesi髇es sin programar
                     </span>
                   </div>
                 ) : (
@@ -767,7 +767,7 @@ export default function CourseSchedulerPage({
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Programacion semanal</h2>
-          <p className="text-sm text-slate-500">Define sesi贸nes recurrentes o unicas. Aun no se guardan cambios en la base.</p>
+          <p className="text-sm text-slate-500">Define sesi髇es recurrentes o unicas. Aun no se guardan cambios en la base.</p>
 
           <div ref={schedulerSectionRef} className="mt-6 grid gap-4 lg:grid-cols-3">
             <div className="space-y-4">
@@ -827,12 +827,12 @@ export default function CourseSchedulerPage({
                     </div>
                   ) : (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      Asigna una sala predeterminada al horario para programar sesi贸nes automaticamente.
+                      Asigna una sala predeterminada al horario para programar sesi髇es automaticamente.
                     </div>
                   )}
                   {pendingSessionsForSelectedCourse === 0 && (
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                      Este horario no tiene sesi贸nes pendientes, pero puedes ajustar la programacion si es necesario.
+                      Este horario no tiene sesi髇es pendientes, pero puedes ajustar la programacion si es necesario.
                     </div>
                   )}
                 </div>
@@ -908,7 +908,7 @@ export default function CourseSchedulerPage({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">Sesi贸nes</label>
+                      <label className="block text-sm font-medium text-slate-700">Sesi髇es</label>
                       <select
                         value={recurringCount}
                         onChange={(event) => setRecurringCount(Math.max(1, Number(event.target.value)))}
@@ -957,8 +957,8 @@ export default function CourseSchedulerPage({
                   {selectedCourse
                     ? selectedCourse.defaultRoomId
                       ? pendingSessionsForSelectedCourse === 0
-                        ? "Este horario no tiene sesi贸nes pendientes."
-                        : "Configura los parametros para generar sesi贸nes."
+                        ? "Este horario no tiene sesi髇es pendientes."
+                        : "Configura los parametros para generar sesi髇es."
                       : "Asigna una sala predeterminada al horario para activar el programador."
                     : "Selecciona un horario para comenzar."}
                 </div>
@@ -978,7 +978,7 @@ export default function CourseSchedulerPage({
                           <h3 className="text-sm font-semibold text-slate-700">
                             {formatSessionDateLabel(session.date)}
                           </h3>
-                          <span className="text-xs text-slate-400">Sesi贸n {index + 1}</span>
+                          <span className="text-xs text-slate-400">Sesi髇 {index + 1}</span>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <div>
@@ -1038,7 +1038,7 @@ export default function CourseSchedulerPage({
                       {missingInstructor && (
                         <div className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                           <span className="material-icons-outlined text-base">info</span>
-                          Define un instructor para cada sesi贸n antes de programar.
+                          Define un instructor para cada sesi髇 antes de programar.
                         </div>
                       )}
                     </div>
@@ -1062,11 +1062,11 @@ export default function CourseSchedulerPage({
           {selectedCourse && (
             <div className="mt-6 rounded-md border border-slate-200 p-4 text-sm text-slate-600">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700">Sesi贸nes programadas</h3>
+                <h3 className="text-sm font-semibold text-slate-700">Sesi髇es programadas</h3>
                 <span className="text-xs text-slate-500">{selectedCourse.sessions.length} en total</span>
               </div>
               {selectedCourse.sessions.length === 0 ? (
-                <p className="text-xs text-slate-500">Todavia no hay sesi贸nes programadas para Este horario.</p>
+                <p className="text-xs text-slate-500">Todavia no hay sesi髇es programadas para Este horario.</p>
               ) : (
                 <ul className="space-y-2">
                   {upcomingSessions.map((session) => {
@@ -1109,7 +1109,7 @@ export default function CourseSchedulerPage({
               )}
               {selectedCourse.sessions.length > upcomingSessions.length && upcomingSessions.length > 0 && (
                 <p className="mt-3 text-xs text-slate-400">
-                  Mostrando las proximas {upcomingSessions.length} sesi贸nes de {selectedCourse.sessions.length}.
+                  Mostrando las proximas {upcomingSessions.length} sesi髇es de {selectedCourse.sessions.length}.
                 </p>
               )}
             </div>
@@ -1139,6 +1139,7 @@ export default function CourseSchedulerPage({
     </AdminLayout>
   );
 }
+
 
 
 

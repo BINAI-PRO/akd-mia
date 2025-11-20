@@ -1,4 +1,4 @@
-ï»¿
+
 import * as React from "react";
 import Head from "next/head";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -337,11 +337,11 @@ const formatRangeLabel = (startIso: string, endIso: string) => {
   const startDate = new Date(startIso);
   const endDate = new Date(endIso);
   if (!Number.isFinite(startDate.valueOf()) || !Number.isFinite(endDate.valueOf())) {
-    return `${startIso} Â· ${endIso}`;
+    return `${startIso} · ${endIso}`;
   }
   const sameDay = startDate.toDateString() === endDate.toDateString();
   const datePart = sameDay ? formatDate(startIso) : `${formatDate(startIso)} ? ${formatDate(endIso)}`;
-  return `${datePart} â€¢ ${formatTime(startIso)} â€“ ${formatTime(endIso)}`;
+  return `${datePart} • ${formatTime(startIso)} – ${formatTime(endIso)}`;
 };
 
 const combineDateTime = (date: string, time: string, fallback: string) => {
@@ -866,7 +866,7 @@ export default function PlanningRoomsPage({
   return (
     <AdminLayout title="Planeacion - Salas" active="planningRooms" featureKey="planningRooms">
       <Head>
-        <title>BInAI AkdÄ“mia Admin - Planeacion de salas</title>
+        <title>Akdemia by BInAI</title>
       </Head>
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[280px,1fr]">
@@ -958,7 +958,7 @@ export default function PlanningRoomsPage({
                           <span className="text-sm font-medium text-slate-800">{room.name}</span>
                           <span className="text-xs text-slate-500">
                             Capacidad {room.capacity}
-                            {supportsLocation && room.location ? ` â€¢ ${room.location}` : ""}
+                            {supportsLocation && room.location ? ` • ${room.location}` : ""}
                           </span>
                         </button>
                       </li>
@@ -1233,6 +1233,7 @@ export default function PlanningRoomsPage({
     </AdminLayout>
   );
 }
+
 
 
 

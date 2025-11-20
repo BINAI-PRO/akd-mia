@@ -5,7 +5,7 @@ export default function PaymentCancelledPage() {
   return (
     <>
       <Head>
-        <title>Pago cancelado | ATP Tu Fit App</title>
+        <title>Pago cancelado | Pro Fitness</title>
       </Head>
       <section className="py-10">
         <h1 className="text-xl font-semibold text-neutral-900">Pago cancelado</h1>

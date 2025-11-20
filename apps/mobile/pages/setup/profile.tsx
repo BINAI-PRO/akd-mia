@@ -106,7 +106,7 @@ export default function SetupProfilePage() {
   return (
     <>
       <Head>
-        <title>Completa tu perfil | BInAI Akdēmia</title>
+        <title>Completa tu perfil | Akdemia by BInAI</title>
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-10">
         <div className="mx-auto w-full max-w-md rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -184,3 +184,4 @@ export default function SetupProfilePage() {
     </>
   );
 }
+

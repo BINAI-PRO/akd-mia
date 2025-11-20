@@ -84,12 +84,6 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [classTypes]);
 
-  const targetOptions = useMemo(() => {
-    const values = new Set<string>();
-    classTypes.forEach((item) => item.targetAudience && values.add(item.targetAudience));
-    return Array.from(values).sort((a, b) => a.localeCompare(b));
-  }, [classTypes]);
-
   const filteredList = useMemo(() => {
     const term = filters.search.trim().toLowerCase();
     return classTypes.filter((item) => {
@@ -218,7 +212,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   return (
     <AdminLayout title="Clases" active="classTypes" featureKey="classTypes">
       <Head>
-        <title>BInAI Akdēmia Admin - Clases</title>
+        <title>Akdemia by BInAI</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -409,3 +403,4 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     </AdminLayout>
   );
 }
+

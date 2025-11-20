@@ -7,39 +7,39 @@ type Section = {
 
 const SECTIONS: Section[] = [
   {
-    title: "1. Aceptación del servicio",
+    title: "1. Aceptacion del servicio",
     paragraphs: [
-      "Al acceder o utilizar la aplicación BInAI Akdēmia confirmas que eres mayor de edad y que aceptas estos términos. Si no estás de acuerdo, por favor deja de usar la plataforma.",
+      "Al acceder o utilizar la aplicacion Akdemia by BInAI aceptas estos terminos y te comprometes a cumplirlos.",
     ],
   },
   {
     title: "2. Uso permitido",
     paragraphs: [
-      "La app está pensada para reservar, gestionar y pagar tus clases de Pilates en los estudios autorizados. No puedes usarla de forma fraudulenta, compartir accesos sin permiso ni intentar interferir con su funcionamiento.",
+      "La app esta pensada para reservar, gestionar y pagar tus clases de Pilates en los estudios autorizados. No puedes usarla de forma fraudulenta, compartir accesos sin permiso ni intentar interferir con su funcionamiento.",
     ],
   },
   {
     title: "3. Cuentas y seguridad",
     paragraphs: [
-      "Eres responsable de la confidencialidad de tus credenciales. Si detectas actividad sospechosa contáctanos para bloquear tu sesión y proteger tus reservas.",
+      "Eres responsable de la confidencialidad de tus credenciales. Si detectas actividad sospechosa contactanos para bloquear tu sesion y proteger tus reservas.",
     ],
   },
   {
     title: "4. Pagos y cancelaciones",
     paragraphs: [
-      "Cada plan o sesión puede tener reglas específicas de cancelación que verás antes de confirmar. Nos reservamos el derecho de hacer ajustes cuando sea necesario para proteger al estudio y a otros alumnos.",
+      "Cada plan o sesion puede tener reglas especificas de cancelacion que veras antes de confirmar. Nos reservamos el derecho de hacer ajustes cuando sea necesario para proteger al estudio y a otros alumnos.",
     ],
   },
   {
     title: "5. Actualizaciones",
     paragraphs: [
-      "Podemos actualizar estos términos en cualquier momento. Publicaremos la última versión en esta misma página y el uso continuado significará que aceptas los cambios.",
+      "Podemos actualizar estos terminos en cualquier momento. Publicaremos la ultima version en esta misma pagina y el uso continuado significara que aceptas los cambios.",
     ],
   },
   {
     title: "6. Contacto",
     paragraphs: [
-      "Si tienes dudas o necesitas ejercer tus derechos, escríbenos a hola@atpilatestime.com.",
+      "Si tienes dudas o necesitas ejercer tus derechos, escribenos a hola@atpilatestime.com.",
     ],
   },
 ];
@@ -50,10 +50,10 @@ export default function TermsOfServicePage() {
   return (
     <>
       <Head>
-        <title>Términos de servicio | BInAI Akdēmia</title>
+        <title>Terminos de servicio | Akdemia by BInAI</title>
         <meta
           name="description"
-          content="Consulta los términos de servicio oficiales de la app BInAI Akdēmia."
+          content="Consulta los terminos de servicio oficiales de la app Akdemia by BInAI"
         />
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-12 text-neutral-800">
@@ -63,10 +63,10 @@ export default function TermsOfServicePage() {
               Legal
             </p>
             <h1 className="text-3xl font-bold text-neutral-900">
-              Términos de servicio
+              Terminos de servicio
             </h1>
             <p className="text-sm text-neutral-500">
-              Última actualización: {LAST_UPDATED}
+              Ultima actualizacion: {LAST_UPDATED}
             </p>
           </header>
 

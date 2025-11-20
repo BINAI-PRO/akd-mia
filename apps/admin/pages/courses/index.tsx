@@ -1,4 +1,4 @@
-Ôªøimport type { Tables } from "@/types/database";
+import type { Tables } from "@/types/database";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
@@ -48,7 +48,7 @@ type CourseQueryRow = Tables<"courses"> & {
   rooms?: { id: string; name: string | null } | null;
 };
 
-// Nombres de propiedades en espa√É¬±ol para la UI, mapeados desde snake_case de la DB
+// Nombres de propiedades en espa√±ol para la UI, mapeados desde snake_case de la DB
 export type CourseRow = {
   id: string;
   title: string;
@@ -58,7 +58,7 @@ export type CourseRow = {
   Moneda: string; // currency
   durationLabel: string | null; // duration_label
   Nivel: string | null; // level
-  Categor√≠a: string | null; // category
+  Categoria: string | null; // category
   sessionCount: number; // session_count
   sessionDurationMinutes: number; // session_duration_minutes
   leadInstructorId: string | null; // lead_instructor_id
@@ -139,7 +139,7 @@ function mapCourse(row: CourseQueryRow, extras?: { hasSessions?: boolean }): Cou
     Moneda: row.currency ?? "MXN",
     durationLabel: row.duration_label ?? null,
     Nivel: row.level ?? null,
-    Categor√≠a: row.category ?? null,
+    Categoria: row.category ?? null,
     sessionCount: Number(row.session_count ?? 0),
     sessionDurationMinutes: Number(row.session_duration_minutes ?? 0),
     leadInstructorId: row.lead_instructor_id ?? null,
@@ -171,14 +171,14 @@ const FALLBACK_COURSE_LEVELS = [
   "Intermedio",
   "Avanzado",
   "Multinivel",
-  "Certificaci√≥n",
+  "CertificaciÛn",
 ];
 
 const FALLBACK_COURSE_CATEGORIES = [
   "Grupal",
   "Privada",
   "Semi-Privada",
-  "Promoci√≥n",
+  "PromociÛn",
   "Evento",
 ];
 
@@ -192,7 +192,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
       schema_name: "public",
     });
     if (error) throw error;
-    if (!Array.isArray(data)) throw new Error("Respuesta inv√°lida");
+    if (!Array.isArray(data)) throw new Error("Respuesta inv·lida");
     const values = (data as string[])
       .map((value) => (typeof value === "string" ? value.trim() : ""))
       .filter((value) => value.length > 0);
@@ -381,7 +381,7 @@ export default function CoursesPage(
             course.title,
             course.Descripcion ?? "",
             course.shortDescripcion ?? "",
-            course.Categor√≠a ?? "",
+            course.Categoria ?? "",
             course.Nivel ?? "",
             course.classTypeName ?? "",
             course.defaultRoomName ?? "",
@@ -435,7 +435,7 @@ export default function CoursesPage(
     if (readOnly) return;
     const nextLevels = ensureOption(levels, course.Nivel);
     if (nextLevels !== levels) setLevels(nextLevels);
-    const nextCategories = ensureOption(categories, course.Categor√≠a);
+    const nextCategories = ensureOption(categories, course.Categoria);
     if (nextCategories !== categories) setCategories(nextCategories);
 
     setFormState({
@@ -446,7 +446,7 @@ export default function CoursesPage(
       currency: course.Moneda ?? "MXN",
       durationLabel: course.durationLabel ?? "",
       level: course.Nivel ?? "",
-      category: course.Categor√≠a ?? "",
+      category: course.Categoria ?? "",
       sessionCount: String(course.sessionCount ?? ""),
       sessionDurationMinutes: String(course.sessionDurationMinutes ?? ""),
       visibility: course.Visibilidad,
@@ -484,7 +484,7 @@ export default function CoursesPage(
 
     try {
       const trimmedTitle = formState.title.trim();
-      if (!trimmedTitle) throw new Error("El t√≠tulo es obligatorio");
+      if (!trimmedTitle) throw new Error("El tÌtulo es obligatorio");
 
       const classTypeId = formState.classTypeId.trim();
       if (!classTypeId) throw new Error("Selecciona un tipo de horario");
@@ -496,18 +496,18 @@ export default function CoursesPage(
 
       const parsedSessionCount = Number(formState.sessionCount);
       if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
-        throw new Error("La cantidad de sesi√≥nes debe ser mayor a cero");
+        throw new Error("La cantidad de sesiÛnes debe ser mayor a cero");
       }
 
       const parsedSessionDuration = Number(formState.sessionDurationMinutes);
       if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-        throw new Error("La duraci√≥n por sesi√≥n debe ser mayor a cero");
+        throw new Error("La duraciÛn por sesiÛn debe ser mayor a cero");
       }
 
       const priceInput = formState.price.trim();
       const parsedPrice = priceInput.length === 0 ? null : Number(priceInput);
       if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        throw new Error("El precio debe ser un n√∫mero v√°lido");
+        throw new Error("El precio debe ser un n˙mero v·lido");
       }
 
       const trimmedWindow = formState.bookingWindowDays.trim();
@@ -515,7 +515,7 @@ export default function CoursesPage(
       if (trimmedWindow.length > 0) {
         const parsedWindow = Number(trimmedWindow);
         if (!Number.isFinite(parsedWindow) || parsedWindow < 0) {
-          throw new Error("La ventana de reserva debe ser un n√∫mero mayor o igual a cero");
+          throw new Error("La ventana de reserva debe ser un n˙mero mayor o igual a cero");
         }
         bookingWindowDays = Math.trunc(parsedWindow);
       }
@@ -525,7 +525,7 @@ export default function CoursesPage(
       if (trimmedCancellation.length > 0) {
         const parsedCancellation = Number(trimmedCancellation);
         if (!Number.isFinite(parsedCancellation) || parsedCancellation < 0) {
-          throw new Error("La ventana de cancelaci√≥n debe ser un n√∫mero mayor o igual a cero");
+          throw new Error("La ventana de cancelaciÛn debe ser un n˙mero mayor o igual a cero");
         }
         cancellationWindowHours = Math.trunc(parsedCancellation);
       }
@@ -558,7 +558,7 @@ export default function CoursesPage(
         ? courses.find((course) => course.id === editingCourseId)
         : undefined;
       if (editingCourseId && existingCourse?.hasSessions) {
-        throw new Error("Este horario ya tiene sesi√≥nes programadas y no se puede editar");
+        throw new Error("Este horario ya tiene sesiÛnes programadas y no se puede editar");
       }
 
       const response = await fetch("/api/courses", {
@@ -586,7 +586,7 @@ export default function CoursesPage(
       });
 
       const nextLevels = ensureOption(levels, updatedCourse.Nivel);
-      const nextCategories = ensureOption(categories, updatedCourse.Categor√≠a);
+      const nextCategories = ensureOption(categories, updatedCourse.Categoria);
       if (nextLevels !== levels) setLevels(nextLevels);
       if (nextCategories !== categories) setCategories(nextCategories);
 
@@ -622,11 +622,11 @@ export default function CoursesPage(
     <AdminLayoutAny title="Horarios" active="courses" featureKey="courses">
       <Head>
         <meta charSet="utf-8" />
-        <title>BInAI Akdƒìmia Admin - Horarios</title>
+        <title>BInAI Akdemia Admin - Horarios</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Tu rol tiene acceso de solo lectura en esta secci√≥n. Puedes consultar los horarios pero no crear o editar
+          Tu rol tiene acceso de solo lectura en esta secciÛn. Puedes consultar los horarios pero no crear o editar
           registros.
         </div>
       )}
@@ -675,7 +675,7 @@ export default function CoursesPage(
               <thead className="bg-slate-50 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-2 py-2 w-[20%] whitespace-wrap">Curso</th>
-                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Sesi√≥nes</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">SesiÛnes</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Precio</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Estado</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Creado</th>
@@ -696,7 +696,7 @@ export default function CoursesPage(
                   filteredCourses.map((course) => {
                     const secondaryLines: string[] = [];
                     if (course.classTypeName) secondaryLines.push(course.classTypeName);
-                    const levelCategory = [course.Nivel, course.Categor√≠a ?? "General"].filter(Boolean).join(" ¬∑ ");
+                    const levelCategory = [course.Nivel, course.Categoria ?? "General"].filter(Boolean).join(" ∑ ");
                     if (levelCategory) secondaryLines.push(levelCategory);
                     if (course.defaultRoomName) secondaryLines.push(`Sala ${course.defaultRoomName}`);
                     if (course.leadInstructorName) secondaryLines.push(`Instructor ${course.leadInstructorName}`);
@@ -738,9 +738,9 @@ export default function CoursesPage(
                         </td>
                         <td className="px-4 py-4 align-top text-sm text-slate-700">
                           <div className="leading-tight">
-                            <div>{course.sessionCount} sesi√≥nes</div>
+                            <div>{course.sessionCount} sesiÛnes</div>
                             <div className="text-xs text-slate-500">
-                              {"√ó"} {course.sessionDurationMinutes} min
+                              {"◊"} {course.sessionDurationMinutes} min
                             </div>
                           </div>
                         </td>
@@ -765,7 +765,7 @@ export default function CoursesPage(
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title={
                               course.hasSessions
-                                ? "No disponible: ya tiene sesi√≥nes programadas"
+                                ? "No disponible: ya tiene sesiÛnes programadas"
                                 : "Editar horario"
                             }
                           >
@@ -810,7 +810,7 @@ export default function CoursesPage(
               <fieldset disabled={readOnly || saving} className="space-y-4 text-sm">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                  {"T√≠tulo"}
+                  {"TÌtulo"}
                 </label>
                 <input
                   value={formState.title}
@@ -822,7 +822,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                {"Descripci√≥n corta"}
+                {"DescripciÛn corta"}
                 </label>
                 <input
                   value={formState.shortDescription}
@@ -834,7 +834,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                {"Descripci√≥n"}
+                {"DescripciÛn"}
                 </label>
                 <textarea
                   value={formState.description}
@@ -903,7 +903,7 @@ export default function CoursesPage(
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Sesi√≥nes totales
+                    SesiÛnes totales
                   </label>
                   <input
                     type="number"
@@ -915,7 +915,7 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    {"Minutos por sesi√≥n"}
+                    {"Minutos por sesiÛn"}
                   </label>
                   <input
                     type="number"
@@ -929,7 +929,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Ventana de reserva (d√≠as)
+                  Ventana de reserva (dÌas)
                 </label>
                 <input
                   type="number"
@@ -940,13 +940,13 @@ export default function CoursesPage(
                   placeholder="7"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Define cu√°ntos d√≠as antes de cada sesi√≥n se puede reservar. Deja el campo vac√≠o para permitir reservas sin l√≠mite.
+                  Define cu·ntos dÌas antes de cada sesiÛn se puede reservar. Deja el campo vacÌo para permitir reservas sin lÌmite.
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Ventana de cancelaci√≥n (horas)
+                  Ventana de cancelaciÛn (horas)
                 </label>
                 <input
                   type="number"
@@ -957,7 +957,7 @@ export default function CoursesPage(
                   placeholder="24"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Tiempo m√≠nimo de antelaci√≥n para cancelar sin penalizaci√≥n. Deja el campo vac√≠o para usar el valor predeterminado.
+                  Tiempo mÌnimo de antelaciÛn para cancelar sin penalizaciÛn. Deja el campo vacÌo para usar el valor predeterminado.
                 </p>
               </div>
 
@@ -981,14 +981,14 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    {"Categor√≠a"}
+                    {"Categoria"}
                   </label>
                   <select
                     value={formState.category}
                     onChange={handleFormChange("category")}
                     className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2"
                   >
-                    <option value="">{"Selecciona categor√≠a"}</option>
+                    <option value="">{"Selecciona Categoria"}</option>
                     {categories.map((option) => (
                       <option key={option} value={option}>
                         {option}
@@ -1043,7 +1043,7 @@ export default function CoursesPage(
                         onChange={handleFormChange("visibility")}
                         className="h-4 w-4"
                       />
-                      {"P√∫blico"}
+                      {"P˙blico"}
                     </label>
                     <label className="flex items-center gap-2">
                       <input

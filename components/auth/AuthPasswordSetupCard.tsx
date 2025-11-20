@@ -26,21 +26,20 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const heading =
-    flow === "invite" ? "Configura tu contraseña" : "Actualiza tu contraseña";
+  const heading = flow === "invite" ? "Configura tu contrasena" : "Actualiza tu contrasena";
   const description =
     flow === "invite"
-      ? "Define una contraseña segura para acceder al panel administrativo."
-      : "Ingresa una nueva contraseña para recuperar el acceso a tu cuenta.";
+      ? "Define una contrasena segura para acceder al panel administrativo."
+      : "Ingresa una nueva contrasena para recuperar el acceso a tu cuenta.";
 
   if (!user) {
     return (
       <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
         <header className="text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">BInAI Akdēmia</p>
+          <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Akdemia by BInAI</p>
           <h1 className="mt-2 text-2xl font-bold text-slate-900">Validando enlace...</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Espera un momento mientras confirmamos tu invitación o recuperación.
+            Espera un momento mientras confirmamos tu invitacion o recuperacion.
           </p>
         </header>
       </section>
@@ -52,12 +51,12 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
     if (submitting) return;
 
     if (!isPasswordValid(password)) {
-      setFormError("La contraseña debe cumplir todos los requisitos de seguridad.");
+      setFormError("La contrasena debe cumplir todos los requisitos de seguridad.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setFormError("Las contraseñas no coinciden.");
+      setFormError("Las contrasenas no coinciden.");
       return;
     }
 
@@ -89,8 +88,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
       await supabase.auth.signOut();
       await onCompleted(flow === "invite" ? "invite-complete" : "password-updated");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No se pudo actualizar la contraseña.";
+      const message = error instanceof Error ? error.message : "No se pudo actualizar la contrasena.";
       setFormError(message);
     } finally {
       setSubmitting(false);
@@ -102,12 +100,12 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
   return (
     <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
       <header className="mb-6 text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">BInAI Akdēmia</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Akdemia by BInAI</p>
         <h1 className="mt-2 text-2xl font-bold text-slate-900">{heading}</h1>
         <p className="mt-1 text-sm text-slate-500">{description}</p>
         {email && (
           <p className="mt-1 text-xs text-slate-400">
-            Gestionando acceso para{" "}
+            Gestionando acceso para {" "}
             <span className="font-semibold text-slate-600">{email}</span>
           </p>
         )}
@@ -116,7 +114,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
       <form className="space-y-4" onSubmit={handleSubmit}>
         <div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="new-password">
-            Nueva contraseña
+            Nueva contrasena
           </label>
           <div className="relative">
             <input
@@ -135,7 +133,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
               className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
-              aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+              aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
             >
               <span className="material-icons-outlined text-base">
                 {showPassword ? "visibility_off" : "visibility"}
@@ -146,7 +144,7 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
 
         <div className="space-y-1">
           <label className="text-sm font-medium text-slate-700" htmlFor="confirm-password">
-            Confirmar contraseña
+            Confirmar contrasena
           </label>
           <input
             id="confirm-password"
@@ -187,8 +185,8 @@ export function AuthPasswordSetupCard({ flow, onCompleted }: Props) {
               ? "Guardando..."
               : "Actualizando..."
             : flow === "invite"
-            ? "Guardar contraseña"
-            : "Actualizar contraseña"}
+            ? "Guardar contrasena"
+            : "Actualizar contrasena"}
         </button>
       </form>
     </section>

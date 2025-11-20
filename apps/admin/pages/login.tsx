@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+﻿import { useEffect, useState, type FormEvent } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { signIn } from "next-auth/react";
@@ -99,7 +99,7 @@ export default function AdminLoginPage() {
           "Tu cuenta no tiene acceso administrativo. Solicita una invitacion al administrador."
         );
       } else if (errorParam === "auth_required") {
-        setFormError("Tu sesión expiró. Vuelve a iniciar sesión para continuar.");
+        setFormError("Tu sesiÃ³n expirÃ³. Vuelve a iniciar sesiÃ³n para continuar.");
       }
     }
   }, [router.isReady, router.query.error]);
@@ -107,9 +107,9 @@ export default function AdminLoginPage() {
   const statusParam = typeof router.query.status === "string" ? router.query.status : null;
   const statusMessage =
     statusParam === "invite-complete"
-      ? "Tu contraseña se guardó correctamente. Enviamos un correo de confirmación."
+      ? "Tu contraseÃ±a se guardÃ³ correctamente. Enviamos un correo de confirmaciÃ³n."
       : statusParam === "password-updated"
-      ? "Contraseña actualizada. Ya puedes iniciar sesión de nuevo."
+      ? "ContraseÃ±a actualizada. Ya puedes iniciar sesiÃ³n de nuevo."
       : null;
 
   const handleGoogleLogin = async () => {
@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesión con Google";
+        error instanceof Error ? error.message : "No se pudo iniciar sesiÃ³n con Google";
       setFormError(message);
       setSubmitting(false);
     }
@@ -171,7 +171,7 @@ export default function AdminLoginPage() {
       await router.replace(redirectTarget);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesión";
+        error instanceof Error ? error.message : "No se pudo iniciar sesiÃ³n";
       setFormError(message);
       setSubmitting(false);
     }
@@ -180,7 +180,7 @@ export default function AdminLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesión | Panel Admin</title>
+        <title>Iniciar sesiÃ³n | Panel Admin</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
         {activeFlow ? (
@@ -189,7 +189,7 @@ export default function AdminLoginPage() {
           <section className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
             <header className="mb-6 text-center">
               <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
-                BInAI Akdēmia
+                Akdēmia by BInAI
               </p>
               <h1 className="mt-2 text-2xl font-bold text-slate-900">
                 Acceso administrativo
@@ -236,7 +236,7 @@ export default function AdminLoginPage() {
 
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                  Contraseña
+                  ContraseÃ±a
                 </label>
                 <div className="relative">
                   <input
@@ -253,7 +253,7 @@ export default function AdminLoginPage() {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
-                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                    aria-label={showPassword ? "Ocultar contraseÃ±a" : "Mostrar contraseÃ±a"}
                   >
                     <span className="material-icons-outlined text-base">
                       {showPassword ? "visibility_off" : "visibility"}
@@ -280,7 +280,7 @@ export default function AdminLoginPage() {
                 className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-400"
                 disabled={submitting}
               >
-                {submitting ? "Ingresando..." : "Iniciar sesión"}
+                {submitting ? "Ingresando..." : "Iniciar sesiÃ³n"}
               </button>
             </form>
           </section>
@@ -291,3 +291,4 @@ export default function AdminLoginPage() {
 }
 
 AdminLoginPage.publicPage = true;
+

@@ -63,7 +63,7 @@ export default function GoogleAuthLinkPage() {
   return (
     <>
       <Head>
-        <title>Conectando cuenta | BInAI Akdm-ia</title>
+        <title>Conectando cuenta | Akdemia by BInAI</title>
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-4 rounded-3xl bg-white px-6 py-8 text-center shadow-xl">
@@ -71,7 +71,7 @@ export default function GoogleAuthLinkPage() {
           {isLoading && (
             <>
               <p className="text-sm text-neutral-500">
-                Estamos conectando tu cuenta de Google con BInAI Akdm-ia.
+                Estamos conectando tu cuenta de Google con Akdemia by BInAI
               </p>
               <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
             </>
@@ -98,3 +98,4 @@ export default function GoogleAuthLinkPage() {
 
 // Permite acceder sin sesiA3n previa de Supabase.
 (GoogleAuthLinkPage as { publicPage?: boolean }).publicPage = true;
+

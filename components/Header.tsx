@@ -33,14 +33,14 @@ export default function Header() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
-          alt="BInAI Akdēmia"
+          alt="Akdēmia by BInAI"
           className="h-12 w-auto shrink-0"
           width={160}
           height={56}
         />
         <div className="min-w-0">
-          <h1 className="text-base font-semibold leading-none text-white">BInAI Akdēmia</h1>
-          <p className="text-xs leading-none text-brand-200">ATP Tu Fit App</p>
+          <h1 className="text-base font-semibold leading-none text-white">Akdēmia by BInAI</h1>
+          <p className="text-xs leading-none text-brand-200">Pro Fitness</p>
         </div>
 
         <div className="ml-auto flex items-center gap-3">

@@ -44,10 +44,10 @@ export default function UsagePolicyPage() {
   return (
     <>
       <Head>
-        <title>Políticas de uso y privacidad | BInAI Akdēmia</title>
+        <title>Politicas de uso y privacidad | Akdemia by BInAI</title>
         <meta
           name="description"
-          content="Documento público sobre el uso permitido y la privacidad de la app BInAI Akdēmia."
+          content="Documento publico sobre el uso permitido y la privacidad de la app Akdemia by BInAI"
         />
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-12 text-neutral-800">
@@ -81,3 +81,4 @@ export default function UsagePolicyPage() {
 }
 
 UsagePolicyPage.publicPage = true;
+

@@ -5,7 +5,7 @@ export default function PaymentCancelledPage() {
   return (
     <>
       <Head>
-        <title>Pago cancelado | BInAI Akdēmia Admin</title>
+        <title>Pago cancelado | Akdemia by BInAI</title>
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-16">
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
@@ -34,3 +34,4 @@ export default function PaymentCancelledPage() {
     </>
   );
 }
+

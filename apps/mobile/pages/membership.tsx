@@ -86,7 +86,7 @@ export default function MembershipPage() {
     return (
       <>
         <Head>
-          <title>Mi membresia | BInAI Akdēmia</title>
+          <title>Mi membresia | Akdemia by BInAI</title>
         </Head>
         <main className="container-mobile space-y-6 pb-24 pt-6">
           <header className="space-y-1">
@@ -264,7 +264,7 @@ export default function MembershipPage() {
   return (
     <>
       <Head>
-        <title>Mi membresía | BInAI Akdm-ia</title>
+        <title>Mi membresía | Akdemia by BInAI</title>
       </Head>
       <main className="container-mobile space-y-6 pb-24 pt-6">
         <header className="space-y-1">
@@ -278,3 +278,4 @@ export default function MembershipPage() {
     </>
   );
 }
+

@@ -1,6 +1,6 @@
-// types/database.ts
+﻿// types/database.ts
 // -----------------------------------------------------------------------------
-// Supabase types for BInAI Akdēmia (subset used by the admin panel).
+// Supabase types for Akdēmia by BInAI
 // Includes instructors, class types, rooms, apparatus and related pivots.
 // -----------------------------------------------------------------------------
 
@@ -228,7 +228,7 @@ export type Database = {
       }
 
       // -----------------------------
-      //  TIPOS DE MEMBRESÍA
+      //  TIPOS DE MEMBRESÃA
       // -----------------------------
       membership_types: {
         Row: {
@@ -335,7 +335,7 @@ export type Database = {
       }
 
       // ----------------------------------------------------
-      //  DISPONIBILIDAD TÍPICA DE INSTRUCTORES
+      //  DISPONIBILIDAD TÃPICA DE INSTRUCTORES
       // ----------------------------------------------------
       instructor_weekly_availability: {
         Row: {
@@ -377,7 +377,7 @@ export type Database = {
       }
 
       // ----------------------------------------------------
-      //  SEMANAS ATÍPICAS (cabecera)
+      //  SEMANAS ATÃPICAS (cabecera)
       // ----------------------------------------------------
       instructor_week_overrides: {
         Row: {
@@ -419,7 +419,7 @@ export type Database = {
       }
 
       // ----------------------------------------------------
-      //  SEMANAS ATÍPICAS (rangos por día)
+      //  SEMANAS ATÃPICAS (rangos por dÃ­a)
       // ----------------------------------------------------
       instructor_week_override_slots: {
         Row: {
@@ -827,7 +827,7 @@ export type Database = {
       }
 
       // -----------------------------
-      //  MEMBRESÍAS
+      //  MEMBRESÃAS
       // -----------------------------
       memberships: {
         Row: {
@@ -1439,4 +1439,5 @@ export type TablesUpdate<
 export type Enums<
   T extends keyof PublicSchema["Enums"] & string
 > = PublicSchema["Enums"][T]
+
 

@@ -1,4 +1,4 @@
-Ôªøimport { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
 import Image from "next/image";
@@ -85,7 +85,7 @@ type PlansResponse = {
 type ScreenState =
   | { status: "loading" }
   | { status: "ready"; data: PlansResponse }
-  | { status: "error"; m√°ssage: string };
+  | { status: "error"; message: string };
 
 export default function PlansPage() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function PlansPage() {
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "cancelled"; m√°ssage: string } | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "cancelled"; message: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,18 +102,18 @@ export default function PlansPage() {
       .then(async (response) => {
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          const m√°ssage = typeof payload?.error === "string" ? payload.error : "No se pudo obtener la informacion";
-          throw new Error(m√°ssage);
+          const message = typeof payload?.error === "string" ? payload.error : "No se pudo obtener la informacion";
+          throw new Error(message);
         }
-        return response.json() as Prom√°se<PlansResponse>;
+        return response.json() as Promise<PlansResponse>;
       })
       .then((data) => {
         setState({ status: "ready", data });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const m√°ssage = error instanceof Error ? error.m√°ssage : "No se pudo consultar los planes";
-        setState({ status: "error", m√°ssage });
+        const message = error instanceof Error ? error.message : "No se pudo consultar los planes";
+        setState({ status: "error", message });
       });
 
     return () => controller.abort();
@@ -131,12 +131,12 @@ export default function PlansPage() {
       setCheckoutError(null);
       setStatusBanner({
         type: "success",
-        m√°ssage: "Pago completado. Actualizarem√°s tus bonos en cuanto confirmem√°s el movimiento.",
+        message: "Pago completado. Actualizarem·s tus bonos en cuanto confirmem·s el movimiento.",
       });
     } else if (statusValue === "cancelled") {
       setStatusBanner({
         type: "cancelled",
-        m√°ssage: "Pago cancelado. Puedes intentarlo de nuevo cuando lo decidas.",
+        message: "Pago cancelado. Puedes intentarlo de nuevo cuando lo decidas.",
       });
     } else {
       setStatusBanner(null);
@@ -201,8 +201,8 @@ export default function PlansPage() {
 
       window.location.href = payload.url;
     } catch (error) {
-      const m√°ssage = error instanceof Error ? error.m√°ssage : "No se pudo iniciar el pago";
-      setCheckoutError(m√°ssage);
+      const message = error instanceof Error ? error.message : "No se pudo iniciar el pago";
+      setCheckoutError(message);
     } finally {
       setCheckoutLoading(null);
     }
@@ -213,7 +213,7 @@ export default function PlansPage() {
   return (
     <>
       <Head>
-        <title>Tarifas y Bonos | BInAI Akdemia</title>
+        <title>Tarifas y Bonos | Akdemia by BInAI</title>
       </Head>
 
       <section className="mx-auto max-w-md space-y-6">
@@ -232,7 +232,7 @@ export default function PlansPage() {
                 : "border-amber-200 bg-amber-50 text-amber-800"
             }`}
           >
-            <p className="font-medium">{statusBanner.m√°ssage}</p>
+            <p className="font-medium">{statusBanner.message}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <button
                 type="button"
@@ -270,7 +270,7 @@ export default function PlansPage() {
 
         {state.status === "error" && (
           <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {state.m√°ssage}
+            {state.message}
           </div>
         )}
 
@@ -300,17 +300,17 @@ export default function PlansPage() {
                     <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-600 font-medium">Categor√≠a</dt>
-                    <dd>{activePlan.category ?? "Sin Categor√≠a"}</dd>
+                    <dt className="text-brand-600 font-medium">CategorÌa</dt>
+                    <dd>{activePlan.category ?? "Sin CategorÌa"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu tarifa actual, contacta a recepci√≥n para recibir apoyo.
+                  Si necesitas ajustar tu tarifa actual, contacta a recepciÛn para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">A√∫n no tienes una tarifa activa</h2>
+                <h2 className="text-base font-semibold text-brand-800">A˙n no tienes una tarifa activa</h2>
                 <p className="mt-1 text-sm text-neutral-600">
                   Elige uno de los paquetes flexibles para reservar sesiones y asegurar tu lugar en clase.
                 </p>
@@ -341,20 +341,20 @@ export default function PlansPage() {
                       <dd>
                         {plan.validityDays && plan.validityDays > 0
                           ? `${plan.validityDays} dias`
-                          : "Seg√∫n condiciones del plan"}
+                          : "Seg˙n condiciones del plan"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Categor√≠a</dt>
-                      <dd>{plan.category ?? "Sin Categor√≠a"}</dd>
+                      <dt className="font-medium text-neutral-500">CategorÌa</dt>
+                      <dd>{plan.category ?? "Sin CategorÌa"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
-                      <dd>{plan.appOnly ? "Solo app" : "App y recepci√≥n"}</dd>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepciÛn"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Requisito</dt>
-                      <dd>{plan.requiresMembership ? "Restricci√≥n activa" : "Sin Restricci√≥nes"}</dd>
+                      <dd>{plan.requiresMembership ? "RestricciÛn activa" : "Sin RestricciÛnes"}</dd>
                     </div>
                   </dl>
 
@@ -383,8 +383,8 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Algunas tarifas est√°n restringidas temporalmente."
-                    : "No hay tarifas disponibles en este momento. Consulta m√°s tarde o contacta a recepci√≥n."}
+                    ? "Algunas tarifas est·n restringidas temporalmente."
+                    : "No hay tarifas disponibles en este momento. Consulta m·s tarde o contacta a recepciÛn."}
                 </p>
               )}
 
@@ -397,7 +397,7 @@ export default function PlansPage() {
 
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
               <p>
-                Los pagos en efectivo o transferencia deben confirmarse con recepci√≥n para activar tu plan. Si realizas la compra en la app, te enviarem√°s un correo con el comprobante una vez Stripe confirme el pago.
+                Los pagos en efectivo o transferencia deben confirmarse con recepciÛn para activar tu plan. Si realizas la compra en la app, te enviarem·s un correo con el comprobante una vez Stripe confirme el pago.
               </p>
             </section>
           </div>
@@ -425,6 +425,7 @@ function MobileFooterAttribution() {
     </div>
   );
 }
+
 
 
 

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { signIn } from "next-auth/react";
@@ -20,9 +20,7 @@ export default function MobileLoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const redirectTarget =
-    typeof router.query.redirectTo === "string"
-      ? router.query.redirectTo
-      : "/schedule";
+    typeof router.query.redirectTo === "string" ? router.query.redirectTo : "/schedule";
 
   useEffect(() => {
     if (!loading && user) {
@@ -49,14 +47,12 @@ export default function MobileLoginPage() {
         setSubmitting(false);
       }
     } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "No se pudo iniciar sesiA3n con Google";
+      const message = error instanceof Error ? error.message : "No se pudo iniciar sesion con Google";
       setFormError(message);
       setSubmitting(false);
     }
   };
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submitting) return;
@@ -65,7 +61,7 @@ export default function MobileLoginPage() {
     setPasswordTouched(true);
 
     if (!passwordIsValid) {
-      setFormError("Revisa los requisitos de la contraseña antes de continuar.");
+      setFormError("Revisa los requisitos de la contrasena antes de continuar.");
       setSubmitting(false);
       return;
     }
@@ -86,8 +82,7 @@ export default function MobileLoginPage() {
       await refreshSession();
       await router.replace(redirectTarget);
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesión";
+      const message = error instanceof Error ? error.message : "No se pudo iniciar sesion";
       setFormError(message);
       setSubmitting(false);
     }
@@ -96,7 +91,7 @@ export default function MobileLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesión | BInAI Akdēmia</title>
+        <title>Iniciar sesion | Akdemia by BInAI</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -104,15 +99,13 @@ export default function MobileLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
-              alt="BInAI Akdēmia"
+              alt="Akdemia by BInAI"
               width={200}
               height={70}
               className="h-14 w-auto"
             />
             <h1 className="text-2xl font-bold text-neutral-900">Acceso Miembros</h1>
-            <p className="text-sm text-neutral-500">
-              Accede para reservar y gestionar tus clases.
-            </p>
+            <p className="text-sm text-neutral-500">Accede para reservar y gestionar tus clases.</p>
           </div>
 
           <div className="space-y-3">
@@ -126,20 +119,15 @@ export default function MobileLoginPage() {
             </button>
             <div className="flex items-center gap-3">
               <span className="h-px flex-1 bg-neutral-200" />
-              <span className="text-[11px] uppercase tracking-wide text-neutral-400">
-                o ingresa con email
-              </span>
+              <span className="text-[11px] uppercase tracking-wide text-neutral-400">o ingresa con email</span>
               <span className="h-px flex-1 bg-neutral-200" />
             </div>
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-1">
-              <label
-                className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
-                htmlFor="email"
-              >
-                Correo electrónico
+              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500" htmlFor="email">
+                Correo electronico
               </label>
               <input
                 id="email"
@@ -154,11 +142,8 @@ export default function MobileLoginPage() {
             </div>
 
             <div className="space-y-1">
-              <label
-                className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
-                htmlFor="password"
-              >
-                Contraseña
+              <label className="text-xs font-semibold uppercase tracking-wide text-neutral-500" htmlFor="password">
+                Contrasena
               </label>
               <div className="relative">
                 <input
@@ -176,7 +161,7 @@ export default function MobileLoginPage() {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-400 transition hover:text-neutral-600"
-                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  aria-label={showPassword ? "Ocultar contrasena" : "Mostrar contrasena"}
                 >
                   <span className="material-icons-outlined text-base">
                     {showPassword ? "visibility_off" : "visibility"}
@@ -186,7 +171,7 @@ export default function MobileLoginPage() {
               <p className="text-xs text-neutral-500">{PASSWORD_REQUIREMENT_SUMMARY}</p>
               {passwordTouched && !passwordIsValid && (
                 <p className="text-xs text-rose-600">
-                  Revisa los requisitos de la contraseña antes de continuar.
+                  Revisa los requisitos de la contrasena antes de continuar.
                 </p>
               )}
             </div>
@@ -212,5 +197,3 @@ export default function MobileLoginPage() {
 }
 
 MobileLoginPage.publicPage = true;
-
-

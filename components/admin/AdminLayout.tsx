@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -62,17 +62,17 @@ const NAVIGATION: NavItem[] = [
       { type: "link", key: "classTypes", label: "Clases", icon: "category", href: "/class-types" },
       { type: "link", key: "courses", label: "Horarios", icon: "school", href: "/courses" },
       { type: "link", key: "courseScheduler", label: "Programador", icon: "calendar_view_week", href: "/courses/scheduler" },
-      { type: "link", key: "classes", label: "Sesiónes", icon: "event", href: "/classes" },
+      { type: "link", key: "classes", label: "Sesiones", icon: "event", href: "/classes" },
     ],
   },
   {
     type: "group",
     key: "memberships",
-    label: "Membresías",
+    label: "Membresias",
     icon: "card_membership",
     children: [
       { type: "link", key: "members", label: "Miembros", icon: "people", href: "/members" },
-      { type: "link", key: "membershipTypes", label: "Tipos de membresía", icon: "badge", href: "/membership-types" },
+      { type: "link", key: "membershipTypes", label: "Tipos de membresia", icon: "badge", href: "/membership-types" },
       { type: "link", key: "membershipPlans", label: "Planes", icon: "workspace_premium", href: "/memberships" },
     ],
   },
@@ -266,10 +266,10 @@ export default function AdminLayout({
 
   const BrandBlock = () => (
     <div className="flex items-center gap-3">
-      <Img src="/logo.png" alt="BInAI Akdēmia" width={160} height={40} className="h-10 w-auto" />
+      <Img src="/logo.png" alt="Akdemia by BInAI" width={96} height={32} className="h-8 w-auto" />
       <div className="leading-tight text-brand-50">
-        <p className="text-sm font-semibold text-brand-50">BInAI Akdēmia</p>
-        <p className="text-xs uppercase tracking-wide text-brand-200">Pro·Fitness</p>
+        <p className="text-sm font-semibold text-brand-50">Akdemia by BInAI</p>
+        <p className="text-xs uppercase tracking-wide text-brand-200">Pro Fitness</p>
       </div>
     </div>
   );
@@ -291,7 +291,7 @@ export default function AdminLayout({
           className="text-[11px] font-medium text-brand-700 hover:text-brand-800"
           disabled={profileLoading}
         >
-          Cerrar sesión
+          Cerrar sesion
         </button>
       </div>
     </div>
@@ -369,4 +369,3 @@ export default function AdminLayout({
     </div>
   );
 }
-

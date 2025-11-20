@@ -316,7 +316,7 @@ export default function StudioSettingsPage({
 
       <Head>
 
-        <title>Configuracion de recursos | BInAI Akdēmia</title>
+        <title>Configuracion de recursos | Akdemia by BInAI</title>
 
       </Head>
 

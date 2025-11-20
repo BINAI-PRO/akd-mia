@@ -246,7 +246,7 @@ export default function InstructorDashboardPage() {
   return (
     <>
       <Head>
-        <title>App de instructor | BInAI Akdēmia</title>
+        <title>App de instructor | Akdemia by BInAI</title>
       </Head>
       <AdminLayout
         title="App de instructor"
@@ -319,3 +319,4 @@ export default function InstructorDashboardPage() {
     </>
   );
 }
+

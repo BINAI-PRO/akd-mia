@@ -313,7 +313,7 @@ export default function StaffManagementPage({
   return (
     <AdminLayout title="Administrar staff" active="planningStaff" featureKey="planningStaff">
       <Head>
-        <title>Equipo | BInAI Akdēmia Admin</title>
+        <title>Equipo | Akdemia by BInAI</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
@@ -478,4 +478,5 @@ export default function StaffManagementPage({
     </AdminLayout>
   );
 }
+
 

@@ -423,7 +423,7 @@ export default function MyReservationsPage() {
   return (
     <>
       <Head>
-        <title>Mis reservas | BInAI Akdemia</title>
+        <title>Mis reservas | Akdemia by BInAI</title>
       </Head>
       <main className="container-mobile space-y-6 py-6">
         <div className="flex items-center justify-between">
@@ -442,5 +442,6 @@ export default function MyReservationsPage() {
     </>
   );
 }
+
 
 
