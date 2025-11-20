@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
 import Image from "next/image";
@@ -85,7 +85,7 @@ type PlansResponse = {
 type ScreenState =
   | { status: "loading" }
   | { status: "ready"; data: PlansResponse }
-  | { status: "error"; message: string };
+  | { status: "error"; mássage: string };
 
 export default function PlansPage() {
   const router = useRouter();
@@ -93,7 +93,7 @@ export default function PlansPage() {
   const [state, setState] = useState<ScreenState>({ status: "loading" });
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "cancelled"; message: string } | null>(null);
+  const [statusBanner, setStatusBanner] = useState<{ type: "success" | "cancelled"; mássage: string } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -102,18 +102,18 @@ export default function PlansPage() {
       .then(async (response) => {
         if (!response.ok) {
           const payload = await response.json().catch(() => ({}));
-          const message = typeof payload?.error === "string" ? payload.error : "No se pudo obtener la informacion";
-          throw new Error(message);
+          const mássage = typeof payload?.error === "string" ? payload.error : "No se pudo obtener la informacion";
+          throw new Error(mássage);
         }
-        return response.json() as Promise<PlansResponse>;
+        return response.json() as Promáse<PlansResponse>;
       })
       .then((data) => {
         setState({ status: "ready", data });
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        const message = error instanceof Error ? error.message : "No se pudo consultar los planes";
-        setState({ status: "error", message });
+        const mássage = error instanceof Error ? error.mássage : "No se pudo consultar los planes";
+        setState({ status: "error", mássage });
       });
 
     return () => controller.abort();
@@ -131,12 +131,12 @@ export default function PlansPage() {
       setCheckoutError(null);
       setStatusBanner({
         type: "success",
-        message: "Pago completado. Actualizaremos tus bonos en cuanto confirmemos el movimiento.",
+        mássage: "Pago completado. Actualizaremás tus bonos en cuanto confirmemás el movimiento.",
       });
     } else if (statusValue === "cancelled") {
       setStatusBanner({
         type: "cancelled",
-        message: "Pago cancelado. Puedes intentarlo de nuevo cuando lo decidas.",
+        mássage: "Pago cancelado. Puedes intentarlo de nuevo cuando lo decidas.",
       });
     } else {
       setStatusBanner(null);
@@ -201,8 +201,8 @@ export default function PlansPage() {
 
       window.location.href = payload.url;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo iniciar el pago";
-      setCheckoutError(message);
+      const mássage = error instanceof Error ? error.mássage : "No se pudo iniciar el pago";
+      setCheckoutError(mássage);
     } finally {
       setCheckoutLoading(null);
     }
@@ -232,7 +232,7 @@ export default function PlansPage() {
                 : "border-amber-200 bg-amber-50 text-amber-800"
             }`}
           >
-            <p className="font-medium">{statusBanner.message}</p>
+            <p className="font-medium">{statusBanner.mássage}</p>
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               <button
                 type="button"
@@ -270,7 +270,7 @@ export default function PlansPage() {
 
         {state.status === "error" && (
           <div className="rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-            {state.message}
+            {state.mássage}
           </div>
         )}
 
@@ -300,19 +300,19 @@ export default function PlansPage() {
                     <dd>{activePlan.isUnlimited ? "Ilimitado" : activePlan.remainingClasses ?? 0}</dd>
                   </div>
                   <div>
-                    <dt className="text-brand-600 font-medium">Categor�a</dt>
-                    <dd>{activePlan.category ?? "Sin categor�a"}</dd>
+                    <dt className="text-brand-600 font-medium">Categoría</dt>
+                    <dd>{activePlan.category ?? "Sin Categoría"}</dd>
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu tarifa actual, contacta a recepci�n para recibir apoyo.
+                  Si necesitas ajustar tu tarifa actual, contacta a recepción para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Aun no tienes una tarifa activa</h2>
+                <h2 className="text-base font-semibold text-brand-800">Aún no tienes una tarifa activa</h2>
                 <p className="mt-1 text-sm text-neutral-600">
-                  Elige uno de los paquetes flexibles para reservar sesi�nes y asegurar tu lugar en clase.
+                  Elige uno de los paquetes flexibles para reservar sesiones y asegurar tu lugar en clase.
                 </p>
               </section>
             )}
@@ -333,7 +333,7 @@ export default function PlansPage() {
 
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-xs text-neutral-600 md:grid-cols-5">
                     <div>
-                      <dt className="font-medium text-neutral-500">Sesi�nes</dt>
+                      <dt className="font-medium text-neutral-500">sesiones</dt>
                       <dd>{plan.isUnlimited ? "Ilimitado" : (plan.classCount ?? 0)}</dd>
                     </div>
                     <div>
@@ -341,20 +341,20 @@ export default function PlansPage() {
                       <dd>
                         {plan.validityDays && plan.validityDays > 0
                           ? `${plan.validityDays} dias`
-                          : "Segun condiciones del plan"}
+                          : "Según condiciones del plan"}
                       </dd>
                     </div>
                     <div>
-                      <dt className="font-medium text-neutral-500">Categor�a</dt>
-                      <dd>{plan.category ?? "Sin categor�a"}</dd>
+                      <dt className="font-medium text-neutral-500">Categoría</dt>
+                      <dd>{plan.category ?? "Sin Categoría"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Reservas</dt>
-                      <dd>{plan.appOnly ? "Solo app" : "App y recepci�n"}</dd>
+                      <dd>{plan.appOnly ? "Solo app" : "App y recepción"}</dd>
                     </div>
                     <div>
                       <dt className="font-medium text-neutral-500">Requisito</dt>
-                      <dd>{plan.requiresMembership ? "Restricci�n activa" : "Sin restricciones"}</dd>
+                      <dd>{plan.requiresMembership ? "Restricción activa" : "Sin Restricciónes"}</dd>
                     </div>
                   </dl>
 
@@ -383,8 +383,8 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Algunas tarifas est�n restringidas temporalmente."
-                    : "No hay tarifas disponibles en este momento. Consulta m�s tarde o contacta a recepci�n."}
+                    ? "Algunas tarifas están restringidas temporalmente."
+                    : "No hay tarifas disponibles en este momento. Consulta más tarde o contacta a recepción."}
                 </p>
               )}
 
@@ -397,7 +397,7 @@ export default function PlansPage() {
 
             <section className="rounded-2xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-xs text-neutral-600">
               <p>
-                Los pagos en efectivo o transferencia deben confirmarse con recepci�n para activar tu plan. Si realizas la compra en la app, te enviaremos un correo con el comprobante una vez Stripe confirme el pago.
+                Los pagos en efectivo o transferencia deben confirmarse con recepción para activar tu plan. Si realizas la compra en la app, te enviaremás un correo con el comprobante una vez Stripe confirme el pago.
               </p>
             </section>
           </div>
@@ -425,6 +425,11 @@ function MobileFooterAttribution() {
     </div>
   );
 }
+
+
+
+
+
 
 
 
