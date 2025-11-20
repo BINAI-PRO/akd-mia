@@ -511,7 +511,6 @@ type PlanFormState = {
       <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notifications">
         <span className="material-icons-outlined text-slate-500">notifications</span>
       </button>
-      <div className="h-9 w-9 rounded-full bg-slate-200" />
     </div>
   );
 

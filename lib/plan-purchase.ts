@@ -250,14 +250,17 @@ export async function preparePlanPurchase(payload: PlanPurchasePayload): Promise
     expiresAt = startReference.startOf("day").add(planType.validity_days, "day").format("YYYY-MM-DD");
   }
 
-  const initialClasses =
-    planType.class_count === null ? null : Number(planType.class_count ?? 0);
-  if (initialClasses !== null) {
+  const isUnlimited = planType.class_count === null;
+  const initialClasses = isUnlimited ? 0 : Number(planType.class_count ?? 0);
+  if (!isUnlimited) {
     if (!Number.isFinite(initialClasses) || initialClasses <= 0) {
       throw Object.assign(new Error("El plan seleccionado no tiene clases configuradas"), { status: 400 });
     }
-  } else if (modality === "FIXED") {
-    throw Object.assign(new Error("Los planes fijos requieren una cantidad de clases"), { status: 400 });
+  }
+  if (modality === "FIXED") {
+    if (isUnlimited) {
+      throw Object.assign(new Error("Los planes fijos requieren una cantidad de clases"), { status: 400 });
+    }
   }
 
   return {
