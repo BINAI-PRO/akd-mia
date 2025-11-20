@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import Head from "next/head";
 import dayjs from "dayjs";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -185,7 +185,7 @@ export default function InstructorDashboardPage() {
                   <h3 className="text-base font-semibold text-slate-900">{session.classType}</h3>
                   <p className="text-sm text-slate-600">
                     {dayjs(session.startTime).format("DD MMM HH:mm")} -{" "}
-                    {dayjs(session.endTime).format("HH:mm")} · {session.room}
+                    {dayjs(session.endTime).format("HH:mm")} Â· {session.room}
                   </p>
                 </div>
                 <div className="text-xs text-slate-500">
@@ -196,7 +196,7 @@ export default function InstructorDashboardPage() {
               <div className="mt-3 text-sm text-slate-600">
                 <p className="font-semibold text-slate-800">Participantes</p>
                 {session.attendees.length === 0 ? (
-                  <p className="text-xs text-slate-500">A�n no hay asistentes confirmados.</p>
+                  <p className="text-xs text-slate-500">Aï¿½n no hay asistentes confirmados.</p>
                 ) : (
                   <ul className="mt-1 flex flex-wrap gap-2 text-xs">
                     {session.attendees.map((attendee) => (
@@ -246,7 +246,7 @@ export default function InstructorDashboardPage() {
   return (
     <>
       <Head>
-        <title>App de instructor | Akdemia by BInAI</title>
+        <title>App de instructor | Akdēmia</title>
       </Head>
       <AdminLayout
         title="App de instructor"
@@ -259,7 +259,7 @@ export default function InstructorDashboardPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Mis sesiones</h2>
-                <p className="text-sm text-slate-500">Consulta tu agenda del d�a y registra tu llegada.</p>
+                <p className="text-sm text-slate-500">Consulta tu agenda del dï¿½a y registra tu llegada.</p>
               </div>
               <label className="text-sm text-slate-600">
                 Fecha
@@ -319,4 +319,5 @@ export default function InstructorDashboardPage() {
     </>
   );
 }
+
 

@@ -1,4 +1,4 @@
-import Head from "next/head";
+ï»¿import Head from "next/head";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -306,7 +306,7 @@ export default function AdminClassesPage({
   const handleCreateSingleSession = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (readOnly) {
-      setSingleError("Tu rol no puede programar sesiónes individuales.");
+      setSingleError("Tu rol no puede programar sesi=nes individuales.");
       return;
     }
     setSingleError(null);
@@ -358,7 +358,7 @@ export default function AdminClassesPage({
 
       const body = await response.json();
       if (!response.ok) {
-        throw new Error(body?.error ?? 'No se pudo crear la sesión 1:1');
+        throw new Error(body?.error ?? 'No se pudo crear la sesi=n 1:1');
       }
 
       const created = body.session as SessionQueryRow;
@@ -369,7 +369,7 @@ export default function AdminClassesPage({
       const newRow: ClassRow = {
         id: created.id,
         courseId: created.course_id ?? null,
-        courseTitle: created.courses?.title ?? "Sesión 1:1",
+        courseTitle: created.courses?.title ?? "Sesi=n 1:1",
         className: created.class_types?.name ?? 'Clase',
         classTypeId: created.class_type_id ?? null,
         instructorId: created.instructors?.id ?? null,
@@ -389,7 +389,7 @@ export default function AdminClassesPage({
       setActiveClassId(created.id);
       closeSingleModal();
     } catch (error) {
-      setSingleError(error instanceof Error ? error.message : 'No se pudo crear la sesión 1:1');
+      setSingleError(error instanceof Error ? error.message : 'No se pudo crear la sesi=n 1:1');
     } finally {
       setSingleSubmitting(false);
     }
@@ -405,7 +405,7 @@ export default function AdminClassesPage({
   const handleDetailSave = async () => {
     if (!activeClass || !detailState) return;
     if (readOnly) {
-      setDetailError("Tu rol no tiene permisos para actualizar la sesión.");
+      setDetailError("Tu rol no tiene permisos para actualizar la sesi=n.");
       return;
     }
     setUpdatingDetail(true);
@@ -432,7 +432,7 @@ export default function AdminClassesPage({
 
       const body = await response.json();
       if (!response.ok) {
-      throw new Error(body?.error ?? "No se pudo actualizar la sesión");
+      throw new Error(body?.error ?? "No se pudo actualizar la sesi=n");
       }
 
       const updated = body.session as SessionQueryRow;
@@ -460,9 +460,9 @@ export default function AdminClassesPage({
         )
       );
 
-      setDetailMessage(body?.message ?? "Sesión actualizada");
+      setDetailMessage(body?.message ?? "Sesi=n actualizada");
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : "Error al actualizar la sesión");
+      setDetailError(error instanceof Error ? error.message : "Error al actualizar la sesi=n");
     } finally {
       setUpdatingDetail(false);
     }
@@ -527,13 +527,13 @@ export default function AdminClassesPage({
 
   const handleBulkReschedule = async () => {
     if (readOnly) {
-      setBulkError("Tu rol no puede enviar sesiones a reprogramación.");
+      setBulkError("Tu rol no puede enviar sesiones a reprogramaci=n.");
       return;
     }
     setBulkError(null);
     setBulkMessage(null);
     if (selectedIds.size === 0) return;
-    if (!globalThis.confirm("¿Seguro que deseas enviar estas sesiones a reprogramación? Esta acción las eliminará.")) {
+    if (!globalThis.confirm("+Seguro que deseas enviar estas sesiones a reprogramaci=n? Esta acci=n las eliminarÃŸ.")) {
       return;
     }
 
@@ -557,7 +557,7 @@ export default function AdminClassesPage({
         setActiveClassId(null);
       }
       clearSelection();
-      setBulkMessage(body?.message ?? "Sesiones enviadas a reprogramación");
+      setBulkMessage(body?.message ?? "Sesiones enviadas a reprogramaci=n");
     } catch (error) {
       setBulkError(error instanceof Error ? error.message : "No se pudieron reprogramar las sesiones");
     } finally {
@@ -580,11 +580,11 @@ export default function AdminClassesPage({
   return (
     <AdminLayout title="Sesiones" active="classes" featureKey="classes">
       <Head>
-        <title>Akdemia by BInAI</title>
+        <title>AkdÄ“mia</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Tu rol tiene acceso de solo lectura en esta sección. Puedes consultar las sesiónes pero no crear ni editar.
+          Tu rol tiene acceso de solo lectura en esta secci=n. Puedes consultar las sesi=nes pero no crear ni editar.
         </div>
       )}
       {singleModalOpen && (
@@ -597,8 +597,8 @@ export default function AdminClassesPage({
           <div className="relative z-10 w-full max-w-lg rounded-xl bg-white p-6 shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 pb-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Programar sesión 1:1</h2>
-                <p className="text-xs text-slate-500">Crea una sesión individual sin vincularla a un horario.</p>
+                <h2 className="text-lg font-semibold text-slate-900">Programar sesi=n 1:1</h2>
+                <p className="text-xs text-slate-500">Crea una sesi=n individual sin vincularla a un horario.</p>
               </div>
               <button
                 type="button"
@@ -647,7 +647,7 @@ export default function AdminClassesPage({
                     </select>
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Salón</span>
+                    <span className="text-xs font-medium text-slate-600">Sal=n</span>
                     <select
                       value={singleForm.roomId}
                       onChange={handleSingleChange('roomId')}
@@ -683,7 +683,7 @@ export default function AdminClassesPage({
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-xs font-medium text-slate-600">Duración (minutos)</span>
+                    <span className="text-xs font-medium text-slate-600">Duraci=n (minutos)</span>
                     <input
                       type="number"
                       min={15}
@@ -707,7 +707,7 @@ export default function AdminClassesPage({
                   </label>
                 </div>
                 <p className="text-xs text-slate-500">
-                  Las sesiones 1:1 se crean sin horario asociado. Podrás gestionar reservas y ajustes desde esta misma pantalla.
+                  Las sesiones 1:1 se crean sin horario asociado. PodrÃŸs gestionar reservas y ajustes desde esta misma pantalla.
                 </p>
                 {singleError && (
                   <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-600">
@@ -730,13 +730,13 @@ export default function AdminClassesPage({
                     <span className="material-icons-outlined text-base" aria-hidden="true">
                       {singleSubmitting ? 'hourglass_top' : 'check_circle'}
                     </span>
-                    {singleSubmitting ? 'Guardando...' : 'Crear sesión'}
+                    {singleSubmitting ? 'Guardando...' : 'Crear sesi=n'}
                   </button>
                 </div>
               </form>
             ) : (
               <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-                Para programar una sesión 1:1 necesitas tener al menos un tipo de clase, un instructor y un salón registrados.
+                Para programar una sesi=n 1:1 necesitas tener al menos un tipo de clase, un instructor y un sal=n registrados.
               </div>
             )}
           </div>
@@ -847,7 +847,7 @@ export default function AdminClassesPage({
                     disabled={readOnly || bulkProcessing}
                     className="rounded-md border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                   >
-                    {bulkProcessing ? "Procesando..." : "Enviar a reprogramación"}
+                    {bulkProcessing ? "Procesando..." : "Enviar a reprogramaci=n"}
                   </button>
                 </div>
                 {(bulkError || bulkMessage) && (
@@ -883,7 +883,7 @@ export default function AdminClassesPage({
                       />
                     </th>
                     <th className="px-4 py-3">Curso</th>
-                    <th className="px-4 py-3">Sesión</th>
+                    <th className="px-4 py-3">Sesi=n</th>
                     <th className="px-4 py-3">Horario</th>
                     <th className="px-4 py-3">Cupo</th>
                     <th className="px-4 py-3">Estado</th>
@@ -956,7 +956,7 @@ export default function AdminClassesPage({
 
         <section className="space-y-4">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-xl font-semibold">Detalles de la sesión</h3>
+            <h3 className="text-xl font-semibold">Detalles de la sesi=n</h3>
             {activeClass && detailState ? (
               <div className="mt-4 space-y-4 text-sm">
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -1058,7 +1058,7 @@ export default function AdminClassesPage({
                 </button>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-500">Selecciona una sesión en el listado para editarla.</p>
+              <p className="mt-4 text-sm text-slate-500">Selecciona una sesi=n en el listado para editarla.</p>
             )}
           </div>
         </section>
@@ -1072,6 +1072,7 @@ export default function AdminClassesPage({
     </AdminLayout>
   );
 }
+
 
 
 

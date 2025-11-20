@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { useRouter } from "next/router";
 import Img from "@/components/Img";
 import { useAuth } from "@/components/auth/AuthContext";
@@ -33,13 +33,13 @@ export default function Header() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
-          alt="Akdemia by BInAI"
+          alt="Akdēmia"
           className="h-12 w-auto shrink-0"
           width={160}
           height={56}
         />
         <div className="min-w-0">
-          <h1 className="text-base font-semibold leading-none text-white">Akdemia by BInAI</h1>
+          <h1 className="text-base font-semibold leading-none text-white">Akdēmia</h1>
           <p className="text-xs leading-none text-brand-200">Pro Fitness</p>
         </div>
 
@@ -72,3 +72,4 @@ export default function Header() {
     </header>
   );
 }
+

@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+﻿import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 
 import Head from "next/head";
 
@@ -316,7 +316,7 @@ export default function StudioSettingsPage({
 
       <Head>
 
-        <title>Configuracion de recursos | Akdemia by BInAI</title>
+        <title>Configuracion de recursos | Akdēmia</title>
 
       </Head>
 
@@ -332,7 +332,7 @@ export default function StudioSettingsPage({
 
               <p className="text-sm text-slate-600">
 
-                Define la referencia que se utiliza para programar sesiónes, reservas y ventanas de cancelacion. Este valor
+                Define la referencia que se utiliza para programar sesiÃ³nes, reservas y ventanas de cancelacion. Este valor
 
                 se aplica en todas las instancias (admin, app y QR) sin conversiones adicionales.
 
@@ -412,7 +412,7 @@ export default function StudioSettingsPage({
 
                 <label htmlFor="phone-country" className="text-sm font-medium text-slate-800">
 
-                  País para validar teléfonos
+                  PaÃ­s para validar telÃ©fonos
 
                 </label>
 
@@ -428,17 +428,17 @@ export default function StudioSettingsPage({
 
                 >
 
-                  <option value="MX">México (+52)</option>
+                  <option value="MX">MÃ©xico (+52)</option>
 
-                  <option value="ES">España (+34)</option>
+                  <option value="ES">EspaÃ±a (+34)</option>
 
                 </select>
 
                 <p className="text-xs text-slate-500">
 
-                  Los registros nuevos y las apps aplicarán esta regla para exigir el formato correcto del número
+                  Los registros nuevos y las apps aplicarÃ¡n esta regla para exigir el formato correcto del nÃºmero
 
-                  telefónico.
+                  telefÃ³nico.
 
                 </p>
 
@@ -446,15 +446,15 @@ export default function StudioSettingsPage({
 
               <div className="space-y-2">
 
-                <span className="text-sm font-medium text-slate-800">Membresías en admin y app</span>
+                <span className="text-sm font-medium text-slate-800">MembresÃ­as en admin y app</span>
 
                 <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600 shadow-inner md:flex-row md:items-center md:justify-between">
 
                   <p className="max-w-2xl text-sm">
 
-                    Activa o desactiva el uso de membresías. Al desactivarlas se ocultarán las pantallas de administración,
+                    Activa o desactiva el uso de membresÃ­as. Al desactivarlas se ocultarÃ¡n las pantallas de administraciÃ³n,
 
-                    compra y gestión tanto en admin como en la app móvil.
+                    compra y gestiÃ³n tanto en admin como en la app mÃ³vil.
 
                   </p>
 
@@ -484,9 +484,9 @@ export default function StudioSettingsPage({
 
                   {membershipsEnabled
 
-                    ? "Se mostrarán todas las secciones relacionadas con membresías en admin y mobile."
+                    ? "Se mostrarÃ¡n todas las secciones relacionadas con membresÃ­as en admin y mobile."
 
-                    : "Se ocultarán las referencias a membresías en admin, mobile y flujos de compra."}
+                    : "Se ocultarÃ¡n las referencias a membresÃ­as en admin, mobile y flujos de compra."}
 
                 </p>
 
@@ -512,11 +512,11 @@ export default function StudioSettingsPage({
 
                 <p className="mt-1">
 
-                  Formato telefónico:{" "}
+                  Formato telefÃ³nico:{" "}
 
                   <span className="font-medium text-slate-900">
 
-                    {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
+                    {phoneCountry === "MX" ? "MÃ©xico (+52)" : "EspaÃ±a (+34)"}
 
                   </span>
 
@@ -524,7 +524,7 @@ export default function StudioSettingsPage({
 
                 <p className="mt-1 text-xs text-slate-500">
 
-                  El horario se aplica a todas las comparaciones (inicio de sesión, ventanas de reserva y cancelacion,
+                  El horario se aplica a todas las comparaciones (inicio de sesiÃ³n, ventanas de reserva y cancelacion,
 
                   etiquetas de clase pasada).
 
@@ -568,13 +568,13 @@ export default function StudioSettingsPage({
 
                       <span className="font-medium text-slate-700">{activeOffsetLabel ?? "Sin detectar"}</span>
 
-                      {"  •  "}
+                      {"  â€¢  "}
 
-                      Teléfono:{" "}
+                      TelÃ©fono:{" "}
 
                       <span className="font-medium text-slate-700">
 
-                        {phoneCountry === "MX" ? "México (+52)" : "España (+34)"}
+                        {phoneCountry === "MX" ? "MÃ©xico (+52)" : "EspaÃ±a (+34)"}
 
                       </span>
 
@@ -600,7 +600,7 @@ export default function StudioSettingsPage({
 
               <li>
 
-                El valor definido aqui se replica en todas las herramientas (sesiónes, reservas, QR, calendario, menu de
+                El valor definido aqui se replica en todas las herramientas (sesiÃ³nes, reservas, QR, calendario, menu de
 
                 inicio).
 
@@ -629,3 +629,4 @@ export default function StudioSettingsPage({
   );
 
 }
+

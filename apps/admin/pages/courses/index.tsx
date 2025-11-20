@@ -1,4 +1,4 @@
-import type { Tables } from "@/types/database";
+ï»¿import type { Tables } from "@/types/database";
 import Link from "next/link";
 import Head from "next/head";
 import Image from "next/image";
@@ -48,7 +48,7 @@ type CourseQueryRow = Tables<"courses"> & {
   rooms?: { id: string; name: string | null } | null;
 };
 
-// Nombres de propiedades en espaÃ±ol para la UI, mapeados desde snake_case de la DB
+// Nombres de propiedades en espa+Â¦ol para la UI, mapeados desde snake_case de la DB
 export type CourseRow = {
   id: string;
   title: string;
@@ -171,14 +171,14 @@ const FALLBACK_COURSE_LEVELS = [
   "Intermedio",
   "Avanzado",
   "Multinivel",
-  "Certificación",
+  "Certificaci=n",
 ];
 
 const FALLBACK_COURSE_CATEGORIES = [
   "Grupal",
   "Privada",
   "Semi-Privada",
-  "Promoción",
+  "Promoci=n",
   "Evento",
 ];
 
@@ -192,7 +192,7 @@ async function loadEnumOptions(enumName: string, fallback: string[]): Promise<st
       schema_name: "public",
     });
     if (error) throw error;
-    if (!Array.isArray(data)) throw new Error("Respuesta inválida");
+    if (!Array.isArray(data)) throw new Error("Respuesta invÃŸlida");
     const values = (data as string[])
       .map((value) => (typeof value === "string" ? value.trim() : ""))
       .filter((value) => value.length > 0);
@@ -484,7 +484,7 @@ export default function CoursesPage(
 
     try {
       const trimmedTitle = formState.title.trim();
-      if (!trimmedTitle) throw new Error("El título es obligatorio");
+      if (!trimmedTitle) throw new Error("El tftulo es obligatorio");
 
       const classTypeId = formState.classTypeId.trim();
       if (!classTypeId) throw new Error("Selecciona un tipo de horario");
@@ -496,18 +496,18 @@ export default function CoursesPage(
 
       const parsedSessionCount = Number(formState.sessionCount);
       if (!Number.isFinite(parsedSessionCount) || parsedSessionCount <= 0) {
-        throw new Error("La cantidad de sesiónes debe ser mayor a cero");
+        throw new Error("La cantidad de sesi=nes debe ser mayor a cero");
       }
 
       const parsedSessionDuration = Number(formState.sessionDurationMinutes);
       if (!Number.isFinite(parsedSessionDuration) || parsedSessionDuration <= 0) {
-        throw new Error("La duración por sesión debe ser mayor a cero");
+        throw new Error("La duraci=n por sesi=n debe ser mayor a cero");
       }
 
       const priceInput = formState.price.trim();
       const parsedPrice = priceInput.length === 0 ? null : Number(priceInput);
       if (parsedPrice !== null && !Number.isFinite(parsedPrice)) {
-        throw new Error("El precio debe ser un número válido");
+        throw new Error("El precio debe ser un nÂ·mero vÃŸlido");
       }
 
       const trimmedWindow = formState.bookingWindowDays.trim();
@@ -515,7 +515,7 @@ export default function CoursesPage(
       if (trimmedWindow.length > 0) {
         const parsedWindow = Number(trimmedWindow);
         if (!Number.isFinite(parsedWindow) || parsedWindow < 0) {
-          throw new Error("La ventana de reserva debe ser un número mayor o igual a cero");
+          throw new Error("La ventana de reserva debe ser un nÂ·mero mayor o igual a cero");
         }
         bookingWindowDays = Math.trunc(parsedWindow);
       }
@@ -525,7 +525,7 @@ export default function CoursesPage(
       if (trimmedCancellation.length > 0) {
         const parsedCancellation = Number(trimmedCancellation);
         if (!Number.isFinite(parsedCancellation) || parsedCancellation < 0) {
-          throw new Error("La ventana de cancelación debe ser un número mayor o igual a cero");
+          throw new Error("La ventana de cancelaci=n debe ser un nÂ·mero mayor o igual a cero");
         }
         cancellationWindowHours = Math.trunc(parsedCancellation);
       }
@@ -558,7 +558,7 @@ export default function CoursesPage(
         ? courses.find((course) => course.id === editingCourseId)
         : undefined;
       if (editingCourseId && existingCourse?.hasSessions) {
-        throw new Error("Este horario ya tiene sesiónes programadas y no se puede editar");
+        throw new Error("Este horario ya tiene sesi=nes programadas y no se puede editar");
       }
 
       const response = await fetch("/api/courses", {
@@ -626,7 +626,7 @@ export default function CoursesPage(
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Tu rol tiene acceso de solo lectura en esta sección. Puedes consultar los horarios pero no crear o editar
+          Tu rol tiene acceso de solo lectura en esta secci=n. Puedes consultar los horarios pero no crear o editar
           registros.
         </div>
       )}
@@ -675,7 +675,7 @@ export default function CoursesPage(
               <thead className="bg-slate-50 text-center text-xs font-medium uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="px-2 py-2 w-[20%] whitespace-wrap">Curso</th>
-                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Sesiónes</th>
+                  <th className="px-2 py-2 w-[16%] whitespace-wrap">Sesi=nes</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Precio</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Estado</th>
                   <th className="px-2 py-2 w-[16%] whitespace-wrap">Creado</th>
@@ -696,7 +696,7 @@ export default function CoursesPage(
                   filteredCourses.map((course) => {
                     const secondaryLines: string[] = [];
                     if (course.classTypeName) secondaryLines.push(course.classTypeName);
-                    const levelCategory = [course.Nivel, course.Categoria ?? "General"].filter(Boolean).join(" · ");
+                    const levelCategory = [course.Nivel, course.Categoria ?? "General"].filter(Boolean).join(" + ");
                     if (levelCategory) secondaryLines.push(levelCategory);
                     if (course.defaultRoomName) secondaryLines.push(`Sala ${course.defaultRoomName}`);
                     if (course.leadInstructorName) secondaryLines.push(`Instructor ${course.leadInstructorName}`);
@@ -738,9 +738,9 @@ export default function CoursesPage(
                         </td>
                         <td className="px-4 py-4 align-top text-sm text-slate-700">
                           <div className="leading-tight">
-                            <div>{course.sessionCount} sesiónes</div>
+                            <div>{course.sessionCount} sesi=nes</div>
                             <div className="text-xs text-slate-500">
-                              {"×"} {course.sessionDurationMinutes} min
+                              {"+"} {course.sessionDurationMinutes} min
                             </div>
                           </div>
                         </td>
@@ -765,7 +765,7 @@ export default function CoursesPage(
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
                             title={
                               course.hasSessions
-                                ? "No disponible: ya tiene sesiónes programadas"
+                                ? "No disponible: ya tiene sesi=nes programadas"
                                 : "Editar horario"
                             }
                           >
@@ -810,7 +810,7 @@ export default function CoursesPage(
               <fieldset disabled={readOnly || saving} className="space-y-4 text-sm">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                  {"Título"}
+                  {"Tftulo"}
                 </label>
                 <input
                   value={formState.title}
@@ -822,7 +822,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                {"Descripción corta"}
+                {"Descripci=n corta"}
                 </label>
                 <input
                   value={formState.shortDescription}
@@ -834,7 +834,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                {"Descripción"}
+                {"Descripci=n"}
                 </label>
                 <textarea
                   value={formState.description}
@@ -903,7 +903,7 @@ export default function CoursesPage(
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    Sesiónes totales
+                    Sesi=nes totales
                   </label>
                   <input
                     type="number"
@@ -915,7 +915,7 @@ export default function CoursesPage(
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700">
-                    {"Minutos por sesión"}
+                    {"Minutos por sesi=n"}
                   </label>
                   <input
                     type="number"
@@ -929,7 +929,7 @@ export default function CoursesPage(
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Ventana de reserva (días)
+                  Ventana de reserva (dfas)
                 </label>
                 <input
                   type="number"
@@ -940,13 +940,13 @@ export default function CoursesPage(
                   placeholder="7"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Define cuántos días antes de cada sesión se puede reservar. Deja el campo vacío para permitir reservas sin límite.
+                  Define cuÃŸntos dfas antes de cada sesi=n se puede reservar. Deja el campo vacfo para permitir reservas sin lfmite.
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700">
-                  Ventana de cancelación (horas)
+                  Ventana de cancelaci=n (horas)
                 </label>
                 <input
                   type="number"
@@ -957,7 +957,7 @@ export default function CoursesPage(
                   placeholder="24"
                 />
                 <p className="mt-1 text-xs text-slate-500">
-                  Tiempo mínimo de antelación para cancelar sin penalización. Deja el campo vacío para usar el valor predeterminado.
+                  Tiempo mfnimo de antelaci=n para cancelar sin penalizaci=n. Deja el campo vacfo para usar el valor predeterminado.
                 </p>
               </div>
 
@@ -1043,7 +1043,7 @@ export default function CoursesPage(
                         onChange={handleFormChange("visibility")}
                         className="h-4 w-4"
                       />
-                      {"Público"}
+                      {"PÂ·blico"}
                     </label>
                     <label className="flex items-center gap-2">
                       <input
@@ -1135,4 +1135,5 @@ function CourseEstadoBadge({ Estado }: { Estado: CourseEstado }) {
     </span>
   );
 }
+
 

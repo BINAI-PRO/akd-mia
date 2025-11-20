@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 
 type Section = {
   title: string;
@@ -7,33 +7,33 @@ type Section = {
 
 const SECTIONS: Section[] = [
   {
-    title: "1. Qué información recopilamos",
+    title: "1. QuÃ© informaciÃ³n recopilamos",
     paragraphs: [
-      "Solo pedimos los datos necesarios para crear tu cuenta, autenticarte y gestionar tus reservas (nombre, email, teléfono, métodos de pago autorizados y registros de asistencia).",
+      "Solo pedimos los datos necesarios para crear tu cuenta, autenticarte y gestionar tus reservas (nombre, email, telÃ©fono, mÃ©todos de pago autorizados y registros de asistencia).",
     ],
   },
   {
-    title: "2. Cómo usamos tus datos",
+    title: "2. CÃ³mo usamos tus datos",
     paragraphs: [
-      "Utilizamos la información para verificar tu identidad, mostrarte horarios personalizados, enviar recordatorios y cumplir obligaciones de facturación cuando corresponde.",
+      "Utilizamos la informaciÃ³n para verificar tu identidad, mostrarte horarios personalizados, enviar recordatorios y cumplir obligaciones de facturaciÃ³n cuando corresponde.",
     ],
   },
   {
-    title: "3. Con quién los compartimos",
+    title: "3. Con quiÃ©n los compartimos",
     paragraphs: [
-      "Compartimos datos únicamente con los estudios afiliados, proveedores de pago y servicios necesarios para operar la aplicación. Nunca vendemos tu información.",
+      "Compartimos datos Ãºnicamente con los estudios afiliados, proveedores de pago y servicios necesarios para operar la aplicaciÃ³n. Nunca vendemos tu informaciÃ³n.",
     ],
   },
   {
-    title: "4. Conservación y seguridad",
+    title: "4. ConservaciÃ³n y seguridad",
     paragraphs: [
-      "Guardamos los datos solo durante el tiempo necesario para prestar el servicio y aplicamos medidas técnicas y organizativas para evitar accesos no autorizados.",
+      "Guardamos los datos solo durante el tiempo necesario para prestar el servicio y aplicamos medidas tÃ©cnicas y organizativas para evitar accesos no autorizados.",
     ],
   },
   {
     title: "5. Tus derechos",
     paragraphs: [
-      "Puedes acceder, actualizar o solicitar la eliminación de tus datos escribiendo a privacidad@atpilatestime.com. También puedes retirar consentimientos relacionados con comunicaciones comerciales.",
+      "Puedes acceder, actualizar o solicitar la eliminaciÃ³n de tus datos escribiendo a privacidad@atpilatestime.com. TambiÃ©n puedes retirar consentimientos relacionados con comunicaciones comerciales.",
     ],
   },
 ];
@@ -44,10 +44,10 @@ export default function UsagePolicyPage() {
   return (
     <>
       <Head>
-        <title>Politicas de uso y privacidad | Akdemia by BInAI</title>
+        <title>Politicas de uso y privacidad | Akdēmia</title>
         <meta
           name="description"
-          content="Documento publico sobre el uso permitido y la privacidad de la app Akdemia by BInAI"
+          content="Documento publico sobre el uso permitido y la privacidad de la app Akdēmia"
         />
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-12 text-neutral-800">
@@ -57,10 +57,10 @@ export default function UsagePolicyPage() {
               Legal
             </p>
             <h1 className="text-3xl font-bold text-neutral-900">
-              Políticas de uso y privacidad
+              PolÃ­ticas de uso y privacidad
             </h1>
             <p className="text-sm text-neutral-500">
-              Última actualización: {LAST_UPDATED}
+              Ãšltima actualizaciÃ³n: {LAST_UPDATED}
             </p>
           </header>
 
@@ -81,4 +81,5 @@ export default function UsagePolicyPage() {
 }
 
 UsagePolicyPage.publicPage = true;
+
 

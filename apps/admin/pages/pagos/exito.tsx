@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -22,18 +22,18 @@ export default function PaymentSuccessPage() {
   return (
     <>
       <Head>
-        <title>Pago exitoso | Akdemia by BInAI</title>
+        <title>Pago exitoso | Akdēmia</title>
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-16">
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
           <h1 className="text-2xl font-semibold text-slate-900">Pago registrado correctamente</h1>
           <p className="mt-4 text-sm text-slate-600">
-            Stripe confirmó el pago y el sistema activará el plan en cuanto se procese. Regresa al panel para revisar
-            el historial del cliente o continuar con otra operación.
+            Stripe confirmÃ³ el pago y el sistema activarÃ¡ el plan en cuanto se procese. Regresa al panel para revisar
+            el historial del cliente o continuar con otra operaciÃ³n.
           </p>
           {sessionId ? (
             <div className="mt-6 rounded-md border border-slate-200 bg-slate-50 p-4 text-xs text-slate-700">
-              <p className="font-medium text-slate-900">ID de sesión</p>
+              <p className="font-medium text-slate-900">ID de sesiÃ³n</p>
               <code className="mt-1 block break-all text-slate-600">{sessionId}</code>
               <p className="mt-2 text-slate-600">
                 Si necesitas soporte, comparte este identificador para rastrear el pago en Stripe y en el historial interno.
@@ -64,4 +64,5 @@ export default function PaymentSuccessPage() {
     </>
   );
 }
+
 

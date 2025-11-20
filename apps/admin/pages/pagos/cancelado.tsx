@@ -1,18 +1,18 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import Link from "next/link";
 
 export default function PaymentCancelledPage() {
   return (
     <>
       <Head>
-        <title>Pago cancelado | Akdemia by BInAI</title>
+        <title>Pago cancelado | Akdēmia</title>
       </Head>
       <main className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-4 py-16">
         <div className="w-full max-w-xl rounded-xl border border-slate-200 bg-white p-8 shadow-lg">
           <h1 className="text-2xl font-semibold text-slate-900">Pago cancelado</h1>
           <p className="mt-4 text-sm text-slate-600">
-            El proceso de pago se canceló o el cliente cerró la página de Stripe. Ningún cargo fue registrado. Si deseas
-            completar la compra más adelante, vuelve a generar el checkout desde el panel.
+            El proceso de pago se cancelÃ³ o el cliente cerrÃ³ la pÃ¡gina de Stripe. NingÃºn cargo fue registrado. Si deseas
+            completar la compra mÃ¡s adelante, vuelve a generar el checkout desde el panel.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -34,4 +34,5 @@ export default function PaymentCancelledPage() {
     </>
   );
 }
+
 

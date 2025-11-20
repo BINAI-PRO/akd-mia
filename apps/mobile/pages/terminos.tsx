@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 
 type Section = {
   title: string;
@@ -9,7 +9,7 @@ const SECTIONS: Section[] = [
   {
     title: "1. Aceptacion del servicio",
     paragraphs: [
-      "Al acceder o utilizar la aplicacion Akdemia by BInAI aceptas estos terminos y te comprometes a cumplirlos.",
+      "Al acceder o utilizar la aplicacion Akdēmia aceptas estos terminos y te comprometes a cumplirlos.",
     ],
   },
   {
@@ -50,10 +50,10 @@ export default function TermsOfServicePage() {
   return (
     <>
       <Head>
-        <title>Terminos de servicio | Akdemia by BInAI</title>
+        <title>Terminos de servicio | Akdēmia</title>
         <meta
           name="description"
-          content="Consulta los terminos de servicio oficiales de la app Akdemia by BInAI"
+          content="Consulta los terminos de servicio oficiales de la app Akdēmia"
         />
       </Head>
       <main className="min-h-screen bg-neutral-50 px-6 py-12 text-neutral-800">
@@ -87,3 +87,4 @@ export default function TermsOfServicePage() {
 }
 
 TermsOfServicePage.publicPage = true;
+

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -266,9 +266,9 @@ export default function AdminLayout({
 
   const BrandBlock = () => (
     <div className="flex items-center gap-3">
-      <Img src="/logo.png" alt="Akdemia by BInAI" width={96} height={32} className="h-8 w-auto" />
+      <Img src="/logo.png" alt="Akdēmia" width={96} height={32} className="h-8 w-auto" />
       <div className="leading-tight text-brand-50">
-        <p className="text-sm font-semibold text-brand-50">Akdemia by BInAI</p>
+        <p className="text-sm font-semibold text-brand-50">Akdēmia</p>
         <p className="text-xs uppercase tracking-wide text-brand-200">Pro Fitness</p>
       </div>
     </div>
@@ -369,3 +369,4 @@ export default function AdminLayout({
     </div>
   );
 }
+

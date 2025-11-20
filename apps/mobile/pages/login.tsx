@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+﻿import { useEffect, useState, type FormEvent } from "react";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { signIn } from "next-auth/react";
@@ -91,7 +91,7 @@ export default function MobileLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesion | Akdemia by BInAI</title>
+        <title>Iniciar sesion | Akdēmia</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
         <section className="w-full max-w-sm space-y-6 rounded-3xl bg-white px-6 py-8 shadow-xl">
@@ -99,7 +99,7 @@ export default function MobileLoginPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/logo.png"
-              alt="Akdemia by BInAI"
+              alt="Akdēmia"
               width={200}
               height={70}
               className="h-14 w-auto"
@@ -197,3 +197,4 @@ export default function MobileLoginPage() {
 }
 
 MobileLoginPage.publicPage = true;
+

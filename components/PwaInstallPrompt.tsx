@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import Img from "@/components/Img";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -110,7 +110,7 @@ const PwaInstallPrompt = () => {
   };
 
   const title =
-    variant === "install" ? "Instala Akdemia by BInAI" : "Agrega Akdemia by BInAI";
+    variant === "install" ? "Instala Akdēmia" : "Agrega Akdēmia";
 
   const description =
     variant === "install"
@@ -130,7 +130,7 @@ const PwaInstallPrompt = () => {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50">
             <Img
               src="/logo-icon-192.png"
-              alt="Akdemia by BInAI"
+              alt="Akdēmia"
               width={48}
               height={48}
               className="h-10 w-10 object-contain"
@@ -194,3 +194,4 @@ const PwaInstallPrompt = () => {
 };
 
 export default PwaInstallPrompt;
+

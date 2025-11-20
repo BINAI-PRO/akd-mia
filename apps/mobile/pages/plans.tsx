@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import Head from "next/head";
 import Image from "next/image";
@@ -213,7 +213,7 @@ export default function PlansPage() {
   return (
     <>
       <Head>
-        <title>Tarifas y Bonos | Akdemia by BInAI</title>
+        <title>Tarifas y Bonos | Akdēmia</title>
       </Head>
 
       <section className="container-mobile space-y-6">
@@ -423,3 +423,4 @@ function MobileFooterAttribution() {
     </div>
   );
 }
+

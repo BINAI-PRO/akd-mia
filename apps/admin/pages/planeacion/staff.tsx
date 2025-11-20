@@ -1,4 +1,4 @@
-import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
+﻿import { useCallback, useState, type ChangeEvent, type FormEvent } from "react";
 import Head from "next/head";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { createSupabaseServerClient } from "@/lib/supabase-server";
@@ -180,9 +180,9 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async (ctx) => 
 };
 
 function formatDate(value: string | null): string {
-  if (!value) return "—";
+  if (!value) return "â€”";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "â€”";
   return date.toLocaleString("es-MX", {
     year: "numeric",
     month: "short",
@@ -223,7 +223,7 @@ export default function StaffManagementPage({
           error?: string;
           staff?: { id: string; roleSlug: string | null; roleName: string | null };
         }>(response);
-        const parsed = payload ?? { error: raw || "Respuesta inválida del servidor" };
+        const parsed = payload ?? { error: raw || "Respuesta invÃ¡lida del servidor" };
         if (!response.ok || !parsed.staff) {
           throw new Error(parsed.error ?? "No se pudo actualizar el rol");
         }
@@ -278,7 +278,7 @@ export default function StaffManagementPage({
         }),
       });
       const { payload, raw } = await parseJsonResponse<{ error?: string; staff?: StaffMember }>(response);
-      const parsed = payload ?? { error: raw || "Respuesta inválida del servidor" };
+      const parsed = payload ?? { error: raw || "Respuesta invÃ¡lida del servidor" };
       if (!response.ok || !parsed.staff) {
         throw new Error(parsed.error ?? "No se pudo registrar al staff");
       }
@@ -313,7 +313,7 @@ export default function StaffManagementPage({
   return (
     <AdminLayout title="Administrar staff" active="planningStaff" featureKey="planningStaff">
       <Head>
-        <title>Equipo | Akdemia by BInAI</title>
+        <title>Equipo | Akdēmia</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
@@ -348,7 +348,7 @@ export default function StaffManagementPage({
               />
             </label>
             <label className="flex flex-col gap-1 text-sm text-slate-700">
-              Teléfono de contacto
+              TelÃ©fono de contacto
               <input
                 type="tel"
                 name="phone"
@@ -440,7 +440,7 @@ export default function StaffManagementPage({
                         ) : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-700">{member.email ?? "—"}</td>
+                    <td className="px-4 py-3 text-slate-700">{member.email ?? "â€”"}</td>
                     <td className="px-4 py-3">
                       <select
                         value={member.roleSlug ?? ""}
@@ -478,5 +478,6 @@ export default function StaffManagementPage({
     </AdminLayout>
   );
 }
+
 
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
+﻿import { useCallback, useEffect, useMemo, useState, type ReactElement } from "react";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -220,7 +220,7 @@ export default function MyReservationsPage() {
   if (state.status === "unauthenticated") {
     content = (
       <p className="text-sm text-neutral-600">
-        Inicia sesión para consultar tus reservas y tus planes activos.
+        Inicia sesiÃ³n para consultar tus reservas y tus planes activos.
       </p>
     );
   } else if (state.status === "loading" || state.status === "idle") {
@@ -337,7 +337,7 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Proximas sesiónes</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">Proximas sesiÃ³nes</h2>
             <span className="text-xs text-neutral-500">
               {upcomingBookings.length} {upcomingBookings.length === 1 ? "reserva" : "reservas"}
             </span>
@@ -377,7 +377,7 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Sesiónes recientes</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">SesiÃ³nes recientes</h2>
             <span className="text-xs text-neutral-500">Ultimos 15 dias</span>
           </div>
           {recentBookings.length === 0 ? (
@@ -405,7 +405,7 @@ export default function MyReservationsPage() {
                       onClick={() => handleEvaluateSession(booking.id)}
                       className="rounded-full border border-brand-200 px-3 py-1 text-xs font-semibold text-brand-600 hover:bg-brand-50"
                     >
-                      Evaluar sesión
+                      Evaluar sesiÃ³n
                     </button>
                   </div>
                 </div>
@@ -423,7 +423,7 @@ export default function MyReservationsPage() {
   return (
     <>
       <Head>
-        <title>Mis reservas | Akdemia by BInAI</title>
+        <title>Mis reservas | Akdēmia</title>
       </Head>
       <main className="container-mobile space-y-6 py-6">
         <div className="flex items-center justify-between">
@@ -442,6 +442,7 @@ export default function MyReservationsPage() {
     </>
   );
 }
+
 
 
 

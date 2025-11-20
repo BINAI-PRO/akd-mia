@@ -1,4 +1,4 @@
-import Head from "next/head";
+﻿import Head from "next/head";
 import { useMemo, useState } from "react";
 import type { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import dayjs from "dayjs";
@@ -106,7 +106,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (readOnly) {
-      setError("No tienes permisos de edición para crear o actualizar clases.");
+      setError("No tienes permisos de ediciÃ³n para crear o actualizar clases.");
       return;
     }
     if (!canSubmit) return;
@@ -182,7 +182,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
 
   const handleDelete = async (id: string) => {
     if (!canDelete) return;
-    const confirmed = window.confirm("Esta acción eliminará la clase. ¿Continuar?");
+    const confirmed = window.confirm("Esta acciÃ³n eliminarÃ¡ la clase. Â¿Continuar?");
     if (!confirmed) return;
     setSaving(true);
     setError(null);
@@ -212,7 +212,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
   return (
     <AdminLayout title="Clases" active="classTypes" featureKey="classTypes">
       <Head>
-        <title>Akdemia by BInAI</title>
+        <title>Akdēmia</title>
       </Head>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -230,7 +230,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   type="search"
                   value={filters.search}
                   onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-                  placeholder="Buscar por nombre o descripción"
+                  placeholder="Buscar por nombre o descripciÃ³n"
                   className="h-10 w-80 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
                 <select
@@ -318,7 +318,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
 
           {readOnly && (
             <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-              Tu rol actual solo permite lectura. Solicita permisos de edición para administrar el catálogo.
+              Tu rol actual solo permite lectura. Solicita permisos de ediciÃ³n para administrar el catÃ¡logo.
             </p>
           )}
 
@@ -330,7 +330,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   type="text"
                   value={formState.name}
                   onChange={handleFormChange("name")}
-                  placeholder="Ej. Reformer Básico"
+                  placeholder="Ej. Reformer BÃ¡sico"
                   className="rounded-md border border-slate-200 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                   required
                   disabled={readOnly}
@@ -352,7 +352,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-600">Descripción</span>
+                <span className="text-xs font-medium text-slate-600">DescripciÃ³n</span>
                 <textarea
                   value={formState.description}
                   onChange={handleFormChange("description")}
@@ -403,4 +403,5 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
     </AdminLayout>
   );
 }
+
 
