@@ -337,7 +337,7 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">Proximas sesiÃ³nes</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">Proximas sesiónes</h2>
             <span className="text-xs text-neutral-500">
               {upcomingBookings.length} {upcomingBookings.length === 1 ? "reserva" : "reservas"}
             </span>
@@ -377,7 +377,7 @@ export default function MyReservationsPage() {
 
         <section className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-neutral-900">SesiÃ³nes recientes</h2>
+            <h2 className="text-lg font-semibold text-neutral-900">Sesiónes recientes</h2>
             <span className="text-xs text-neutral-500">Ultimos 15 dias</span>
           </div>
           {recentBookings.length === 0 ? (

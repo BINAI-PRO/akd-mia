@@ -233,7 +233,7 @@ const ATYPICAL_WEEKS = [
   {
     id: "summer-break",
     label: "Semana del 15 de julio",
-    note: "Vacaciones de verano - se omiten sesi=nes jueves y viernes",
+    note: "Vacaciones de verano - se omiten sesiones jueves y viernes",
   },
   {
     id: "instructor-change",
@@ -537,13 +537,13 @@ export default function CourseSchedulerPage({
   const planButtonLabel = isPlanning
     ? "Programando..."
     : frequency === "once"
-    ? "Programar sesi=n"
-    : "Programar sesi=nes";
+    ? "Programar sesión"
+    : "Programar sesiones";
 
   const handlePlanSessions = async () => {
     if (!selectedCourse) return;
     if (readOnly) {
-      setPlanError("Tu rol no tiene permisos para programar sesi=nes.");
+      setPlanError("Tu rol no tiene permisos para programar sesiones.");
       return;
     }
     setPlanError(null);
@@ -555,7 +555,7 @@ export default function CourseSchedulerPage({
     }
 
     if (pendingSessionsForSelectedCourse === 0) {
-      setPlanError("Este horario ya tiene todas las sesi=nes programadas.");
+      setPlanError("Este horario ya tiene todas las sesiones programadas.");
       return;
     }
 
@@ -570,28 +570,28 @@ export default function CourseSchedulerPage({
     });
 
     if (preparedSessions.length === 0) {
-      setPlanError("Configura al menos una sesi=n para programar.");
+      setPlanError("Configura al menos una sesión para programar.");
       return;
     }
 
     for (let index = 0; index < preparedSessions.length; index += 1) {
       const item = preparedSessions[index];
       if (!item.date || !item.startTime) {
-        setPlanError(`Completa la fecha y hora para la sesi=n ${index + 1}.`);
+        setPlanError(`Completa la fecha y hora para la sesión ${index + 1}.`);
         return;
       }
       if (!item.duration || item.duration <= 0) {
-        setPlanError(`Define una duracion valida para la sesi=n ${index + 1}.`);
+        setPlanError(`Define una duración válida para la sesión ${index + 1}.`);
         return;
       }
       if (!item.instructorId) {
-        setPlanError(`Asigna un instructor para la sesi=n ${index + 1}.`);
+        setPlanError(`Asigna un instructor para la sesión ${index + 1}.`);
         return;
       }
     }
 
     if (preparedSessions.length > pendingSessionsForSelectedCourse) {
-      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesi=nes pendientes para este horario.`);
+      setPlanError(`Solo quedan ${pendingSessionsForSelectedCourse} sesiones pendientes para este horario.`);
       return;
     }
 
@@ -609,7 +609,7 @@ export default function CourseSchedulerPage({
 
       const result = await response.json();
       if (!response.ok) {
-        setPlanError(result?.error ?? "No se pudo programar las sesi=nes.");
+        setPlanError(result?.error ?? "No se pudo programar las sesiones.");
         return;
       }
 
@@ -642,24 +642,24 @@ export default function CourseSchedulerPage({
       );
 
       setPlanStatus("success");
-      setPlanMessage(result?.message ?? `Se programaron ${insertedSessions.length} sesi=nes.`);
+      setPlanMessage(result?.message ?? `Se programaron ${insertedSessions.length} sesiones.`);
       setPlanError(null);
       setDraftSessions([]);
     } catch (error) {
       console.error("schedule sessions", error);
-      setPlanError("Ocurrio un error inesperado al programar las sesi=nes.");
+      setPlanError("Ocurrió un error inesperado al programar las sesiones.");
     } finally {
       setIsPlanning(false);
     }
   };
   return (
-    <AdminLayout title="Programador de sesi=nes" active="courseScheduler" featureKey="courseScheduler">
+    <AdminLayout title="Programador de sesiones" active="courseScheduler" featureKey="courseScheduler">
       <Head>
-        <title>Akdēmia</title>
+        <title>Akdemia</title>
       </Head>
       {readOnly && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Tu rol solo permite consultar este programador. No podrßs generar nuevas sesi=nes.
+          Tu rol solo permite consultar este programador. No podrás generar nuevas sesiones.
         </div>
       )}
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
@@ -668,7 +668,7 @@ export default function CourseSchedulerPage({
             <div className="flex flex-col gap-3">
               <div>
                 <h1 className="text-lg font-semibold text-slate-900">Resumen de horarios</h1>
-                <p className="text-sm text-slate-500">Identifica que horarios necesitan programacion adicional.</p>
+                <p className="text-sm text-slate-500">Identifica qué horarios necesitan programación adicional.</p>
               </div>
               {coursesState.length > 0 && (
                 pendingCourses.length > 0 ? (
@@ -677,7 +677,7 @@ export default function CourseSchedulerPage({
                       {pendingCourses.length} horarios con pendientes
                     </span>
                     <span className="rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700">
-                      {totalPendingSessions} sesi=nes sin programar
+                      {totalPendingSessions} sesiones sin programar
                     </span>
                   </div>
                 ) : (
@@ -766,8 +766,8 @@ export default function CourseSchedulerPage({
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Programacion semanal</h2>
-          <p className="text-sm text-slate-500">Define sesi=nes recurrentes o unicas. Aun no se guardan cambios en la base.</p>
+          <h2 className="text-lg font-semibold text-slate-900">Programación semanal</h2>
+          <p className="text-sm text-slate-500">Define sesiones recurrentes o únicas. Aún no se guardan cambios en la base.</p>
 
           <div ref={schedulerSectionRef} className="mt-6 grid gap-4 lg:grid-cols-3">
             <div className="space-y-4">
@@ -817,7 +817,7 @@ export default function CourseSchedulerPage({
                   </div>
                   <div className="flex items-center gap-2 text-xs text-slate-500">
                     <span className="material-icons-outlined text-base">schedule</span>
-                    Duracion: {defaultDuration} min
+                    Duración: {defaultDuration} min
                   </div>
                   {selectedCourse.defaultRoomName ? (
                     <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -827,12 +827,12 @@ export default function CourseSchedulerPage({
                     </div>
                   ) : (
                     <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      Asigna una sala predeterminada al horario para programar sesi=nes automaticamente.
+                      Asigna una sala predeterminada al horario para programar sesiones automáticamente.
                     </div>
                   )}
                   {pendingSessionsForSelectedCourse === 0 && (
                     <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                      Este horario no tiene sesi=nes pendientes, pero puedes ajustar la programacion si es necesario.
+                      Este horario no tiene sesiones pendientes, pero puedes ajustar la programación si es necesario.
                     </div>
                   )}
                 </div>
@@ -908,7 +908,7 @@ export default function CourseSchedulerPage({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700">Sesi=nes</label>
+                      <label className="block text-sm font-medium text-slate-700">Sesiones</label>
                       <select
                         value={recurringCount}
                         onChange={(event) => setRecurringCount(Math.max(1, Number(event.target.value)))}
@@ -957,8 +957,8 @@ export default function CourseSchedulerPage({
                   {selectedCourse
                     ? selectedCourse.defaultRoomId
                       ? pendingSessionsForSelectedCourse === 0
-                        ? "Este horario no tiene sesi=nes pendientes."
-                        : "Configura los parametros para generar sesi=nes."
+                        ? "Este horario no tiene sesiones pendientes."
+                        : "Configura los parámetros para generar sesiones."
                       : "Asigna una sala predeterminada al horario para activar el programador."
                     : "Selecciona un horario para comenzar."}
                 </div>
@@ -978,7 +978,7 @@ export default function CourseSchedulerPage({
                           <h3 className="text-sm font-semibold text-slate-700">
                             {formatSessionDateLabel(session.date)}
                           </h3>
-                          <span className="text-xs text-slate-400">Sesi=n {index + 1}</span>
+                          <span className="text-xs text-slate-400">Sesión {index + 1}</span>
                         </div>
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                           <div>
@@ -991,7 +991,7 @@ export default function CourseSchedulerPage({
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-slate-600">Duracion (min)</label>
+                            <label className="block text-xs font-medium text-slate-600">Duración (min)</label>
                             <input
                               type="number"
                               min={10}
@@ -1038,7 +1038,7 @@ export default function CourseSchedulerPage({
                       {missingInstructor && (
                         <div className="inline-flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
                           <span className="material-icons-outlined text-base">info</span>
-                          Define un instructor para cada sesi=n antes de programar.
+                          Define un instructor para cada sesión antes de programar.
                         </div>
                       )}
                     </div>
@@ -1062,11 +1062,11 @@ export default function CourseSchedulerPage({
           {selectedCourse && (
             <div className="mt-6 rounded-md border border-slate-200 p-4 text-sm text-slate-600">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-700">Sesi=nes programadas</h3>
+                <h3 className="text-sm font-semibold text-slate-700">Sesiones programadas</h3>
                 <span className="text-xs text-slate-500">{selectedCourse.sessions.length} en total</span>
               </div>
               {selectedCourse.sessions.length === 0 ? (
-                <p className="text-xs text-slate-500">Todavia no hay sesi=nes programadas para Este horario.</p>
+                <p className="text-xs text-slate-500">Todavía no hay sesiones programadas para este horario.</p>
               ) : (
                 <ul className="space-y-2">
                   {upcomingSessions.map((session) => {
@@ -1109,7 +1109,7 @@ export default function CourseSchedulerPage({
               )}
               {selectedCourse.sessions.length > upcomingSessions.length && upcomingSessions.length > 0 && (
                 <p className="mt-3 text-xs text-slate-400">
-                  Mostrando las proximas {upcomingSessions.length} sesi=nes de {selectedCourse.sessions.length}.
+                  Mostrando las próximas {upcomingSessions.length} sesiones de {selectedCourse.sessions.length}.
                 </p>
               )}
             </div>
