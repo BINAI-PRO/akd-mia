@@ -131,7 +131,7 @@ export default function PlansPage() {
       setCheckoutError(null);
       setStatusBanner({
         type: "success",
-        message: "Pago completado. Actualizaremos tus bonos en cuanto confirmemos el movimiento.",
+        message: "Pago completado. Actualizaremos tus créditos en cuanto confirmemos el movimiento.",
       });
     } else if (statusValue === "cancelled") {
       setStatusBanner({
@@ -167,19 +167,19 @@ export default function PlansPage() {
     setCheckoutError(null);
     setCheckoutLoading(planTypeId);
     if (state.status !== "ready") {
-      setCheckoutError("No se pudo validar la tarifa seleccionada");
+      setCheckoutError("No se pudo validar el plan seleccionado");
       setCheckoutLoading(null);
       return;
     }
     const selectedPlan = state.data.planTypes.find((plan) => plan.id === planTypeId);
     const hasActiveMembership = membershipsEnabled ? state.data.membership?.isActive ?? false : true;
     if (!selectedPlan) {
-      setCheckoutError("La tarifa seleccionada no esta disponible");
+      setCheckoutError("El plan seleccionado no esta disponible");
       setCheckoutLoading(null);
       return;
     }
     if (membershipsEnabled && selectedPlan.requiresMembership && !hasActiveMembership) {
-      setCheckoutError("No cumples los requisitos para adquirir esta tarifa");
+      setCheckoutError("No cumples los requisitos para adquirir este plan");
       setCheckoutLoading(null);
       return;
     }
@@ -213,14 +213,14 @@ export default function PlansPage() {
   return (
     <>
       <Head>
-        <title>Tarifas y Bonos | Akdēmia</title>
+        <title>Planes y Créditos | Akdēmia</title>
       </Head>
 
       <section className="container-mobile space-y-6">
         <header className="pt-6 text-center">
-          <h1 className="text-2xl font-semibold text-brand-800">Tarifas y bonos</h1>
+          <h1 className="text-2xl font-semibold text-brand-800">Planes y Créditos</h1>
           <p className="mt-1 text-sm text-neutral-600">
-            Consulta tus tarifas vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
+            Consulta tus planes vigentes, renueva tu paquete flexible o adquiere uno nuevo desde la app.
           </p>
         </header>
 
@@ -278,7 +278,7 @@ export default function PlansPage() {
           <div className="space-y-6">
             {activePlan ? (
               <section className="rounded-2xl border border-brand-200 bg-brand-50 px-4 py-4 text-sm text-brand-900 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Tu tarifa vigente</h2>
+                <h2 className="text-base font-semibold text-brand-800">Tu plan vigente</h2>
                 <p className="mt-1 text-sm text-brand-700">
                   {activePlan.name} - {activePlan.status}
                 </p>
@@ -305,12 +305,12 @@ export default function PlansPage() {
                   </div>
                 </dl>
                 <p className="mt-3 text-[11px] text-brand-600">
-                  Si necesitas ajustar tu tarifa actual, contacta a recepcion para recibir apoyo.
+                  Si necesitas ajustar tu plan actual, contacta a recepcion para recibir apoyo.
                 </p>
               </section>
             ) : (
               <section className="rounded-2xl border border-dashed border-brand-200 bg-white px-4 py-4 text-sm text-neutral-600 shadow-sm">
-                <h2 className="text-base font-semibold text-brand-800">Aun no tienes una tarifa activa</h2>
+                <h2 className="text-base font-semibold text-brand-800">Aun no tienes un plan activo</h2>
                 <p className="mt-1 text-sm text-neutral-600">
                   Elige uno de los paquetes flexibles para reservar sesiones y asegurar tu lugar en clase.
                 </p>
@@ -318,13 +318,13 @@ export default function PlansPage() {
             )}
 
             <section className="space-y-4">
-              <h2 className="text-base font-semibold text-neutral-800">Tarifas disponibles</h2>
+              <h2 className="text-base font-semibold text-neutral-800">Planes disponibles</h2>
               {availablePlanTypes.map((plan) => (
                 <article key={plan.id} className="rounded-2xl border border-neutral-200 bg-white px-4 py-4 shadow-sm">
                   <header className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-semibold text-neutral-900">{plan.name}</h3>
-                      <p className="text-sm text-neutral-600">{plan.description ?? "Tarifa flexible"}</p>
+                      <p className="text-sm text-neutral-600">{plan.description ?? "Plan flexible"}</p>
                     </div>
                     <span className="rounded-full bg-brand-100 px-3 py-1 text-sm font-medium text-brand-700">
                       {formatCurrency(plan.price, plan.currency)}
@@ -381,14 +381,14 @@ export default function PlansPage() {
               {availablePlanTypes.length === 0 && (
                 <p className="text-sm text-neutral-500">
                   {lockedPlanCount > 0
-                    ? "Algunas tarifas estan restringidas temporalmente."
-                    : "No hay tarifas disponibles en este momento. Consulta mas tarde o contacta a recepcion."}
+                    ? "Algunos planes estan restringidos temporalmente."
+                    : "No hay planes disponibles en este momento. Consulta mas tarde o contacta a recepcion."}
                 </p>
               )}
 
               {lockedPlanCount > 0 && availablePlanTypes.length > 0 && (
                 <p className="text-xs text-neutral-500">
-                  Hay {lockedPlanCount === 1 ? "una tarifa" : `${lockedPlanCount} tarifas`} restringidas actualmente.
+                  Hay {lockedPlanCount === 1 ? "un plan" : `${lockedPlanCount} planes`} restringidas actualmente.
                 </p>
               )}
             </section>

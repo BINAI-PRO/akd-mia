@@ -60,7 +60,7 @@ export default function Home() {
 
   return (
     <section className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-50">
-      <div className="relative mx-auto max-w-md px-4 pb-10 pt-10 text-slate-50">
+      <div className="relative mx-auto flex w-full max-w-md flex-col gap-6 px-3 pb-8 pt-6 text-slate-50">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {avatarUrl ? (
@@ -90,13 +90,13 @@ export default function Home() {
           </Link>
         </header>
 
-        <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <StatPill label="Sesiones" value={mockStats.sessionsCompleted} />
           <StatPill label="Horas" value={mockStats.totalHours} />
           <StatPill label="Racha" value={`${mockStats.streakDays}d`} />
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/90 shadow-lg backdrop-blur">
+        <div className="flex items-center justify-between rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white/90 shadow-lg backdrop-blur">
           <div>
             <p className="text-xs text-white/70">Proxima clase</p>
             <p className="font-semibold">Reformer intermedio</p>
@@ -107,7 +107,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div className="mx-auto -mt-10 max-w-md space-y-6 px-4 pb-16">
+      <div className="mx-auto -mt-6 w-full max-w-md space-y-6 px-3 pb-16">
         <section className="rounded-2xl bg-white p-4 shadow-lg">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -187,6 +187,10 @@ export default function Home() {
             </Link>
           </div>
         </section>
+
+        <div className="pt-2 pb-6">
+          <MobileFooterAttribution />
+        </div>
       </div>
     </section>
   );
@@ -203,17 +207,16 @@ function StatPill({ label, value }: { label: string; value: number | string }) {
 
 function MobileFooterAttribution() {
   return (
-    <div className="flex justify-center">
+    <div className="flex items-center justify-center text-[10px] text-white/80 drop-shadow">
       <a
         href="https://binai.pro"
         target="_blank"
         rel="noreferrer"
-        className="flex items-center gap-2 text-[9.6px] text-neutral-400 transition hover:text-neutral-500"
+        className="flex items-center gap-2 transition hover:text-white"
       >
-        <span className="mt-[10px]">Desarrollado por :</span>
-        <Image src="/logo_binai.png" alt="Logo BinAI" width={120} height={32} className="mt-[10px] h-6 w-auto" />
+        <span>Desarrollado por :</span>
+        <Image src="/logo_binai.png" alt="Logo BinAI" width={96} height={28} className="h-5 w-auto" />
       </a>
     </div>
   );
 }
-
