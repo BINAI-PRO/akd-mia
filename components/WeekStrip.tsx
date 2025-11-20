@@ -56,7 +56,7 @@ export default function WeekStrip({
           const dayNum = dt.date();
           const dow = DOW_ABBR_ES[dt.day()];
 
-          const base = "min-w-[40px] rounded-xl border px-1.5 py-2 text-center select-none";
+          const base = "min-w-[38px] rounded-lg border px-1.5 py-2 text-center select-none";
           const active = isSel
             ? "bg-brand-500 text-white border-brand-500"
             : "bg-white text-neutral-700 border-[#3672A8]";
