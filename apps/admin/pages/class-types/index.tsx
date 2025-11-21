@@ -230,7 +230,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                   type="search"
                   value={filters.search}
                   onChange={(event) => setFilters((prev) => ({ ...prev, search: event.target.value }))}
-                  placeholder="Buscar por nombre o descripciÃ³n"
+                  placeholder="Buscar por nombre o Descripción"
                   className="h-10 w-80 rounded-md border border-slate-200 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
                 />
                 <select
@@ -352,7 +352,7 @@ export default function ClassTypesPage({ initialClassTypes }: InferGetServerSide
                 </select>
               </label>
               <label className="flex flex-col gap-1">
-                <span className="text-xs font-medium text-slate-600">DescripciÃ³n</span>
+                <span className="text-xs font-medium text-slate-600">Descripción</span>
                 <textarea
                   value={formState.description}
                   onChange={handleFormChange("description")}

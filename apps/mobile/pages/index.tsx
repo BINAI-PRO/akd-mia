@@ -82,12 +82,13 @@ export default function Home() {
               <h1 className="text-xl font-semibold">Hola{firstName ? `, ${firstName}` : ""}</h1>
             </div>
           </div>
-          <Link
-            href="/my/profile"
-            className="rounded-full border border-white/30 px-3 py-2 text-xs font-semibold text-white/90 hover:bg-white/10"
+          <button
+            type="button"
+            aria-label="Ayuda"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 p-2 shadow hover:bg-white/15"
           >
-            Perfil
-          </Link>
+            <Image src="/ai_help.png" alt="Ayuda" width={24} height={24} className="h-6 w-6" />
+          </button>
         </header>
 
         <div className="grid grid-cols-3 gap-3">
