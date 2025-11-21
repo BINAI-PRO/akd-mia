@@ -85,9 +85,9 @@ export default function Home() {
           <button
             type="button"
             aria-label="Ayuda"
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/30 bg-white/10 p-2 shadow hover:bg-white/15"
+            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/40 bg-white/90 p-3 shadow-lg hover:bg-white"
           >
-            <Image src="/ai_help.png" alt="Ayuda" width={24} height={24} className="h-6 w-6" />
+            <Image src="/ai_help.png" alt="Ayuda" width={32} height={32} className="h-8 w-8" />
           </button>
         </header>
 
