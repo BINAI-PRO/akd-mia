@@ -78,16 +78,16 @@ export default function Home() {
               </span>
             )}
             <div>
-              <p className="text-xs text-slate-200">Progreso</p>
+              <p className="text-xs text-slate-100">Progreso</p>
               <h1 className="text-xl font-semibold">Hola{firstName ? `, ${firstName}` : ""}</h1>
             </div>
           </div>
           <button
             type="button"
             aria-label="Ayuda"
-            className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/40 bg-white/90 p-3 shadow-lg hover:bg-white"
+            className="flex h-17 w-17 items-center justify-center rounded-full border-0 border-white/00 bg-white/00 p-0.5 shadow-lg hover:bg-white/10"
           >
-            <Image src="/ai_help.png" alt="Ayuda" width={32} height={32} className="h-8 w-8" />
+            <Image src="/ai_help.png" alt="Ayuda" width={34} height={34} className="h-16 w-16" />
           </button>
         </header>
 
