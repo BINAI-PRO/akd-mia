@@ -99,7 +99,7 @@ export default function AdminLoginPage() {
           "Tu cuenta no tiene acceso administrativo. Solicita una invitacion al administrador."
         );
       } else if (errorParam === "auth_required") {
-        setFormError("Tu sesiÃ³n expirÃ³. Vuelve a iniciar sesiÃ³n para continuar.");
+        setFormError("Tu sesión expirÃ³. Vuelve a iniciar sesión para continuar.");
       }
     }
   }, [router.isReady, router.query.error]);
@@ -107,9 +107,9 @@ export default function AdminLoginPage() {
   const statusParam = typeof router.query.status === "string" ? router.query.status : null;
   const statusMessage =
     statusParam === "invite-complete"
-      ? "Tu contraseÃ±a se guardÃ³ correctamente. Enviamos un correo de confirmaciÃ³n."
+      ? "Tu contraseña se guarda correctamente. Enviamos un correo de confirmación."
       : statusParam === "password-updated"
-      ? "ContraseÃ±a actualizada. Ya puedes iniciar sesiÃ³n de nuevo."
+      ? "Contraseña actualizada. Ya puedes iniciar sesión de nuevo."
       : null;
 
   const handleGoogleLogin = async () => {
@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesiÃ³n con Google";
+        error instanceof Error ? error.message : "No se pudo iniciar sesión con Google";
       setFormError(message);
       setSubmitting(false);
     }
@@ -171,7 +171,7 @@ export default function AdminLoginPage() {
       await router.replace(redirectTarget);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "No se pudo iniciar sesiÃ³n";
+        error instanceof Error ? error.message : "No se pudo iniciar sesión";
       setFormError(message);
       setSubmitting(false);
     }
@@ -180,7 +180,7 @@ export default function AdminLoginPage() {
   return (
     <>
       <Head>
-        <title>Iniciar sesiÃ³n | Panel Admin</title>
+        <title>Iniciar sesión | Panel Admin</title>
       </Head>
       <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
         {activeFlow ? (
@@ -236,7 +236,7 @@ export default function AdminLoginPage() {
 
               <div className="space-y-1">
                 <label className="text-sm font-medium text-slate-700" htmlFor="password">
-                  ContraseÃ±a
+                  Contraseña
                 </label>
                 <div className="relative">
                   <input
@@ -253,7 +253,7 @@ export default function AdminLoginPage() {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 transition hover:text-slate-600"
-                    aria-label={showPassword ? "Ocultar contraseÃ±a" : "Mostrar contraseÃ±a"}
+                    aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                   >
                     <span className="material-icons-outlined text-base">
                       {showPassword ? "visibility_off" : "visibility"}
@@ -280,7 +280,7 @@ export default function AdminLoginPage() {
                 className="w-full rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-brand-400"
                 disabled={submitting}
               >
-                {submitting ? "Ingresando..." : "Iniciar sesiÃ³n"}
+                {submitting ? "Ingresando..." : "Iniciar sesión"}
               </button>
             </form>
           </section>

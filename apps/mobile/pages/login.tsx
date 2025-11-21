@@ -61,7 +61,7 @@ export default function MobileLoginPage() {
     setPasswordTouched(true);
 
     if (!passwordIsValid) {
-      setFormError("Revisa los requisitos de la contrasena antes de continuar.");
+      setFormError("Revisa los requisitos de la contraseña antes de continuar.");
       setSubmitting(false);
       return;
     }
