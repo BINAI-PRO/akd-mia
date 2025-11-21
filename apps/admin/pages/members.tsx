@@ -681,17 +681,10 @@ type PlanFormState = {
       }
 
       if (membershipPaymentMode === "CARD") {
-        const response = await fetch("/api/memberships/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok || typeof body?.url !== "string") {
-          throw new Error(body?.error ?? "No se pudo iniciar el pago con tarjeta");
-        }
-        window.open(body.url, "_blank", "noopener");
-        setMembershipSuccess("Abrimos Stripe en una nueva pestana. La membresía se activará cuando el pago sea confirmado.");
+        window.open("/pagos/integracion", "_blank", "noopener");
+        setMembershipSuccess(
+          "Cobro con tarjeta deshabilitado en demo. Abre la vista de integración para mostrar opciones de pasarela."
+        );
         setMembershipLoading(false);
         return;
       }
@@ -775,24 +768,9 @@ type PlanFormState = {
           return;
         }
 
-        const origin = typeof window === "undefined" ? "" : window.location.origin;
-        const successUrl = origin ? `${origin}/pagos/exito` : undefined;
-        const cancelUrl = origin ? `${origin}/pagos/cancelado` : undefined;
-
-        const response = await fetch("/api/plans/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...payload, successUrl, cancelUrl }),
-        });
-
-        const body = await response.json().catch(() => ({}));
-        if (!response.ok || typeof body?.url !== "string") {
-          throw new Error(body?.error ?? "No se pudo generar el pago con tarjeta");
-        }
-
-        window.open(body.url, "_blank", "noopener");
+        window.open("/pagos/integracion", "_blank", "noopener");
         setPlanSuccess(
-          "Abrimos Stripe en una nueva pestana. El plan se activará automaticamente cuando el pago sea confirmado."
+          "Cobro con tarjeta deshabilitado en demo. Abre la vista de integración para mostrar opciones de pasarela."
         );
         setPlanLoading(false);
         return;

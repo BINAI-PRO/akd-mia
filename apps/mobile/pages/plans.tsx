@@ -183,29 +183,8 @@ export default function PlansPage() {
       setCheckoutLoading(null);
       return;
     }
-    try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const successUrl = origin ? `${origin}/plans?status=success` : undefined;
-      const cancelUrl = origin ? `${origin}/plans?status=cancelled` : undefined;
-      const response = await fetch("/api/plans/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planTypeId, successUrl, cancelUrl }),
-      });
-
-      const payload = (await response.json()) as { sessionId?: string; url?: string; error?: string };
-
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error ?? "No se pudo iniciar el pago");
-      }
-
-      window.location.href = payload.url;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "No se pudo iniciar el pago";
-      setCheckoutError(message);
-    } finally {
-      setCheckoutLoading(null);
-    }
+    setCheckoutLoading(null);
+    await router.push("/pagos/integracion");
   };
 
   const membershipBanner: ReactNode = null;
@@ -423,4 +402,3 @@ function MobileFooterAttribution() {
     </div>
   );
 }
-
