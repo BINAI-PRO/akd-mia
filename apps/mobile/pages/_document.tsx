@@ -9,6 +9,16 @@ export default function Document() {
         <link rel="icon" type="image/png" href="/logo-icon-192.png" sizes="192x192" />
         <link rel="icon" type="image/png" href="/logo-icon-512.png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/logo-icon-1024.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Akdémia" />
+        <meta property="og:title" content="Akdémia - Tu app de membresías y reservas" />
+        <meta
+          property="og:description"
+          content="Administra membresías, reservas y pagos de tu gimnasio desde tu app Akdémia."
+        />
+        <meta property="og:image" content="/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="/logo.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

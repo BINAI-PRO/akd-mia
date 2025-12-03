@@ -6,6 +6,16 @@ export default function Document() {
       <Head>
         <link rel="icon" type="image/webp" href="/logo.webp" />
         <link rel="icon" type="image/png" href="/logo.png" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Akdémia Admin" />
+        <meta property="og:title" content="Akdémia - Panel administrativo" />
+        <meta
+          property="og:description"
+          content="Accede al panel administrativo de Akdémia para gestionar membresías, clases y pagos."
+        />
+        <meta property="og:image" content="/logo-icon-1024.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:image" content="/logo-icon-1024.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
