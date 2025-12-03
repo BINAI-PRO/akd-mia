@@ -16,9 +16,11 @@ export default function Document() {
           property="og:description"
           content="Administra membresías, reservas y pagos de tu gimnasio desde tu app Akdémia."
         />
-        <meta property="og:image" content="/logo.png" />
+        <meta property="og:image" content="/logo-icon-512.png?v=2" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="/logo.png" />
+        <meta name="twitter:image" content="/logo-icon-512.png?v=2" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

@@ -13,9 +13,11 @@ export default function Document() {
           property="og:description"
           content="Accede al panel administrativo de Akdémia para gestionar membresías, clases y pagos."
         />
-        <meta property="og:image" content="/logo-icon-1024.png" />
+        <meta property="og:image" content="/logo-icon-512.png?v=2" />
+        <meta property="og:image:width" content="512" />
+        <meta property="og:image:height" content="512" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:image" content="/logo-icon-1024.png" />
+        <meta name="twitter:image" content="/logo-icon-512.png?v=2" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
