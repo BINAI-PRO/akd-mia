@@ -7,11 +7,11 @@ export default function Document() {
         <link rel="icon" type="image/webp" href="/logo.webp" />
         <link rel="icon" type="image/png" href="/logo.png" />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Akdémia Admin" />
-        <meta property="og:title" content="Akdémia - Panel administrativo" />
+        <meta property="og:site_name" content="Akdēmia Admin" />
+        <meta property="og:title" content="Akdēmia - Panel administrativo" />
         <meta
           property="og:description"
-          content="Accede al panel administrativo de Akdémia para gestionar membresías, clases y pagos."
+          content="Accede al panel administrativo de Akdēmia para gestionar membresías, clases y pagos."
         />
         <meta property="og:image" content="/logo-icon-512.png?v=2" />
         <meta property="og:image:width" content="512" />
