@@ -499,13 +499,13 @@ type PlanFormState = {
   const headerToolbar = (
     <div className="flex items-center gap-4">
       <div className="relative hidden lg:block">
-        <span className="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+        <span className="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">search</span>
         <input
           type="search"
           placeholder="Buscar miembros..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+          className="h-10 w-64 rounded-md border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-900 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
         />
       </div>
       <button className="rounded-full p-2 hover:bg-slate-100" type="button" aria-label="Notifications">

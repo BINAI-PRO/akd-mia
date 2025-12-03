@@ -20,7 +20,13 @@ export default function PagoIntegracionPage() {
 
           <div className="flex justify-center">
             <div className="overflow-hidden rounded-xl bg-white/10 p-3 ring-1 ring-white/10">
-              <Image src="/pay_serv.png" alt="Plataformas de pago" width={340} height={160} />
+              <Image
+                src="/pay_serv.png"
+                alt="Plataformas de pago"
+                width={340}
+                height={160}
+                className="h-auto w-full max-w-[340px] rounded-lg filter brightness-110 contrast-125"
+              />
             </div>
           </div>
 

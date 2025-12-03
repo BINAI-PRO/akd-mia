@@ -25,10 +25,10 @@ CREATE TABLE public.booking_events (
   metadata jsonb DEFAULT '{}'::jsonb,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT booking_events_pkey PRIMARY KEY (id),
-  CONSTRAINT booking_events_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
   CONSTRAINT booking_events_actor_client_id_fkey FOREIGN KEY (actor_client_id) REFERENCES public.clients(id),
+  CONSTRAINT booking_events_actor_instructor_id_fkey FOREIGN KEY (actor_instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT booking_events_actor_staff_id_fkey FOREIGN KEY (actor_staff_id) REFERENCES public.staff(id),
-  CONSTRAINT booking_events_actor_instructor_id_fkey FOREIGN KEY (actor_instructor_id) REFERENCES public.instructors(id)
+  CONSTRAINT booking_events_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id)
 );
 CREATE TABLE public.booking_notifications (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -54,12 +54,12 @@ CREATE TABLE public.bookings (
   rebooked_from_booking_id uuid,
   plan_purchase_id uuid,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
-  CONSTRAINT bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT bookings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT bookings_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id),
   CONSTRAINT bookings_cancelled_by_fkey FOREIGN KEY (cancelled_by) REFERENCES public.clients(id),
+  CONSTRAINT bookings_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT bookings_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id),
   CONSTRAINT bookings_rebooked_from_booking_id_fkey FOREIGN KEY (rebooked_from_booking_id) REFERENCES public.bookings(id),
-  CONSTRAINT bookings_plan_purchase_id_fkey FOREIGN KEY (plan_purchase_id) REFERENCES public.plan_purchases(id)
+  CONSTRAINT bookings_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.class_types (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -107,7 +107,7 @@ CREATE TABLE public.courses (
   level USER-DEFINED DEFAULT 'Multinivel'::course_level,
   category USER-DEFINED NOT NULL DEFAULT 'Grupal'::category,
   visibility USER-DEFINED NOT NULL DEFAULT 'PUBLIC'::course_visibility,
-  status USER-DEFINED NOT NULL DEFAULT 'DRAFT'::course_status,
+  status USER-DEFINED NOT NULL DEFAULT 'PUBLISHED'::course_status,
   tags ARRAY NOT NULL DEFAULT '{}'::text[],
   cover_image_url text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
@@ -120,9 +120,9 @@ CREATE TABLE public.courses (
   booking_window_days integer DEFAULT 7 CHECK (booking_window_days >= 0),
   cancellation_window_hours integer NOT NULL DEFAULT 24,
   CONSTRAINT courses_pkey PRIMARY KEY (id),
-  CONSTRAINT courses_lead_instructor_id_fkey FOREIGN KEY (lead_instructor_id) REFERENCES public.instructors(id),
   CONSTRAINT courses_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
-  CONSTRAINT courses_default_room_id_fkey FOREIGN KEY (default_room_id) REFERENCES public.rooms(id)
+  CONSTRAINT courses_default_room_id_fkey FOREIGN KEY (default_room_id) REFERENCES public.rooms(id),
+  CONSTRAINT courses_lead_instructor_id_fkey FOREIGN KEY (lead_instructor_id) REFERENCES public.instructors(id)
 );
 CREATE TABLE public.instructor_attendance (
   instructor_id uuid NOT NULL,
@@ -130,9 +130,11 @@ CREATE TABLE public.instructor_attendance (
   checked_in_at timestamp with time zone NOT NULL DEFAULT now(),
   checked_in_by_staff uuid,
   CONSTRAINT instructor_attendance_pkey PRIMARY KEY (instructor_id, session_id),
-  CONSTRAINT instructor_attendance_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
-  CONSTRAINT instructor_attendance_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT instructor_attendance_checked_in_by_staff_fkey FOREIGN KEY (checked_in_by_staff) REFERENCES public.staff(id)
+  CONSTRAINT instructor_attendance_checked_in_by_staff_fkey FOREIGN KEY (checked_in_by_staff) REFERENCES public.staff(id),
+  CONSTRAINT instructor_attendance_session_instructor_fkey FOREIGN KEY (instructor_id) REFERENCES public.sessions(id),
+  CONSTRAINT instructor_attendance_session_instructor_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT instructor_attendance_session_instructor_fkey FOREIGN KEY (instructor_id) REFERENCES public.sessions(instructor_id),
+  CONSTRAINT instructor_attendance_session_instructor_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(instructor_id)
 );
 CREATE TABLE public.instructor_class_types (
   instructor_id uuid NOT NULL,
@@ -141,8 +143,8 @@ CREATE TABLE public.instructor_class_types (
   certified_at timestamp with time zone,
   notes text,
   CONSTRAINT instructor_class_types_pkey PRIMARY KEY (instructor_id, class_type_id),
-  CONSTRAINT instructor_class_types_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
-  CONSTRAINT instructor_class_types_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id)
+  CONSTRAINT instructor_class_types_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
+  CONSTRAINT instructor_class_types_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id)
 );
 CREATE TABLE public.instructor_qr_tokens (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -155,10 +157,12 @@ CREATE TABLE public.instructor_qr_tokens (
   consumed_by_staff uuid,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT instructor_qr_tokens_pkey PRIMARY KEY (id),
-  CONSTRAINT instructor_qr_tokens_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
-  CONSTRAINT instructor_qr_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT instructor_qr_tokens_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES public.staff(id),
-  CONSTRAINT instructor_qr_tokens_consumed_by_staff_fkey FOREIGN KEY (consumed_by_staff) REFERENCES public.staff(id)
+  CONSTRAINT instructor_qr_tokens_consumed_by_staff_fkey FOREIGN KEY (consumed_by_staff) REFERENCES public.staff(id),
+  CONSTRAINT instructor_qr_tokens_session_instructor_fkey FOREIGN KEY (instructor_id) REFERENCES public.sessions(id),
+  CONSTRAINT instructor_qr_tokens_session_instructor_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
+  CONSTRAINT instructor_qr_tokens_session_instructor_fkey FOREIGN KEY (instructor_id) REFERENCES public.sessions(instructor_id),
+  CONSTRAINT instructor_qr_tokens_session_instructor_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(instructor_id),
+  CONSTRAINT instructor_qr_tokens_staff_id_fkey FOREIGN KEY (staff_id) REFERENCES public.staff(id)
 );
 CREATE TABLE public.instructor_week_override_slots (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -259,9 +263,9 @@ CREATE TABLE public.memberships (
   term_years integer NOT NULL DEFAULT 1 CHECK (term_years >= 1),
   privileges_snapshot text,
   CONSTRAINT memberships_pkey PRIMARY KEY (id),
+  CONSTRAINT memberships_assigned_session_id_fkey FOREIGN KEY (assigned_session_id) REFERENCES public.sessions(id),
   CONSTRAINT memberships_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
-  CONSTRAINT memberships_membership_type_id_fkey FOREIGN KEY (membership_type_id) REFERENCES public.membership_types(id),
-  CONSTRAINT memberships_assigned_session_id_fkey FOREIGN KEY (assigned_session_id) REFERENCES public.sessions(id)
+  CONSTRAINT memberships_membership_type_id_fkey FOREIGN KEY (membership_type_id) REFERENCES public.membership_types(id)
 );
 CREATE TABLE public.plan_payments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -333,8 +337,8 @@ CREATE TABLE public.room_apparatus (
   quantity integer NOT NULL CHECK (quantity >= 0),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT room_apparatus_pkey PRIMARY KEY (id),
-  CONSTRAINT room_apparatus_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
-  CONSTRAINT room_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+  CONSTRAINT room_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id),
+  CONSTRAINT room_apparatus_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id)
 );
 CREATE TABLE public.room_blocks (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -372,8 +376,8 @@ CREATE TABLE public.session_apparatus (
   apparatus_id uuid NOT NULL,
   quantity integer NOT NULL CHECK (quantity >= 0),
   CONSTRAINT session_apparatus_pkey PRIMARY KEY (session_id, apparatus_id),
-  CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id)
+  CONSTRAINT session_apparatus_apparatus_id_fkey FOREIGN KEY (apparatus_id) REFERENCES public.apparatus(id),
+  CONSTRAINT session_apparatus_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.session_evaluations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -410,11 +414,11 @@ CREATE TABLE public.session_evaluations (
   summary_global numeric NOT NULL,
   CONSTRAINT session_evaluations_pkey PRIMARY KEY (id),
   CONSTRAINT session_evaluations_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id),
-  CONSTRAINT session_evaluations_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT session_evaluations_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT session_evaluations_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
+  CONSTRAINT session_evaluations_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
   CONSTRAINT session_evaluations_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
-  CONSTRAINT session_evaluations_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id)
+  CONSTRAINT session_evaluations_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
+  CONSTRAINT session_evaluations_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.session_waitlist (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -426,8 +430,8 @@ CREATE TABLE public.session_waitlist (
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT session_waitlist_pkey PRIMARY KEY (id),
-  CONSTRAINT session_waitlist_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id),
-  CONSTRAINT session_waitlist_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id)
+  CONSTRAINT session_waitlist_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id),
+  CONSTRAINT session_waitlist_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.sessions(id)
 );
 CREATE TABLE public.sessions (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -442,9 +446,9 @@ CREATE TABLE public.sessions (
   course_id uuid,
   CONSTRAINT sessions_pkey PRIMARY KEY (id),
   CONSTRAINT sessions_class_type_id_fkey FOREIGN KEY (class_type_id) REFERENCES public.class_types(id),
-  CONSTRAINT sessions_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id),
+  CONSTRAINT sessions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
   CONSTRAINT sessions_instructor_id_fkey FOREIGN KEY (instructor_id) REFERENCES public.instructors(id),
-  CONSTRAINT sessions_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id)
+  CONSTRAINT sessions_room_id_fkey FOREIGN KEY (room_id) REFERENCES public.rooms(id)
 );
 CREATE TABLE public.staff (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -457,7 +461,6 @@ CREATE TABLE public.staff (
   last_login_at timestamp with time zone,
   role_id uuid NOT NULL,
   CONSTRAINT staff_pkey PRIMARY KEY (id),
-  CONSTRAINT staff_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id),
   CONSTRAINT staff_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.staff_roles(id)
 );
 CREATE TABLE public.staff_role_permissions (
@@ -465,8 +468,8 @@ CREATE TABLE public.staff_role_permissions (
   permission_id uuid NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT staff_role_permissions_pkey PRIMARY KEY (role_id, permission_id),
-  CONSTRAINT staff_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.staff_roles(id),
-  CONSTRAINT staff_role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.admin_permissions(id)
+  CONSTRAINT staff_role_permissions_permission_id_fkey FOREIGN KEY (permission_id) REFERENCES public.admin_permissions(id),
+  CONSTRAINT staff_role_permissions_role_id_fkey FOREIGN KEY (role_id) REFERENCES public.staff_roles(id)
 );
 CREATE TABLE public.staff_roles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
