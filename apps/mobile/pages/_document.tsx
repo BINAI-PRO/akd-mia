@@ -10,11 +10,11 @@ export default function Document() {
         <link rel="icon" type="image/png" href="/logo-icon-512.png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/logo-icon-1024.png" />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="AkdAcmia" />
-        <meta property="og:title" content="AkdAcmia - Tu app de membresA-as y reservas" />
+        <meta property="og:site_name" content="Akdēmia" />
+        <meta property="og:title" content="Akdēmia - Tu app de membresías y reservas" />
         <meta
           property="og:description"
-          content="Administra membresA-as, reservas y pagos de tu gimnasio desde tu app AkdAcmia."
+          content="Administra membresías, reservas y pagos de tu gimnasio desde tu app Akdēmia."
         />
         <meta property="og:image" content="https://akd-mia-user.vercel.app/logo-icon-512.png?v=2" />
         <meta property="og:image:width" content="512" />
